@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-labelledby="title">
+  <title id="title">Firelands Current mark</title>
+  <rect width="72" height="72" rx="13" fill="#173d4a"/>
+  <circle cx="52" cy="20" r="6" fill="#bc633e"/>
+  <path d="M18 53V19h26" fill="none" stroke="#f7f5ef" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18 35c7-4 13-4 20 0s13 4 20 0" fill="none" stroke="#f7f5ef" stroke-width="5" stroke-linecap="round"/>
+  <path d="M30 49c7-4 13-4 20 0s10 3 14 1" fill="none" stroke="#8bbbbb" stroke-width="4" stroke-linecap="round"/>
+</svg>

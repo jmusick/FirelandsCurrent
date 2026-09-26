@@ -1,0 +1,21 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { listThreads } from '../../lib/forum';
+
+const requestedPage = Number(Astro.url.searchParams.get('page') ?? 1);
+const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 10000 ? requestedPage : 1;
+const fetched = await listThreads(page - 1);
+const hasMore = fetched.length > 20;
+const threads = fetched.slice(0, 20);
+const user = Astro.locals.user;
+---
+<BaseLayout title="Talk of the Town" description="Local conversations from Sandusky and communities across the Firelands.">
+  <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
+    <div><span class="eyebrow">Community discussion</span><h1>Talk of the Town</h1><p class="lede">A place for neighbors to discuss what is happening across Sandusky and the surrounding region.</p></div>
+    <a class="button" href={user ? '/talk/new' : '/sign-in?next=/talk/new'}>Start a discussion</a>
+  </div>
+  <div style="border-top:3px solid #173d4a;margin-top:2rem">
+    {threads.length === 0 ? <div class="card" style="margin-top:1rem"><h2>The conversation starts here</h2><p class="muted">No discussions yet. Start the first one about something your neighbors should know or talk about.</p></div> : threads.map((thread) => <article style="padding:1.4rem 0;border-bottom:1px solid #c9d1cd"><h2 style="margin:.2rem 0"><a href={`/talk/${thread.id}`} style="text-decoration:none;color:inherit">{thread.title}</a></h2><p class="meta">Started by {thread.author_name} · {new Date(thread.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' })} · {thread.reply_count} {thread.reply_count === 1 ? 'reply' : 'replies'}</p><p class="muted" style="max-width:790px">{thread.body.length > 240 ? thread.body.slice(0, 240) + '…' : thread.body}</p></article>)}
+  </div>
+  {(page > 1 || hasMore) && <nav aria-label="Discussion pages" style="display:flex;justify-content:space-between;margin-top:1.5rem"><span>{page > 1 && <a href={page === 2 ? '/talk' : `/talk?page=${page - 1}`}>← Newer discussions</a>}</span><span>{hasMore && <a href={`/talk?page=${page + 1}`}>Older discussions →</a>}</span></nav>}
+</BaseLayout>

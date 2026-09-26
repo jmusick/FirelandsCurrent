@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "firelands-current",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-09-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": { "SITE_URL": "https://firelandscurrent.com" },
+  "assets": { "directory": "./dist", "binding": "ASSETS" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "firelands-current",
+      "database_id": "d0c7bf96-5f69-4736-b4e0-25bead1b60d3",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}

@@ -1,0 +1,30 @@
+---
+import { env } from 'cloudflare:workers';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { isModerator } from '../../lib/forum';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/sign-in?next=/moderation');
+if (!await isModerator(user.id)) return new Response('Forbidden', { status: 403 });
+type Report = { id: string; reason: string; created_at: number; thread_id: string | null; reply_id: string | null; reporter_name: string; item_text: string | null; item_status: string | null; discussion_id: string | null };
+const result = await env.DB.prepare(`
+  SELECT reports.id, reports.reason, reports.created_at, reports.thread_id, reports.reply_id,
+         reporter.name AS reporter_name,
+         COALESCE(threads.title, replies.body) AS item_text,
+         COALESCE(threads.status, replies.status) AS item_status,
+         COALESCE(threads.id, replies.thread_id) AS discussion_id
+  FROM forum_reports reports
+  JOIN "user" reporter ON reporter.id = reports.reporter_id
+  LEFT JOIN forum_threads threads ON threads.id = reports.thread_id
+  LEFT JOIN forum_replies replies ON replies.id = reports.reply_id
+  WHERE reports.status = 'open'
+  ORDER BY reports.created_at DESC
+  LIMIT 100
+`).all<Report>();
+---
+<BaseLayout title="Moderation">
+  <span class="eyebrow">Talk of the Town</span>
+  <h1>Moderation</h1>
+  <p class="lede">Review member reports. Hiding a discussion or reply removes it from public view.</p>
+  {result.results.length === 0 ? <div class="card"><h2>No open reports</h2><p class="muted">There is nothing to review right now.</p></div> : result.results.map((report) => <article class="card" style="margin-bottom:1rem"><p class="meta">Reported by {report.reporter_name} · {new Date(report.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p><h2 style="font-size:1.15rem">{report.thread_id ? 'Discussion' : 'Reply'}: {report.item_text?.slice(0, 160) ?? '[removed]'}</h2><p><strong>Reason:</strong> {report.reason}</p><p class="meta">Current status: {report.item_status ?? 'removed'}</p>{report.discussion_id && <p><a href={`/talk/${report.discussion_id}`}>View discussion</a></p>}<form method="post" action="/api/moderation/action" style="display:flex;gap:.6rem;flex-wrap:wrap"><input type="hidden" name="reportId" value={report.id} /><button class="button small" name="action" value="hide" type="submit">Hide content</button><button class="button secondary small" name="action" value="dismiss" type="submit">Dismiss report</button></form></article>)}
+</BaseLayout>

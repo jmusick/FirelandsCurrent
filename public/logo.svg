@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 830 96" role="img" aria-labelledby="title description">
+  <title id="title">Firelands Current</title>
+  <desc id="description">A wave-shaped F beside the Firelands Current masthead.</desc>
+  <rect x="0" y="0" width="88" height="88" rx="16" fill="#173d4a"/>
+  <circle cx="64" cy="24" r="7.3" fill="#bc633e"/>
+  <path d="M22 65V23h31" fill="none" stroke="#f7f5ef" stroke-width="7.3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M22 43c8.5-4.9 15.9-4.9 24.4 0s15.9 4.9 24.4 0" fill="none" stroke="#f7f5ef" stroke-width="6.1" stroke-linecap="round"/>
+  <path d="M36.7 60c8.5-4.9 15.9-4.9 24.4 0s12.2 3.7 17.1 1.2" fill="none" stroke="#8bbbbb" stroke-width="4.9" stroke-linecap="round"/>
+  <text x="113" y="65" fill="#173d4a" font-family="Georgia, 'Times New Roman', serif" font-size="63" font-weight="700" letter-spacing="-3">Firelands</text>
+  <text x="421" y="65" fill="#bc633e" font-family="Georgia, 'Times New Roman', serif" font-size="63" font-weight="700" letter-spacing="-3">Current</text>
+</svg>

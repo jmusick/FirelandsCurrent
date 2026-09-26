@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Home">
+  <section style="max-width:850px;padding:2.5rem 0 3rem;border-bottom:1px solid #c9d1cd">
+    <span class="eyebrow">A new local newspaper</span>
+    <h1>The region's stories belong here.</h1>
+    <p class="lede">Firelands Current is taking shape as an independent home for news and conversation centered on Sandusky and the communities around it.</p>
+    <a class="button" href="/talk">Visit Talk of the Town</a>
+  </section>
+  <section style="padding-top:2.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem">
+    <div class="card"><span class="eyebrow">Local reporting</span><h2>News with a local address</h2><p class="muted">Coverage will begin with Sandusky and extend across roughly 50 miles of the Firelands region.</p></div>
+    <div class="card"><span class="eyebrow">Community</span><h2>Talk of the Town</h2><p class="muted">Start a discussion, share what is happening, and hear from neighbors. A free account is needed to post.</p><a href="/talk">Browse discussions →</a></div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,25 @@
+{
+  "name": "firelands-current",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1 --port 4391",
+    "build": "astro build",
+    "preview": "astro preview --host 127.0.0.1 --port 4391",
+    "check": "astro check",
+    "cf:types": "wrangler types",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^14.3.3",
+    "astro": "^7.3.5",
+    "better-auth": "^1.7.6",
+    "jose": "^6.2.12"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.6.3",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.141.0"
+  }
+}

@@ -1,0 +1,55 @@
+---
+import { env } from 'cloudflare:workers';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { enabledProviders } from '../lib/auth';
+import { isModerator } from '../lib/forum';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/sign-in?next=/account');
+const linked = await env.DB.prepare('SELECT providerId FROM account WHERE userId = ? ORDER BY providerId')
+  .bind(user.id).all<{ providerId: string }>();
+const linkedProviders = new Set(linked.results.map((entry) => entry.providerId));
+const available = enabledProviders().filter((provider) => !linkedProviders.has(provider));
+const moderator = await isModerator(user.id);
+---
+<BaseLayout title="Your account">
+  <span class="eyebrow">Reader account</span>
+  <h1>Your account</h1>
+  <div class="card" style="max-width:650px">
+    <h2 style="margin-top:0">{user.name}</h2>
+    <p><strong>Email:</strong> {user.email}</p>
+    <p><strong>Firelands Current ID:</strong> <code style="overflow-wrap:anywhere">{user.id}</code></p>
+    <p><strong>Sign-in methods:</strong> {linked.results.map((entry) => entry.providerId === 'credential' ? 'Email and password' : entry.providerId).join(', ') || 'None'}</p>
+    {available.length > 0 && <div><p class="muted">Link another sign-in method to this same account:</p><div style="display:flex;gap:.6rem;flex-wrap:wrap">{available.map((provider) => <button class="button secondary small link-button" data-provider={provider} type="button">Link {provider}</button>)}</div></div>}
+    <p id="account-message" class="message" role="alert" hidden></p>
+    {linkedProviders.has('credential') && <details style="margin-top:1.3rem"><summary>Change password</summary><form id="password-form" class="form" style="margin-top:1rem"><label>Current password <input name="currentPassword" type="password" required autocomplete="current-password" /></label><label>New password <input name="newPassword" type="password" required minlength="12" autocomplete="new-password" /></label><button class="button small" type="submit">Update password</button></form></details>}
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.5rem"><a class="button secondary small" href="/talk">Talk of the Town</a>{moderator && <a class="button secondary small" href="/moderation">Moderation</a>}<button id="sign-out" class="button small" type="button">Sign out</button></div>
+  </div>
+  <script>
+    import { authClient } from '../lib/auth-client';
+    const message = document.querySelector<HTMLElement>('#account-message')!;
+    document.querySelector<HTMLButtonElement>('#sign-out')?.addEventListener('click', async () => {
+      const result = await authClient.signOut();
+      if (result.error) { message.textContent = result.error.message || 'Could not sign out.'; message.hidden = false; return; }
+      window.location.assign('/');
+    });
+    document.querySelectorAll<HTMLButtonElement>('.link-button').forEach((button) => button.addEventListener('click', async () => {
+      const provider = button.dataset.provider as 'google' | 'facebook' | 'apple';
+      const result = await authClient.linkSocial({ provider, callbackURL: '/account' });
+      if (result.error) { message.textContent = result.error.message || 'Could not link this sign-in method.'; message.hidden = false; }
+    }));
+    document.querySelector<HTMLFormElement>('#password-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget as HTMLFormElement;
+      const data = new FormData(form);
+      const result = await authClient.changePassword({
+        currentPassword: String(data.get('currentPassword') ?? ''),
+        newPassword: String(data.get('newPassword') ?? ''),
+        revokeOtherSessions: true,
+      });
+      message.textContent = result.error?.message || 'Password updated.';
+      message.hidden = false;
+      if (!result.error) form.reset();
+    });
+  </script>
+</BaseLayout>
