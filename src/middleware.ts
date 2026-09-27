@@ -2,6 +2,12 @@ import { defineMiddleware } from 'astro:middleware';
 import { createAuth } from './lib/auth';
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  if (context.url.hostname === 'www.firelandscurrent.com') {
+    const canonical = new URL(context.request.url);
+    canonical.hostname = 'firelandscurrent.com';
+    return Response.redirect(canonical, 308);
+  }
+
   context.locals.user = null;
   context.locals.session = null;
 
