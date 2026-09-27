@@ -14,6 +14,7 @@ An Astro and Cloudflare Workers foundation for an independent local newspaper ce
 - Media library for story and ad images, stored in R2, with credits, usage tracking and social-preview images
 - `/sitemap.xml` listing the main pages, news sections, published stories, and visible discussions, and a `/robots.txt` that points to it and keeps crawlers out of admin, account, business, and API routes
 - Google Analytics (GA4) on every page outside the admin panel, with the measurement ID set as `GA_MEASUREMENT_ID` in `wrangler.jsonc`; the tag loads only in production builds
+- Privacy Policy at `/privacy`, linked from the footer and the registration page. It describes exactly what the site collects (accounts, sessions, posts, Google Analytics, Cloudflare Web Analytics, ad counts), so update it whenever that changes
 - Admin panel at `/admin` (dashboard, News editor, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
 - D1 migrations for auth, forum, news, staff, user-management, and business records
 
@@ -116,3 +117,7 @@ The site follows [Semantic Versioning](https://semver.org/). The version in `pac
 Email/password signups do not yet verify email addresses, and password recovery by email is not wired up. Those require a transactional email sender and an approved sending domain. Social sign-in needs the provider credentials above. The forum is a functional local prototype; configure email verification and bot protection before opening registration to the public.
 
 Articles, the editorial CMS, newsletter, obituaries, jobs, and classifieds are separate later work.
+
+## License
+
+The source is published for transparency and security review, not as open source. You may read, run privately, and research it for non-commercial purposes; commercial use, public deployment, and redistribution need written permission from Stone Dragon Media, LLC. See [LICENSE.md](LICENSE.md).

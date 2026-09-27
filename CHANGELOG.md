@@ -2,6 +2,14 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.5.0] - 2026-09-27
+
+### Added
+
+- Privacy Policy at `/privacy`, describing what the site collects and shares: accounts, sign-in sessions, Talk of the Town posts, Google Analytics, Cloudflare Web Analytics, hosting logs, and ad counts. It's linked from the footer and the registration page and listed in the sitemap
+- Footer credit: Firelands Current is owned and operated by Stone Dragon Media, LLC, linked to stonedragonmedia.com
+- `LICENSE.md`: the source is published for transparency and security review; commercial use, public deployment, and redistribution need written permission from Stone Dragon Media, LLC
+
 ## [1.4.0] - 2026-09-27
 
 ### Added

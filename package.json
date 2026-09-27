@@ -1,7 +1,8 @@
 {
   "name": "firelands-current",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "scripts": {
     "dev": "astro dev --host 127.0.0.1 --port 4321",

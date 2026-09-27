@@ -6,7 +6,7 @@ type SitemapEntry = { path: string; lastmod?: number };
 // A single sitemap file holds at most 50,000 URLs; split into a sitemap index before content nears that.
 const MAX_URLS = 50000;
 
-const STATIC_PATHS = ['/', '/news', ...Object.keys(SECTIONS).map((s) => `/news?section=${s}`), '/talk', '/advertise'];
+const STATIC_PATHS = ['/', '/news', ...Object.keys(SECTIONS).map((s) => `/news?section=${s}`), '/talk', '/advertise', '/privacy'];
 
 export async function sitemapEntries(): Promise<SitemapEntry[]> {
   const [articles, threads] = await env.DB.batch<{ path: string; lastmod: number }>([

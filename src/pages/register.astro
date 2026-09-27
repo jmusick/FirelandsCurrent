@@ -14,6 +14,7 @@ if (Astro.locals.user) return Astro.redirect('/account');
     <button class="button" type="submit">Create account</button>
   </form>
   <p>Already registered? <a href="/sign-in">Sign in</a>.</p>
+  <p class="meta">See our <a href="/privacy">Privacy Policy</a> for how we handle your information.</p>
   <script>
     import { authClient } from '../lib/auth-client';
     const form = document.querySelector<HTMLFormElement>('#register-form')!;
