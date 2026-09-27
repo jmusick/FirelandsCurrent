@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.3.0] - 2026-09-27
+
+### Added
+
+- XML sitemap at `/sitemap.xml` for search engines such as Google Search Console: the front page, news and its sections, Talk of the Town, the advertising page, every published story, and every visible discussion, with last-updated dates for stories and discussions
+- `/robots.txt` pointing crawlers to the sitemap and keeping them out of the admin panel, account and business dashboard pages, the API, and ad click links
+
 ## [1.2.0] - 2026-09-27
 
 ### Added
