@@ -11,11 +11,12 @@ const ALL_STAFF: StaffRole[] = ['admin', 'editor', 'moderator'];
 
 // The admin panel's sections. Each new content area (classifieds, jobs, …) adds one entry here
 // and uses the same roles when gating its pages and endpoints.
-export type AdminSectionKey = 'dashboard' | 'news' | 'talk' | 'users' | 'businesses' | 'ads';
+export type AdminSectionKey = 'dashboard' | 'news' | 'media' | 'talk' | 'users' | 'businesses' | 'ads';
 
 export const ADMIN: Record<AdminSectionKey, AdminSection> = {
   dashboard: { href: '/admin', label: 'Dashboard', roles: ALL_STAFF },
   news: { href: '/admin/news', label: 'News', roles: ['admin', 'editor'] },
+  media: { href: '/admin/media', label: 'Media', roles: ['admin', 'editor'] },
   talk: { href: '/admin/talk', label: 'Talk of the Town', roles: ['admin', 'moderator'] },
   users: { href: '/admin/users', label: 'Users', roles: ['admin'] },
   businesses: { href: '/admin/businesses', label: 'Businesses', roles: ['admin'] },

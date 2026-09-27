@@ -1,0 +1,46 @@
+---
+import { X } from '@lucide/astro';
+import MediaUploadForm from './MediaUploadForm.astro';
+
+// One dialog per page, opened from scripts with openMediaPicker() in src/scripts/media-picker.ts.
+// Render it outside any other <form>: the upload tab is a form of its own.
+---
+<dialog id="media-picker" class="picker" aria-labelledby="media-picker-title">
+  <div class="picker-head">
+    <h2 id="media-picker-title">Choose an image</h2>
+    <button type="button" class="close" data-close aria-label="Close"><X /></button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="library" aria-selected="true">Media library</button>
+    <button type="button" role="tab" data-tab="upload" aria-selected="false">Upload new</button>
+  </div>
+  <section data-panel="library" class="panel">
+    <input type="search" class="search" placeholder="Search file name, caption or credit…" aria-label="Search the media library" />
+    <div class="grid" aria-live="polite"></div>
+    <p class="muted empty" hidden>No images yet. Upload one to get started.</p>
+    <button type="button" class="button secondary small more" hidden>Load more</button>
+  </section>
+  <section data-panel="upload" class="panel" hidden>
+    <MediaUploadForm submitLabel="Upload and use" />
+  </section>
+</dialog>
+
+<style>
+  .picker { width: min(900px, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); padding: 0; border: 1px solid #c9d1cd; border-radius: 6px; background: #f7f5ef; color: #172f36; }
+  .picker::backdrop { background: rgb(23 47 54 / .55); }
+  .picker-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem .5rem; }
+  .picker-head h2 { margin: 0; font-size: 1.25rem; }
+  .close { border: 0; background: none; color: #173d4a; padding: .3rem; display: inline-flex; }
+  .tabs { display: flex; gap: .25rem; padding: 0 1.25rem; border-bottom: 1px solid #c9d1cd; }
+  .tabs button { border: 0; background: none; padding: .6rem .9rem; font-weight: 700; color: #62767a; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+  .tabs button[aria-selected='true'] { color: #173d4a; border-bottom-color: #ad5835; }
+  .panel { padding: 1rem 1.25rem 1.25rem; }
+  .search { width: 100%; padding: .6rem .75rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; margin-bottom: 1rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .75rem; }
+  .grid :global(button) { display: grid; gap: .3rem; text-align: left; padding: .4rem; border: 1px solid #d9dfda; border-radius: 4px; background: #fffdfa; color: inherit; font-size: .78rem; min-width: 0; }
+  .grid :global(button:hover), .grid :global(button:focus-visible) { border-color: #173d4a; outline: 2px solid #61a9b6; }
+  .grid :global(img) { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #ecf0ec; border-radius: 2px; }
+  .grid :global(.name) { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grid :global(.dims) { color: #687a7d; }
+  .more { margin-top: 1rem; }
+</style>

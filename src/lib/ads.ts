@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { signEvent, statDay } from './ad-tracking';
+import { mediaUrl } from './media';
 import { SECTIONS, type Section } from './news';
 
 // Ad inventory. Each placement is a spot the paper sells; pages ask for ads by placement
@@ -124,7 +125,7 @@ const parseList = <T extends string>(json: string, valid: (v: string) => v is T)
 };
 const isSectionKey = (v: string): v is Section => Object.hasOwn(SECTIONS, v);
 
-export const mediaUrl = (key: string) => `/media/${key}`;
+export { mediaUrl };
 
 export function adFromRow(row: AdRow, images: AdImageRow[]): Ad {
   return {

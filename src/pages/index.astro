@@ -1,14 +1,16 @@
 ---
 import AdSlot from '../components/AdSlot.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { SECTIONS, listArticles } from '../lib/news';
+import { SECTIONS, leadMedia, listArticles } from '../lib/news';
 
 const [lead, ...rest] = await listArticles(0, undefined, 5);
 const more = rest.slice(0, 4);
+const leadImage = lead ? leadMedia(lead) : null;
 ---
 <BaseLayout title="Home">
   {lead ? <section class="front">
     <article style="min-width:0;max-width:760px">
+      {leadImage && <a class="front-image" href={`/news/${lead.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${leadImage.object_key}`} alt="" width={leadImage.width} height={leadImage.height} fetchpriority="high" /></a>}
       <span class="eyebrow">{SECTIONS[lead.section]} · {lead.community}</span>
       <h1 style="margin-top:.4rem"><a href={`/news/${lead.slug}`} style="text-decoration:none;color:inherit">{lead.headline}</a></h1>
       <p class="lede" style="margin-top:0">{lead.summary}</p>
@@ -34,6 +36,7 @@ const more = rest.slice(0, 4);
 
 <style>
   .front { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 2.5rem; padding-bottom: 2.5rem; border-bottom: 1px solid #c9d1cd; }
+  .front-image img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; background: #ecf0ec; margin-bottom: 1.1rem; }
   .home-billboard { padding: 2rem 0 0; }
   :global(.home-rail) { margin-top: 1.5rem; }
   @media (max-width: 800px) { .front { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; } }

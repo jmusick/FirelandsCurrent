@@ -5,7 +5,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
 import AdForm from '../../../components/AdForm.astro';
 import AdStats from '../../../components/AdStats.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
-import { STATE_LABELS, adAudit, adAuditLog, adBinds, applyImages, deleteMedia, describeAdChanges, describeRun, fmtDay, fmtNum, getAd, getStats, rangeFrom, validateAdForm, valuesFromRecord, type RangeDays } from '../../../lib/ads-admin';
+import { STATE_LABELS, adAudit, adAuditLog, adBinds, applyImages, describeAdChanges, describeRun, fmtDay, fmtNum, getAd, getStats, libraryForAdSizes, rangeFrom, validateAdForm, valuesFromRecord, type RangeDays } from '../../../lib/ads-admin';
 import { businessOptions } from '../../../lib/businesses';
 import { sameOrigin } from '../../../lib/forum';
 import { AUDIT_LABELS, fmtDateTime } from '../../../lib/users';
@@ -17,7 +17,7 @@ const found = await getAd(Astro.params.id ?? '');
 if (!found) return new Response('Ad not found', { status: 404 });
 const { record, images } = found;
 
-const active = await businessOptions();
+const [active, library] = await Promise.all([businessOptions(), libraryForAdSizes()]);
 // Keep the ad's current business in the picker even if it has since been archived.
 const businesses = active.some((b) => b.id === record.business_id) ? active : [...active, { id: record.business_id, name: `${record.business_name} (archived)` }];
 
@@ -29,9 +29,9 @@ if (Astro.request.method === 'POST') {
   if (result.ok) {
     const v = result.values;
     const names = Object.fromEntries(businesses.map((b) => [b.id, b.name]));
-    const changes = [describeAdChanges(values, v, names), ...result.uploads.map((u) => `New ${u.size} image`), ...result.removals.map((s) => `Removed ${s} image`)].filter(Boolean).join('; ');
+    const changes = [describeAdChanges(values, v, names), ...result.choices.map((c) => `New ${c.size} image`), ...result.removals.map((s) => `Removed ${s} image`)].filter(Boolean).join('; ');
     if (!changes) return Astro.redirect(`/admin/ads/${record.id}?notice=unchanged`, 303);
-    const { statements, staleKeys } = await applyImages(record.id, result.uploads, result.removals, images);
+    const statements = await applyImages({ id: record.id, name: v.name }, { name: names[v.business_id] }, result.choices, result.removals, Astro.locals.user!);
     await env.DB.batch([
       env.DB.prepare(`
         UPDATE ads SET business_id = ?, name = ?, status = ?, headline = ?, body = ?, cta = ?, href = ?, theme_bg = ?, theme_fg = ?, theme_accent = ?,
@@ -41,7 +41,6 @@ if (Astro.request.method === 'POST') {
       ...statements,
       adAudit(Astro.locals.user!, { id: record.id, name: v.name }, { id: v.business_id, name: names[v.business_id] }, 'ad-update', changes),
     ]);
-    await deleteMedia(staleKeys);
     return Astro.redirect(`/admin/ads/${record.id}?notice=saved`, 303);
   }
   ({ values, errors } = result);
@@ -103,7 +102,7 @@ const STATE_NOTES: Partial<Record<typeof record.state, string>> = {
 
   <section id="edit" class="block">
     <h2><Pencil />Edit ad</h2>
-    <AdForm values={values} errors={errors} businesses={businesses} images={images} submitLabel="Save ad" />
+    <AdForm values={values} errors={errors} businesses={businesses} images={images} library={library} submitLabel="Save ad" />
   </section>
 
   <div class="bottom">
@@ -115,7 +114,7 @@ const STATE_NOTES: Partial<Record<typeof record.state, string>> = {
     </section>
     <section class="card danger">
       <h2><Trash />Delete ad</h2>
-      <p class="meta">Deleting removes the ad, its images and all of its stats, including from the client’s dashboard. To stop an ad but keep its record, pause it instead.</p>
+      <p class="meta">Deleting removes the ad and all of its stats, including from the client’s dashboard. Its banner images stay in the media library. To stop an ad but keep its record, pause it instead.</p>
       <details>
         <summary>Delete permanently</summary>
         <form class="form" method="post" action="/api/admin/ads" style="margin-top:.8rem">

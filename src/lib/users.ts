@@ -39,12 +39,14 @@ export type AuditEntry = {
   actor_name: string;
   target_user_id: string | null;
   target_business_id: string | null;
+  target_media_id: string | null;
   target_label: string;
   action: string;
   detail: string | null;
   created_at: number;
   user_exists?: number;
   business_exists?: number;
+  media_exists?: number;
 };
 
 export type UserDetail = {
@@ -181,10 +183,11 @@ export async function getUserDetail(id: string): Promise<UserDetail | null> {
 
 export async function listAudit(limit = 100): Promise<AuditEntry[]> {
   const result = await env.DB.prepare(`
-    SELECT l.*, u.id IS NOT NULL AS user_exists, b.id IS NOT NULL AS business_exists
+    SELECT l.*, u.id IS NOT NULL AS user_exists, b.id IS NOT NULL AS business_exists, m.id IS NOT NULL AS media_exists
     FROM admin_audit_log l
     LEFT JOIN "user" u ON u.id = l.target_user_id
     LEFT JOIN businesses b ON b.id = l.target_business_id
+    LEFT JOIN media m ON m.id = l.target_media_id
     ORDER BY l.created_at DESC, l.rowid DESC LIMIT ?
   `).bind(limit).all<AuditEntry>();
   return result.results;
@@ -253,6 +256,9 @@ export const AUDIT_LABELS: Record<string, string> = {
   'ad-activate': 'Activated ad',
   'ad-pause': 'Paused ad',
   'ad-delete': 'Deleted ad',
+  'media-upload': 'Uploaded image',
+  'media-update': 'Edited image details',
+  'media-delete': 'Deleted image',
 };
 
 /** Short, readable description of a browser user-agent string. */

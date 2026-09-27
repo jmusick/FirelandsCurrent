@@ -5,9 +5,13 @@ import { pageTakesAds } from '../lib/ads';
 interface Props {
   title: string;
   description?: string;
+  /** Shown when the page is shared on social media, e.g. a story's lead image. */
+  image?: { url: string; width: number; height: number; alt: string } | null;
+  type?: 'website' | 'article';
 }
 
-const { title, description = 'Independent local news and conversation for Sandusky and the Firelands.' } = Astro.props;
+const { title, description = 'Independent local news and conversation for Sandusky and the Firelands.', image, type = 'website' } = Astro.props;
+const pageUrl = new URL(Astro.url.pathname, Astro.url.origin).href;
 const user = Astro.locals.user;
 const staffRole = Astro.locals.staffRole;
 const showAds = pageTakesAds(Astro.url.pathname);
@@ -18,6 +22,18 @@ const showAds = pageTakesAds(Astro.url.pathname);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    <meta property="og:site_name" content="Firelands Current" />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={pageUrl} />
+    {image && <>
+      <meta property="og:image" content={new URL(image.url, Astro.url.origin).href} />
+      <meta property="og:image:width" content={String(image.width)} />
+      <meta property="og:image:height" content={String(image.height)} />
+      {image.alt && <meta property="og:image:alt" content={image.alt} />}
+    </>}
+    <meta name="twitter:card" content={image ? 'summary_large_image' : 'summary'} />
     <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
     <title>{title} | Firelands Current</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

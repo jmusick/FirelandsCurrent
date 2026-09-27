@@ -1,5 +1,7 @@
 ---
-import { Save, Trash } from '@lucide/astro';
+import { ImagePlus, Save, Trash, X } from '@lucide/astro';
+import MediaPicker from './MediaPicker.astro';
+import { getMedia, mediaUrl } from '../lib/media';
 import { SECTIONS } from '../lib/news';
 import type { ArticleFormValues } from '../lib/news-admin';
 
@@ -13,6 +15,7 @@ interface Props {
 }
 
 const { values, errors, saved = false, articleId, liveUrl, canDelete = false } = Astro.props;
+const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
 ---
 {errors.length > 0 && <div class="message" role="alert"><strong>Couldn’t save the story.</strong><ul>{errors.map((e) => <li>{e}</li>)}</ul></div>}
 {saved && <p class="message saved" role="status">Story saved.{liveUrl && <> <a href={liveUrl}>View it on the site →</a></>}</p>}
@@ -31,7 +34,19 @@ const { values, errors, saved = false, articleId, liveUrl, canDelete = false } =
     <label>Community <input name="community" value={values.community} required maxlength="60" placeholder="Sandusky" /></label>
     <label>Byline <input name="byline" value={values.byline} required maxlength="80" /></label>
   </div>
-  <label>Story <span class="hint">Markdown: blank line between paragraphs, ## for subheads, &gt; for pull quotes.</span><textarea id="body" name="body" style="min-height:420px">{values.body}</textarea></label>
+  <div class="lead-field">
+    <span class="field-label">Lead image <span class="hint">Shown above the story, with it on the front page and in story lists, and in link previews on social media.</span></span>
+    <input type="hidden" name="lead_media_id" id="lead-media-id" value={lead ? lead.id : ''} />
+    <div class="lead-preview" id="lead-preview" hidden={!lead}>
+      <img id="lead-img" src={lead ? mediaUrl(lead.object_key) : undefined} alt="" />
+      <div><strong id="lead-name">{lead?.filename}</strong><span class="meta" id="lead-credit">{lead?.credit}</span></div>
+    </div>
+    <div class="lead-actions">
+      <button type="button" class="button secondary small" id="lead-choose"><ImagePlus /><span>{lead ? 'Change lead image' : 'Choose lead image'}</span></button>
+      <button type="button" class="button secondary small" id="lead-remove" hidden={!lead}><X />Remove</button>
+    </div>
+  </div>
+  <label>Story <span class="hint">Markdown: blank line between paragraphs, ## for subheads, &gt; for pull quotes. Add images with the picture button, or drag or paste one in; an image on its own line shows with its caption and credit.</span><textarea id="body" name="body" style="min-height:420px">{values.body}</textarea></label>
   <div class="actions">
     <label class="status">Status
       <select name="status">
@@ -43,51 +58,109 @@ const { values, errors, saved = false, articleId, liveUrl, canDelete = false } =
   </div>
 </form>
 
+<MediaPicker />
+
 {canDelete && articleId && <section class="card danger">
   <h2><Trash />Delete story</h2>
-  <p class="muted">Removes the story permanently. To take it off the site but keep it, set it to Draft instead.</p>
+  <p class="muted">Removes the story permanently. To take it off the site but keep it, set it to Draft instead. Its images stay in the media library.</p>
   <form method="post" action="/api/admin/news/delete" id="delete-form"><input type="hidden" name="id" value={articleId} /><button class="button secondary small" type="submit"><Trash />Delete permanently</button></form>
 </section>}
 
 <script is:inline src="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.js"></script>
-<script is:inline>
-  (function () {
-    var headline = document.getElementById('headline');
-    var slug = document.getElementById('slug');
-    var preview = document.getElementById('slug-preview');
-    var toSlug = function (v) { return v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120); };
-    var slugTouched = slug.value !== '';
-    slug.addEventListener('input', function () { slugTouched = true; preview.textContent = slug.value || '…'; });
-    headline.addEventListener('input', function () {
-      if (slugTouched) return;
-      slug.value = toSlug(headline.value);
-      preview.textContent = slug.value || '…';
-    });
+<script>
+  import { imageMarkdown } from '../scripts/media-client';
+  import { openMediaPicker } from '../scripts/media-picker';
 
-    var body = document.getElementById('body');
-    var dirty = false;
-    var form = document.getElementById('story-form');
-    form.addEventListener('input', function () { dirty = true; });
-    if (typeof EasyMDE !== 'undefined') {
-      var editor = new EasyMDE({
-        element: body,
-        spellChecker: false,
-        autosave: { enabled: false },
-        status: ['words'],
-        minHeight: '380px',
-        toolbar: ['bold', 'italic', 'heading-2', 'heading-3', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link', 'image', '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
-      });
-      editor.codemirror.on('change', function () { dirty = true; });
-      form.addEventListener('submit', function () { body.value = editor.value(); });
-    }
-    form.addEventListener('submit', function () { dirty = false; });
-    window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+  // EasyMDE comes from the CDN script above; this module runs after it.
+  declare const EasyMDE: any;
+  type CodeMirror = any;
 
-    var del = document.getElementById('delete-form');
-    if (del) del.addEventListener('submit', function (e) {
-      if (!confirm('Delete this story permanently? This cannot be undone.')) e.preventDefault();
+  const headline = document.getElementById('headline') as HTMLInputElement;
+  const slug = document.getElementById('slug') as HTMLInputElement;
+  const slugPreview = document.getElementById('slug-preview')!;
+  const toSlug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120);
+  let slugTouched = slug.value !== '';
+  slug.addEventListener('input', () => { slugTouched = true; slugPreview.textContent = slug.value || '…'; });
+  headline.addEventListener('input', () => {
+    if (slugTouched) return;
+    slug.value = toSlug(headline.value);
+    slugPreview.textContent = slug.value || '…';
+  });
+
+  const form = document.getElementById('story-form') as HTMLFormElement;
+  const body = document.getElementById('body') as HTMLTextAreaElement;
+  let dirty = false;
+  form.addEventListener('input', () => { dirty = true; });
+
+  // Lead image
+  const leadId = document.getElementById('lead-media-id') as HTMLInputElement;
+  const leadPreview = document.getElementById('lead-preview')!;
+  const leadImg = document.getElementById('lead-img') as HTMLImageElement;
+  const leadChoose = document.getElementById('lead-choose')!;
+  const leadRemove = document.getElementById('lead-remove')!;
+  const setLead = (item: { id: string; url: string; filename: string; credit: string } | null) => {
+    leadId.value = item?.id ?? '';
+    if (item) leadImg.src = item.url; else leadImg.removeAttribute('src');
+    document.getElementById('lead-name')!.textContent = item?.filename ?? '';
+    document.getElementById('lead-credit')!.textContent = item?.credit ?? '';
+    leadPreview.hidden = !item;
+    leadRemove.hidden = !item;
+    leadChoose.querySelector('span')!.textContent = item ? 'Change lead image' : 'Choose lead image';
+    dirty = true;
+  };
+  leadChoose.addEventListener('click', async () => {
+    const item = await openMediaPicker({ title: 'Choose a lead image' });
+    if (item) setLead(item);
+  });
+  leadRemove.addEventListener('click', () => setLead(null));
+
+  // Inline images go on a line of their own so they render as captioned figures.
+  async function insertImage(cm: CodeMirror, file?: File) {
+    const item = await openMediaPicker({ title: 'Insert an image', file });
+    if (!item) return;
+    const doc = cm.getDoc();
+    const at = doc.getCursor().line;
+    const line = doc.getLine(at) as string;
+    const next = doc.getLine(at + 1) as string | undefined;
+    doc.replaceSelection(`${line.trim() ? '\n\n' : ''}${imageMarkdown(item)}${next === undefined || next.trim() ? '\n\n' : ''}`);
+    cm.focus();
+  }
+
+  if (typeof EasyMDE !== 'undefined') {
+    const editor = new EasyMDE({
+      element: body,
+      spellChecker: false,
+      autosave: { enabled: false },
+      status: ['words'],
+      minHeight: '380px',
+      toolbar: ['bold', 'italic', 'heading-2', 'heading-3', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link',
+        { name: 'image', action: (e: { codemirror: CodeMirror }) => insertImage(e.codemirror), className: 'fa fa-picture-o', title: 'Insert image' },
+        '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
     });
-  })();
+    const cm = editor.codemirror;
+    cm.on('change', () => { dirty = true; });
+    const imageIn = (files?: FileList | null) => [...(files ?? [])].find((f) => f.type.startsWith('image/'));
+    cm.on('drop', (_: CodeMirror, event: DragEvent) => {
+      const file = imageIn(event.dataTransfer?.files);
+      if (!file) return;
+      event.preventDefault();
+      cm.setCursor(cm.coordsChar({ left: event.clientX, top: event.clientY }));
+      insertImage(cm, file);
+    });
+    cm.on('paste', (_: CodeMirror, event: ClipboardEvent) => {
+      const file = imageIn(event.clipboardData?.files);
+      if (!file) return;
+      event.preventDefault();
+      insertImage(cm, file);
+    });
+    form.addEventListener('submit', () => { body.value = editor.value(); });
+  }
+  form.addEventListener('submit', () => { dirty = false; });
+  window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
+
+  document.getElementById('delete-form')?.addEventListener('submit', (e) => {
+    if (!confirm('Delete this story permanently? This cannot be undone.')) e.preventDefault();
+  });
 </script>
 
 <style>
@@ -95,6 +168,14 @@ const { values, errors, saved = false, articleId, liveUrl, canDelete = false } =
   .hint { font-weight: 400; color: #687a7d; font-size: .82rem; }
   .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
   .form :global(select) { width: 100%; padding: .8rem .85rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .lead-field { display: grid; gap: .5rem; }
+  .field-label { font-weight: 700; font-size: .9rem; }
+  .lead-preview { display: flex; gap: .9rem; align-items: center; padding: .6rem; border: 1px solid #d9dfda; border-radius: 4px; background: #fffdfa; }
+  .lead-preview[hidden] { display: none; }
+  .lead-preview img { width: 160px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 2px; background: #ecf0ec; }
+  .lead-preview div { display: grid; gap: .2rem; min-width: 0; overflow-wrap: anywhere; }
+  .lead-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .lead-actions [hidden] { display: none; }
   .actions { display: flex; justify-content: space-between; align-items: end; gap: 1rem; padding-top: 1rem; border-top: 1px solid #c9d1cd; }
   .status { max-width: 220px; }
   .message ul { margin: .4rem 0 0; padding-left: 1.2rem; }
@@ -104,5 +185,6 @@ const { values, errors, saved = false, articleId, liveUrl, canDelete = false } =
   :global(.EasyMDEContainer .CodeMirror) { border-color: #9eb0ae; font-family: 'DM Sans', sans-serif; font-size: 1rem; line-height: 1.7; }
   :global(.editor-toolbar) { border-color: #9eb0ae; background: #fffdfa; opacity: 1; }
   :global(.editor-preview), :global(.editor-preview-side) { background: #fffdfa; line-height: 1.8; }
+  :global(.editor-preview img), :global(.editor-preview-side img) { max-width: 100%; height: auto; }
   @media (max-width: 700px) { .row { grid-template-columns: minmax(0, 1fr); } }
 </style>

@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { ADMIN, canAccess } from '../../../lib/admin';
-import { adAudit, deleteMedia, getAd } from '../../../lib/ads-admin';
+import { adAudit, getAd } from '../../../lib/ads-admin';
 import { cleanText, sameOrigin } from '../../../lib/forum';
 
 // Creating and editing an ad happens on its admin pages, which can redisplay the form with errors.
@@ -15,7 +15,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const action = cleanText(form.get('action'));
   const found = await getAd(cleanText(form.get('adId')));
   if (!found) return new Response('Ad not found', { status: 404 });
-  const { record, images } = found;
+  const { record } = found;
   const ad = { id: record.id, name: record.name };
   const business = { id: record.business_id, name: record.business_name };
   const back = (params: Record<string, string>) => {
@@ -43,7 +43,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
         adAudit(actor, ad, business, 'ad-delete', record.impressions ? `${record.impressions.toLocaleString('en-US')} impressions, ${record.clicks.toLocaleString('en-US')} clicks` : undefined),
         env.DB.prepare('DELETE FROM ads WHERE id = ?').bind(record.id),
       ]);
-      await deleteMedia(images.map((i) => i.object_key));
       const url = new URL('/admin/ads', request.url);
       url.searchParams.set('deleted', record.name);
       return Response.redirect(url, 303);

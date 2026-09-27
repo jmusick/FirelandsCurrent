@@ -29,7 +29,14 @@ const pageHref = (n: number) => {
     {Object.entries(SECTIONS).map(([key, label]) => <a class={section === key ? 'button small' : 'button secondary small'} href={`/news?section=${key}`}>{label}</a>)}
   </nav>
   <div style="border-top:3px solid #173d4a;margin-top:1.5rem">
-    {articles.length === 0 ? <div class="card" style="margin-top:1rem"><h2>No stories yet</h2><p class="muted">Check back soon for reporting from around the region.</p></div> : articles.map((article, i) => <><article style="padding:1.4rem 0;border-bottom:1px solid #c9d1cd"><span class="eyebrow">{SECTIONS[article.section]} · {article.community}</span><h2 style="margin:.35rem 0"><a href={`/news/${article.slug}`} style="text-decoration:none;color:inherit">{article.headline}</a></h2><p class="muted" style="max-width:790px;margin:.4rem 0">{article.summary}</p><p class="meta">By {article.byline} · {new Date(article.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p></article>{adAfter.has(i + 1) && <AdSlot placement="news-feed" />}</>)}
+    {articles.length === 0 ? <div class="card" style="margin-top:1rem"><h2>No stories yet</h2><p class="muted">Check back soon for reporting from around the region.</p></div> : articles.map((article, i) => <><article class="item"><div class="text"><span class="eyebrow">{SECTIONS[article.section]} · {article.community}</span><h2 style="margin:.35rem 0"><a href={`/news/${article.slug}`} style="text-decoration:none;color:inherit">{article.headline}</a></h2><p class="muted" style="max-width:790px;margin:.4rem 0">{article.summary}</p><p class="meta">By {article.byline} · {new Date(article.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p></div>{article.lead_key && <a class="thumb" href={`/news/${article.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${article.lead_key}`} alt="" width={article.lead_width!} height={article.lead_height!} loading="lazy" /></a>}</article>{adAfter.has(i + 1) && <AdSlot placement="news-feed" />}</>)}
   </div>
   {(page > 1 || hasMore) && <nav aria-label="News pages" style="display:flex;justify-content:space-between;margin-top:1.5rem"><span>{page > 1 && <a href={pageHref(page - 1)}>← Newer stories</a>}</span><span>{hasMore && <a href={pageHref(page + 1)}>Older stories →</a>}</span></nav>}
 </BaseLayout>
+
+<style>
+  .item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.5rem; align-items: start; padding: 1.4rem 0; border-bottom: 1px solid #c9d1cd; }
+  .text { min-width: 0; }
+  .thumb img { display: block; width: 220px; aspect-ratio: 3 / 2; height: auto; object-fit: cover; border-radius: 4px; background: #ecf0ec; margin-top: .3rem; }
+  @media (max-width: 640px) { .thumb img { width: 110px; } .item { gap: 1rem; } }
+</style>

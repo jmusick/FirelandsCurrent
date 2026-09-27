@@ -1,0 +1,76 @@
+---
+import { Upload } from '@lucide/astro';
+
+// Uploads through /api/admin/media with fetch, then fires a bubbling `media-uploaded` event carrying the
+// new item. The page decides what happens next: the library opens the item, the picker places it.
+interface Props {
+  submitLabel?: string;
+}
+
+const { submitLabel = 'Upload' } = Astro.props;
+---
+<form class="form media-upload" data-media-upload novalidate>
+  <div class="drop">
+    <img class="upload-preview" alt="" hidden />
+    <label>Image <span class="hint">PNG, JPEG, GIF or WebP. Photos are resized to 2,000 pixels and their location data removed before upload.</span>
+      <input type="file" name="file" accept="image/png,image/jpeg,image/gif,image/webp" required />
+    </label>
+  </div>
+  <label>Credit <span class="hint">Required. Shown with the image, e.g. “Photo by Jane Doe” or “Courtesy of Huron County Dog Warden”.</span><input name="credit" required minlength="2" maxlength="120" /></label>
+  <label>Alt text <span class="hint">Describe what’s in the image for readers who can’t see it.</span><input name="alt" maxlength="300" /></label>
+  <label>Caption <span class="hint">Optional. Shown under the image in stories.</span><textarea name="caption" maxlength="500" style="min-height:70px"></textarea></label>
+  <label>Source &amp; permission <span class="hint">Staff only. Where it came from and who said we could use it.</span><textarea name="source" maxlength="1000" style="min-height:70px"></textarea></label>
+  <p class="message upload-error" role="alert" hidden></p>
+  <div><button class="button" type="submit"><Upload />{submitLabel}</button></div>
+</form>
+
+<script>
+  import { uploadImage } from '../scripts/media-client';
+
+  for (const form of document.querySelectorAll<HTMLFormElement>('form[data-media-upload]')) {
+    const input = form.querySelector<HTMLInputElement>('input[type=file]')!;
+    const preview = form.querySelector<HTMLImageElement>('.upload-preview')!;
+    const error = form.querySelector<HTMLElement>('.upload-error')!;
+    const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    const showError = (text: string) => { error.textContent = text; error.hidden = !text; };
+
+    input.addEventListener('change', () => {
+      if (preview.src) URL.revokeObjectURL(preview.src);
+      const file = input.files?.[0];
+      preview.hidden = !file;
+      if (file) preview.src = URL.createObjectURL(file);
+      showError('');
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const file = input.files?.[0];
+      const field = (name: string) => (form.elements.namedItem(name) as HTMLInputElement).value.trim();
+      if (!file) return showError('Choose an image to upload.');
+      if (field('credit').length < 2) return showError('Add a credit: who made the image, or who supplied it.');
+      showError('');
+      button.disabled = true;
+      button.lastChild!.textContent = 'Uploading…';
+      try {
+        const item = await uploadImage(file, { alt: field('alt'), caption: field('caption'), credit: field('credit'), source: field('source') });
+        form.reset();
+        input.dispatchEvent(new Event('change'));
+        form.dispatchEvent(new CustomEvent('media-uploaded', { detail: item, bubbles: true }));
+      } catch (e) {
+        showError(e instanceof Error ? e.message : 'The upload failed. Try again.');
+      } finally {
+        button.disabled = false;
+        button.lastChild!.textContent = button.dataset.label ?? '';
+      }
+    });
+    button.dataset.label = button.lastChild!.textContent ?? '';
+  }
+</script>
+
+<style>
+  .media-upload { gap: .9rem; }
+  .drop { display: grid; gap: .6rem; }
+  .upload-preview { max-width: 100%; max-height: 220px; object-fit: contain; object-position: left; border: 1px solid #d9dfda; background: #fff; }
+  .hint { font-weight: 400; color: #687a7d; font-size: .8rem; }
+  .media-upload input[type='file'] { padding: .5rem; }
+</style>

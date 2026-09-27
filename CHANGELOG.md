@@ -2,6 +2,28 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.2.0] - 2026-09-27
+
+### Added
+
+- Media library at `/admin/media` for administrators and editors: every story and ad image, with a required credit, alt text, caption, and a staff-only source and permission note
+- Upload images from the library or from the story editor's picture button; dragging or pasting an image into a story opens the same credited upload form
+- Photos are resized to at most 2,000 pixels and re-saved in the browser before upload, which removes location data from phone photos
+- Lead images for stories, shown above the story, on the front page, in the news list, and as the social media preview image
+- Social media preview tags (Open Graph and Twitter cards) on every page
+- Each image's page lists the stories and ads that use it; images in use can't be deleted
+- Media uploads, edits, and deletions appear in the admin audit log
+- D1 migration 0008, which moves existing ad banners into the library
+
+### Changed
+
+- Story images on a line of their own show as figures with caption and credit; stories only show library images, and images linked from other sites show as their alt text
+- Ad banner sizes take a new upload credited to the advertiser, or an existing library image of the right size
+
+### Fixed
+
+- Readers stay signed in while they keep visiting: the refreshed session cookie now reaches the browser, instead of every sign-in expiring seven days after it began
+
 ## [1.1.0] - 2026-09-27
 
 ### Added

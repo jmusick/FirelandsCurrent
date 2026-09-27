@@ -1,7 +1,7 @@
 ---
 import AdCreative from './AdCreative.astro';
 import { FORMAT_SIZES, IMAGE_SIZES, PLACEMENTS, mediaUrl, type Ad, type AdImageRow, type ImageSize } from '../lib/ads';
-import { STATUS_LABELS, type AdFormValues } from '../lib/ads-admin';
+import { STATUS_LABELS, type AdFormValues, type libraryForAdSizes } from '../lib/ads-admin';
 import { SECTIONS } from '../lib/news';
 
 interface Props {
@@ -9,10 +9,12 @@ interface Props {
   errors: string[];
   businesses: { id: string; name: string }[];
   images?: AdImageRow[];
+  /** Library images that fit each banner size. */
+  library?: Awaited<ReturnType<typeof libraryForAdSizes>>;
   submitLabel: string;
 }
 
-const { values, errors, businesses, images = [], submitLabel } = Astro.props;
+const { values, errors, businesses, images = [], library, submitLabel } = Astro.props;
 const current = Object.fromEntries(images.map((i) => [i.size, i])) as Partial<Record<ImageSize, AdImageRow>>;
 const advertiser = businesses.find((b) => b.id === values.business_id)?.name ?? 'Business name';
 const preview: Ad = {
@@ -56,12 +58,16 @@ const preview: Ad = {
         <label>Text <input type="color" name="theme_fg" value={values.theme_fg} data-color="--ad-fg" /></label>
         <label>Accent <input type="color" name="theme_accent" value={values.theme_accent} data-color="--ad-accent" /></label>
       </div>
-      <p class="hint" style="margin:0">Banner images are optional. Where a size has no image, the ad is built from the text and colors above. PNG, JPEG, GIF or WebP, under 1 MB, at the exact size or double it.</p>
+      <p class="hint" style="margin:0">Banner images are optional. Where a size has no image, the ad is built from the text and colors above. PNG, JPEG, GIF or WebP, under 1 MB, at the exact size or double it. Uploads are added to the media library, credited to the advertiser; you can also reuse a library image that fits.</p>
       <div class="images">
         {(Object.entries(IMAGE_SIZES) as [ImageSize, (typeof IMAGE_SIZES)[ImageSize]][]).map(([size, spec]) => <div class="image-field">
           <span class="image-label">{spec.label} <span class="hint">{spec.width}×{spec.height}</span></span>
           {current[size] && <div class="thumb"><img src={mediaUrl(current[size]!.object_key)} alt="" /><label class="check"><input type="checkbox" name={`remove_${size}`} /> Remove</label></div>}
           <input type="file" name={`image_${size}`} accept="image/png,image/jpeg,image/gif,image/webp" />
+          {library && library[size].length > 0 && <select name={`library_${size}`} aria-label={`${spec.label} image from the media library`}>
+            <option value="">Or use a library image…</option>
+            {library[size].filter((m) => m.object_key !== current[size]?.object_key).map((m) => <option value={m.id}>{m.filename} ({m.width}×{m.height})</option>)}
+          </select>}
         </div>)}
       </div>
     </fieldset>
@@ -137,7 +143,8 @@ const preview: Ad = {
   .images { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
   .image-field { display: grid; gap: .4rem; align-content: start; }
   .image-label { font-weight: 700; font-size: .9rem; }
-  .image-field input[type='file'] { font-size: .85rem; }
+  .image-field input[type='file'], .image-field select { font-size: .85rem; }
+  .form .image-field select { padding: .45rem .6rem; }
   .thumb { display: grid; gap: .3rem; }
   .thumb img { max-width: 100%; max-height: 90px; object-fit: contain; object-position: left; border: 1px solid #d9dfda; background: #fff; }
   .preview { position: sticky; top: 1rem; display: grid; gap: 1rem; }

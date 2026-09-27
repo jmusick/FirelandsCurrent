@@ -10,8 +10,9 @@ An Astro and Cloudflare Workers foundation for an independent local newspaper ce
 - Publicly readable Talk of the Town discussions; signed-in readers can start threads and reply
 - Rate limits on threads, replies, and reports
 - Member reports, reviewed in the admin panel with hide/dismiss actions
-- News: section pages, story pages, and the latest stories on the homepage; story text is Markdown
-- Admin panel at `/admin` (dashboard, News editor, Talk of the Town moderation, users, businesses) gated by staff roles
+- News: section pages, story pages, and the latest stories on the homepage; story text is Markdown, with lead images and captioned photos from the media library
+- Media library for story and ad images, stored in R2, with credits, usage tracking and social-preview images
+- Admin panel at `/admin` (dashboard, News editor, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
 - D1 migrations for auth, forum, news, staff, user-management, and business records
 
 ## Local setup
@@ -33,7 +34,7 @@ The admin panel at `/admin` is available to users with a row in `staff_roles`:
 | Role | Access |
 | --- | --- |
 | `admin` | Every admin section, including Users and Businesses; can delete stories |
-| `editor` | News |
+| `editor` | News and Media |
 | `moderator` | Talk of the Town |
 
 Sections and the roles allowed in each are listed in `src/lib/admin.ts`; a new content area (classifieds, jobs, …) adds an entry there. Once one administrator exists, roles are managed at `/admin/users`. To create the first administrator, register the account, then:
@@ -64,6 +65,18 @@ Add members from the business page by account email, or from a user's page. The 
 
 Business membership is separate from staff roles. Membership records who someone works for, and staff roles still decide who can use the admin panel. The owner/member distinction is groundwork for a future area where businesses manage their own ads and people.
 
+## Media library
+
+Every image on the site lives in the media library at `/admin/media`, open to administrators and editors. Each image has a **credit** (required, shown with it on the site), optional **alt text** and **caption**, and a staff-only **source & permission** note recording where it came from and who allowed its use. Only use images the paper made or has permission to run.
+
+Images are uploaded from the library page or straight from the story editor: the picture button opens a picker with the library and an upload form, and dragging or pasting an image into the story opens the same form so it can be credited. Before upload the browser resizes photos to at most 2,000 pixels on the long side and re-saves them, which also removes location data from phone photos; the server strips JPEG metadata again as a backstop. PNG, JPEG, GIF and WebP are accepted, up to 5 MB; SVG is not, since it can carry scripts.
+
+In a story, an image on a line of its own shows as a figure with its caption and credit. Stories can only show library images: an image linked from another site shows as its alt text instead. Each story can also have a **lead image**, shown above the story, with it on the front page and in the news list, and as the preview image when the story is shared on social media.
+
+An image’s page lists every story and ad that uses it, its details and its history. Images in use can’t be deleted; deleting a story or ad leaves its images in the library. Uploads, edits and deletions are recorded in the audit log.
+
+Files are stored in the `MEDIA` R2 bucket under `library/` and served from `/media/…` with long-lived caching, so a replaced image gets a new address rather than changing in place.
+
 ## Ads
 
 Ad spaces are defined in `src/lib/ads.ts` (`PLACEMENTS`): a leaderboard under the navigation, front-page rectangle and billboard, a story sidebar, in-story rectangles (only in stories of six or more blocks, never right under a subheading), and sponsored listings in the News and Talk of the Town feeds. Pages ask for an ad by placement. Each page view shows at most one ad per business, prefers ads aimed at the page's news section, and rotates the rest by weight. Unfilled slots show a house ad linking to `/advertise`. Sample ads show only while no ads exist at all. Forms, accounts, dashboards and the admin panel never carry ads.
@@ -74,7 +87,7 @@ An impression counts when at least half of an ad has been on screen for one seco
 
 Members of a business see its ads at `/business` (linked from `/account`): totals, daily charts, per-placement numbers and each ad's preview. The dashboard is read-only and hides drafts and terms. Administrators can open any business's dashboard with **View as client**.
 
-Banner images are stored in the `MEDIA` R2 bucket and served from `/media/…`. Before the first deploy with ads, create the bucket with `npx wrangler r2 bucket create firelands-current-media`. Local development uses a local bucket automatically. `npx wrangler d1 execute DB --local --file scripts/seed-ads-demo.sql` loads fictional advertisers, ads and 45 days of stats.
+Banner images come from the media library: each size can take a new upload, which joins the library credited to the advertiser, or an existing library image of the right size. Before the first deploy with ads, create the `MEDIA` bucket with `npx wrangler r2 bucket create firelands-current-media`. Local development uses a local bucket automatically. `npx wrangler d1 execute DB --local --file scripts/seed-ads-demo.sql` loads fictional advertisers, ads and 45 days of stats.
 
 ## OAuth setup
 

@@ -13,8 +13,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.session = null;
   context.locals.staffRole = null;
 
+  // Set-Cookie headers from a sliding session refresh; without them the browser
+  // cookie expires on its original date even though the session was extended.
+  let refreshedCookies: string[] = [];
   if (!context.url.pathname.startsWith('/api/auth/')) {
-    const current = await createAuth().api.getSession({ headers: context.request.headers });
+    const { headers, response: current } = await createAuth().api.getSession({ headers: context.request.headers, returnHeaders: true });
+    refreshedCookies = headers.getSetCookie();
     // Suspending an account deletes its sessions; this also covers a session created in the gap.
     const status = current?.user ? await getMemberStatus(current.user.id) : null;
     if (current && status && !status.suspended) {
@@ -30,5 +34,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('X-Frame-Options', 'DENY');
+  for (const cookie of refreshedCookies) response.headers.append('Set-Cookie', cookie);
   return response;
 });

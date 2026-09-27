@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { Marked } from 'marked';
+import type { MediaRecord } from './media';
 
 export const SECTIONS = {
   local: 'Local News',
@@ -23,9 +24,23 @@ export type Article = {
   community: string;
   byline: string;
   published_at: number;
+} & LeadImage;
+
+/** The story's lead image, from the media library; all null when it has none. */
+export type LeadImage = {
+  lead_key: string | null; lead_width: number | null; lead_height: number | null;
+  lead_alt: string | null; lead_caption: string | null; lead_credit: string | null;
 };
 
-export type AdminArticle = Omit<Article, 'published_at'> & {
+const LEAD_COLUMNS = `m.object_key AS lead_key, m.width AS lead_width, m.height AS lead_height, m.alt AS lead_alt, m.caption AS lead_caption, m.credit AS lead_credit`;
+
+/** The lead image in the shape figureHtml takes, or null. */
+export const leadMedia = (a: LeadImage) => a.lead_key
+  ? { object_key: a.lead_key, width: a.lead_width!, height: a.lead_height!, alt: a.lead_alt ?? '', caption: a.lead_caption ?? '', credit: a.lead_credit ?? '' }
+  : null;
+
+export type AdminArticle = Omit<Article, 'published_at' | keyof LeadImage> & {
+  lead_media_id: string | null;
   status: ArticleStatus;
   published_at: number | null;
   updated_at: number;
@@ -37,10 +52,10 @@ export function isSection(value: string | null | undefined): value is Section {
 
 export async function listArticles(page = 0, section?: Section, pageSize = 20): Promise<Article[]> {
   const result = await env.DB.prepare(`
-    SELECT id, slug, headline, summary, body, section, community, byline, published_at
-    FROM news_articles
-    WHERE status = 'published' AND (?1 IS NULL OR section = ?1)
-    ORDER BY published_at DESC
+    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS}
+    FROM news_articles a LEFT JOIN media m ON m.id = a.lead_media_id
+    WHERE a.status = 'published' AND (?1 IS NULL OR a.section = ?1)
+    ORDER BY a.published_at DESC
     LIMIT ?2 OFFSET ?3
   `).bind(section ?? null, pageSize + 1, page * pageSize).all<Article>();
   return result.results;
@@ -48,15 +63,15 @@ export async function listArticles(page = 0, section?: Section, pageSize = 20): 
 
 export async function getArticle(slug: string): Promise<Article | null> {
   return env.DB.prepare(`
-    SELECT id, slug, headline, summary, body, section, community, byline, published_at
-    FROM news_articles
-    WHERE slug = ? AND status = 'published'
+    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS}
+    FROM news_articles a LEFT JOIN media m ON m.id = a.lead_media_id
+    WHERE a.slug = ? AND a.status = 'published'
   `).bind(slug).first<Article>();
 }
 
 export async function listAdminArticles(): Promise<AdminArticle[]> {
   const result = await env.DB.prepare(`
-    SELECT id, slug, headline, summary, body, section, community, byline, status, published_at, updated_at
+    SELECT id, slug, headline, summary, body, section, community, byline, lead_media_id, status, published_at, updated_at
     FROM news_articles
     ORDER BY COALESCE(published_at, updated_at) DESC
   `).all<AdminArticle>();
@@ -65,7 +80,7 @@ export async function listAdminArticles(): Promise<AdminArticle[]> {
 
 export async function getAdminArticle(id: string): Promise<AdminArticle | null> {
   return env.DB.prepare(`
-    SELECT id, slug, headline, summary, body, section, community, byline, status, published_at, updated_at
+    SELECT id, slug, headline, summary, body, section, community, byline, lead_media_id, status, published_at, updated_at
     FROM news_articles
     WHERE id = ?
   `).bind(id).first<AdminArticle>();
@@ -78,33 +93,55 @@ export function sanitizeSlug(value: string): string {
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const safeUrl = (href: string) => /^(https?:|mailto:|\/(?!\/)|#)/i.test(href.trim());
 
-// Story bodies are Markdown. Raw HTML is shown as text and only http(s), mailto,
-// site-relative and fragment links are rendered, so an editor account can't inject script.
-const markdown = new Marked({
-  gfm: true,
-  renderer: {
-    html({ text }) {
-      return escapeHtml(text);
-    },
-    link({ href, title, tokens }) {
-      const label = this.parser.parseInline(tokens);
-      if (!safeUrl(href)) return label;
-      const external = /^https?:/i.test(href);
-      return `<a href="${escapeHtml(href)}"${title ? ` title="${escapeHtml(title)}"` : ''}${external ? ' rel="noopener"' : ''}>${label}</a>`;
-    },
-    image({ href, title, text }) {
-      if (!safeUrl(href)) return escapeHtml(text);
-      return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text)}"${title ? ` title="${escapeHtml(title)}"` : ''} loading="lazy" />`;
-    },
-  },
-});
-
-export function renderBody(body: string): string {
-  return markdown.parse(body, { async: false });
+/** A library image as a story shows it: a figure with its caption and credit. */
+export function figureHtml(media: { object_key: string; width: number; height: number; alt: string; caption: string; credit: string }, opts: { alt?: string; className?: string; eager?: boolean } = {}): string {
+  const alt = opts.alt || media.alt;
+  const caption = [media.caption && `<span class="caption">${escapeHtml(media.caption)}</span>`, media.credit && `<span class="credit">${escapeHtml(media.credit)}</span>`].filter(Boolean).join(' ');
+  return `<figure class="${opts.className ?? 'story-figure'}"><img src="/media/${escapeHtml(media.object_key)}" alt="${escapeHtml(alt)}" width="${media.width}" height="${media.height}"${opts.eager ? ' fetchpriority="high"' : ' loading="lazy"'} />${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`;
 }
 
-/** The body rendered as its top-level blocks (paragraphs, headings, lists…), so ads can sit between them. */
-export function renderBodyBlocks(body: string): string[] {
+type StoryMedia = Map<string, MediaRecord>;
+
+// Story bodies are Markdown. Raw HTML is shown as text and only http(s), mailto,
+// site-relative and fragment links are rendered, so an editor account can't inject script.
+// Images must come from the media library, so every picture on the site carries a credit
+// and nothing is loaded from other sites; anything else shows as its alt text.
+function markdownFor(media: StoryMedia) {
+  const libraryImage = (href: string) => media.get(href.trim().replace(/^\/media\//, ''));
+  return new Marked({
+    gfm: true,
+    renderer: {
+      html({ text }) {
+        return escapeHtml(text);
+      },
+      link({ href, title, tokens }) {
+        const label = this.parser.parseInline(tokens);
+        if (!safeUrl(href)) return label;
+        const external = /^https?:/i.test(href);
+        return `<a href="${escapeHtml(href)}"${title ? ` title="${escapeHtml(title)}"` : ''}${external ? ' rel="noopener"' : ''}>${label}</a>`;
+      },
+      image({ href, text }) {
+        const item = libraryImage(href);
+        if (!item) return escapeHtml(text);
+        return `<img src="/media/${escapeHtml(item.object_key)}" alt="${escapeHtml(text || item.alt)}" width="${item.width}" height="${item.height}" loading="lazy" />`;
+      },
+      // An image on a line of its own becomes a captioned figure.
+      paragraph({ tokens }) {
+        const content = tokens.filter((t) => !(t.type === 'text' && !t.raw.trim()));
+        const only = content.length === 1 && content[0].type === 'image' ? content[0] : null;
+        const item = only && libraryImage(only.href);
+        return item ? figureHtml(item, { alt: only.text }) : false;
+      },
+    },
+  });
+}
+
+/**
+ * The body rendered as its top-level blocks (paragraphs, headings, lists…), so ads can sit between them.
+ * `media` holds the library items the body refers to; see mediaKeysIn and mediaByKeys.
+ */
+export function renderBodyBlocks(body: string, media: StoryMedia = new Map()): string[] {
+  const markdown = markdownFor(media);
   const tokens = markdown.lexer(body);
   return tokens.filter((t) => t.type !== 'space' && t.type !== 'def').map((t) => markdown.parser(Object.assign([t], { links: tokens.links })));
 }

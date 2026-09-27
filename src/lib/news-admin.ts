@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { cleanText } from './forum';
+import { isMediaId } from './media';
 import { type AdminArticle, type ArticleStatus, type Section, isSection, sanitizeSlug } from './news';
 
 export type ArticleFormValues = {
@@ -10,6 +11,8 @@ export type ArticleFormValues = {
   section: Section | '';
   community: string;
   byline: string;
+  /** Media library item shown above the story and in story lists; empty for none. */
+  lead_media_id: string;
   status: ArticleStatus;
 };
 
@@ -18,12 +21,12 @@ export type ArticleFormResult =
   | { ok: false; values: ArticleFormValues; errors: string[] };
 
 export const emptyArticle: ArticleFormValues = {
-  headline: '', slug: '', summary: '', body: '', section: '', community: '', byline: '', status: 'draft',
+  headline: '', slug: '', summary: '', body: '', section: '', community: '', byline: '', lead_media_id: '', status: 'draft',
 };
 
 export function valuesFromArticle(article: AdminArticle): ArticleFormValues {
   const { headline, slug, summary, body, section, community, byline, status } = article;
-  return { headline, slug, summary, body, section, community, byline, status };
+  return { headline, slug, summary, body, section, community, byline, lead_media_id: article.lead_media_id ?? '', status };
 }
 
 export async function saveArticleFromForm(form: FormData, existing: AdminArticle | null): Promise<ArticleFormResult> {
@@ -37,6 +40,7 @@ export async function saveArticleFromForm(form: FormData, existing: AdminArticle
     section: isSection(section) ? section : '',
     community: cleanText(form.get('community')),
     byline: cleanText(form.get('byline')),
+    lead_media_id: cleanText(form.get('lead_media_id')),
     status: cleanText(form.get('status')) === 'published' ? 'published' : 'draft',
   };
 
@@ -48,6 +52,11 @@ export async function saveArticleFromForm(form: FormData, existing: AdminArticle
   if (!values.section) errors.push('Choose a section.');
   if (!values.community || values.community.length > 60) errors.push('Community is required (up to 60 characters).');
   if (!values.byline || values.byline.length > 80) errors.push('Byline is required (up to 80 characters).');
+
+  if (values.lead_media_id && !(isMediaId(values.lead_media_id) && await env.DB.prepare('SELECT 1 FROM media WHERE id = ?').bind(values.lead_media_id).first())) {
+    errors.push('The lead image is no longer in the media library. Choose another.');
+    values.lead_media_id = '';
+  }
 
   if (!errors.length) {
     const clash = await env.DB.prepare('SELECT id FROM news_articles WHERE slug = ? AND id != ?')
@@ -61,13 +70,13 @@ export async function saveArticleFromForm(form: FormData, existing: AdminArticle
   const publishedAt = values.status === 'published' ? existing?.published_at ?? now : existing?.published_at ?? null;
   const id = existing?.id ?? crypto.randomUUID();
   await env.DB.prepare(`
-    INSERT INTO news_articles (id, slug, headline, summary, body, section, community, byline, status, published_at, created_at, updated_at)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)
+    INSERT INTO news_articles (id, slug, headline, summary, body, section, community, byline, lead_media_id, status, published_at, created_at, updated_at)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?12, ?9, ?10, ?11, ?11)
     ON CONFLICT(id) DO UPDATE SET
       slug = excluded.slug, headline = excluded.headline, summary = excluded.summary, body = excluded.body,
-      section = excluded.section, community = excluded.community, byline = excluded.byline,
+      section = excluded.section, community = excluded.community, byline = excluded.byline, lead_media_id = excluded.lead_media_id,
       status = excluded.status, published_at = excluded.published_at, updated_at = excluded.updated_at
   `).bind(id, values.slug, values.headline, values.summary, values.body, values.section, values.community,
-    values.byline, values.status, publishedAt, now).run();
+    values.byline, values.status, publishedAt, now, values.lead_media_id || null).run();
   return { ok: true, id };
 }

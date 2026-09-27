@@ -1,0 +1,151 @@
+---
+import { ArrowLeft, Check, Copy, Info, Link2, RotateCcwClock, Trash } from '@lucide/astro';
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, canAccess, requireSection } from '../../../lib/admin';
+import { IMAGE_SIZES, type ImageSize } from '../../../lib/ads';
+import { sameOrigin } from '../../../lib/forum';
+import { detailsFrom, fmtBytes, getMedia, mediaAudit, mediaAuditLog, mediaUrl, mediaUsage, validateDetails, type MediaDetails } from '../../../lib/media';
+import { AUDIT_LABELS, fmtDateTime } from '../../../lib/users';
+
+const denied = requireSection(Astro, ADMIN.media);
+if (denied) return denied;
+
+const media = await getMedia(Astro.params.id ?? '');
+if (!media) return new Response('Image not found', { status: 404 });
+
+let values: MediaDetails = { alt: media.alt, caption: media.caption, credit: media.credit, source: media.source };
+let errors: string[] = [];
+if (Astro.request.method === 'POST') {
+  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  values = detailsFrom(await Astro.request.formData());
+  errors = validateDetails(values);
+  if (!errors.length) {
+    const LABELS: Record<keyof MediaDetails, string> = { alt: 'Alt text', caption: 'Caption', credit: 'Credit', source: 'Source' };
+    const changed = (Object.keys(LABELS) as (keyof MediaDetails)[]).filter((k) => values[k] !== media[k]);
+    if (!changed.length) return Astro.redirect(`/admin/media/${media.id}?notice=unchanged`, 303);
+    await env.DB.batch([
+      env.DB.prepare('UPDATE media SET alt = ?, caption = ?, credit = ?, source = ?, updated_at = ? WHERE id = ?')
+        .bind(values.alt, values.caption, values.credit, values.source, Date.now(), media.id),
+      mediaAudit(Astro.locals.user!, media, 'media-update', `${changed.map((k) => LABELS[k]).join(', ')} changed`),
+    ]);
+    return Astro.redirect(`/admin/media/${media.id}?notice=saved`, 303);
+  }
+}
+
+const [usage, log] = await Promise.all([mediaUsage(media), mediaAuditLog(media.id)]);
+const inUse = usage.stories.length + usage.ads.length;
+const url = mediaUrl(media.object_key);
+const markdown = `![${media.alt.replace(/[[\]\n]/g, ' ')}](${url})`;
+const canSeeAds = canAccess(Astro.locals.staffRole, ADMIN.ads);
+const NOTICES: Record<string, string> = { uploaded: 'Image uploaded.', saved: 'Details saved.', unchanged: 'Nothing changed.' };
+const notice = NOTICES[Astro.url.searchParams.get('notice') ?? ''];
+const inUseError = Astro.url.searchParams.get('error') === 'in-use';
+---
+<AdminLayout title={media.filename}>
+  <a class="back" href="/admin/media"><ArrowLeft />Media library</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Media</span>
+  <h1 class="filename">{media.filename}</h1>
+  {notice && <p class="message ok" role="status">{notice}</p>}
+  {inUseError && <p class="message" role="alert">This image is still in use, so it wasn’t deleted. Remove it from the stories and ads below first.</p>}
+
+  <div class="layout">
+    <div class="main">
+      <figure class="preview card">
+        <img src={url} alt={media.alt} width={media.width} height={media.height} />
+        {(media.caption || media.credit) && <figcaption>{media.caption} <span class="credit">{media.credit}</span></figcaption>}
+      </figure>
+
+      <section class="card">
+        <h2><Check />Details</h2>
+        {errors.length > 0 && <div class="message" role="alert"><strong>Please fix:</strong><ul style="margin:.4rem 0 0">{errors.map((e) => <li>{e}</li>)}</ul></div>}
+        <form class="form" method="post">
+          <label>Credit <span class="hint">Shown with the image.</span><input name="credit" value={values.credit} required minlength="2" maxlength="120" /></label>
+          <label>Alt text <span class="hint">Describes the image for screen readers. A story can override it for one use.</span><input name="alt" value={values.alt} maxlength="300" /></label>
+          <label>Caption <span class="hint">Shown under the image in stories.</span><textarea name="caption" maxlength="500" style="min-height:80px">{values.caption}</textarea></label>
+          <label>Source &amp; permission <span class="hint">Staff only.</span><textarea name="source" maxlength="1000" style="min-height:80px">{values.source}</textarea></label>
+          <div><button class="button small" type="submit"><Check />Save details</button></div>
+        </form>
+      </section>
+    </div>
+
+    <div class="side">
+      <section class="card">
+        <h2><Info />File</h2>
+        <dl>
+          <dt>Size</dt><dd>{media.width}×{media.height} · {fmtBytes(media.bytes)} · {media.content_type.replace('image/', '').toUpperCase()}</dd>
+          <dt>Uploaded</dt><dd>{fmtDateTime(media.created_at)}{media.uploader_name && ` by ${media.uploader_name}`}</dd>
+          <dt>Address</dt><dd><a href={url} target="_blank" class="url">{url}</a></dd>
+        </dl>
+        <label class="copy">Markdown for a story
+          <span class="copy-row"><input readonly value={markdown} id="markdown" /><button type="button" class="button secondary small" id="copy"><Copy />Copy</button></span>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2><Link2 />Used in <span class="meta">({inUse})</span></h2>
+        {inUse === 0 ? <p class="muted" style="margin:0">Not used in any story or ad.</p> : <ul class="uses">
+          {usage.stories.map((s) => <li><a href={`/admin/news/${s.id}`}>{s.headline}</a><div class="meta">Story{s.lead ? ', lead image' : ''} · {s.status === 'published' ? 'Published' : 'Draft'}</div></li>)}
+          {usage.ads.map((a) => <li>{canSeeAds ? <a href={`/admin/ads/${a.id}`}>{a.name}</a> : a.name}<div class="meta">Ad · {IMAGE_SIZES[a.size as ImageSize]?.label ?? a.size} banner</div></li>)}
+        </ul>}
+      </section>
+
+      <section class="card">
+        <h2><RotateCcwClock />Activity</h2>
+        {log.length === 0 ? <p class="muted" style="margin:0">No changes yet.</p> : <ul class="log">
+          {log.map((a) => <li><strong>{AUDIT_LABELS[a.action] ?? a.action}</strong>{a.detail && <span> — {a.detail}</span>}<div class="meta">{a.actor_name} · {fmtDateTime(a.created_at)}</div></li>)}
+        </ul>}
+      </section>
+
+      <section class="card danger">
+        <h2><Trash />Delete image</h2>
+        {inUse ? <p class="meta" style="margin:0">Images in use can’t be deleted. Remove it from everything listed under “Used in” first.</p> : <>
+          <p class="meta">Removes the file for good. Anyone who saved its address will get a broken image.</p>
+          <form method="post" action="/api/admin/media" id="delete-media">
+            <input type="hidden" name="mediaId" value={media.id} />
+            <button class="button small warn" name="action" value="delete" type="submit"><Trash />Delete permanently</button>
+          </form>
+        </>}
+      </section>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  document.getElementById('copy')?.addEventListener('click', async (event) => {
+    const input = document.getElementById('markdown') as HTMLInputElement;
+    const button = event.currentTarget as HTMLButtonElement;
+    try { await navigator.clipboard.writeText(input.value); } catch { input.select(); return; }
+    button.lastChild!.textContent = 'Copied';
+    setTimeout(() => { button.lastChild!.textContent = 'Copy'; }, 1500);
+  });
+  document.getElementById('delete-media')?.addEventListener('submit', (e) => {
+    if (!confirm('Delete this image permanently? This cannot be undone.')) e.preventDefault();
+  });
+</script>
+
+<style>
+  .filename { overflow-wrap: anywhere; }
+  .message.ok { border-color: #8fbfa2; color: #1f5a41; background: #eef7f1; }
+  .layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1.25rem; align-items: start; margin-top: 1rem; }
+  .main, .side { display: grid; gap: 1.25rem; min-width: 0; }
+  .card h2 { margin: 0 0 1rem; font-size: 1.15rem; }
+  .preview { margin: 0; padding: .75rem; }
+  .preview img { display: block; max-width: 100%; height: auto; max-height: 520px; object-fit: contain; margin: auto; background: repeating-conic-gradient(#eef1ee 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+  .preview figcaption { margin-top: .6rem; font-size: .9rem; color: #4d6367; }
+  .credit { color: #687a7d; font-size: .82rem; }
+  .hint { font-weight: 400; color: #687a7d; font-size: .8rem; }
+  dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .45rem 1rem; margin: 0 0 1rem; font-size: .9rem; }
+  dt { font-weight: 700; color: #62767a; }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  .copy { display: grid; gap: .4rem; font-weight: 700; font-size: .85rem; }
+  .copy-row { display: flex; gap: .4rem; }
+  .copy-row input { flex: 1; min-width: 0; padding: .45rem .6rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; font: .8rem ui-monospace, monospace; }
+  ul.uses, ul.log { list-style: none; margin: 0; padding: 0; }
+  ul.uses li, ul.log li { padding: .65rem 0; border-top: 1px solid #e1e6e2; overflow-wrap: anywhere; }
+  ul.uses li:first-child, ul.log li:first-child { border-top: 0; padding-top: 0; }
+  .danger { border-color: #e2b9a3; }
+  .button.warn { background: #ad5835; border-color: #ad5835; }
+  .button.warn:hover { background: #8f4629; }
+  @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+</style>

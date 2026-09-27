@@ -2,6 +2,7 @@ import { env } from 'cloudflare:workers';
 import { statDay } from './ad-tracking';
 import { DEFAULT_THEME, IMAGE_SIZES, PLACEMENTS, adFromRow, isPlacement, type Ad, type AdImageRow, type AdRow, type ImageSize, type PlacementKey } from './ads';
 import { cleanText } from './forum';
+import { checkUpload, isMediaId, mediaAudit, storeMedia, type CheckedImage } from './media';
 import { SECTIONS, isSection, type Section } from './news';
 
 export type AdStatus = 'draft' | 'active' | 'paused';
@@ -113,9 +114,12 @@ export function valuesFromRecord(r: AdRecord): AdFormValues {
   };
 }
 
-export type ImageUpload = { size: ImageSize; bytes: ArrayBuffer; type: string; ext: string; width: number; height: number };
+/** A banner size's new image: a fresh upload, or an image already in the media library. */
+export type ImageChoice =
+  | { size: ImageSize; upload: CheckedImage & { filename: string } }
+  | { size: ImageSize; media: { id: string; object_key: string; width: number; height: number } };
 export type AdFormResult =
-  | { ok: true; values: AdFormValues; uploads: ImageUpload[]; removals: ImageSize[] }
+  | { ok: true; values: AdFormValues; choices: ImageChoice[]; removals: ImageSize[] }
   | { ok: false; values: AdFormValues; errors: string[] };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -174,86 +178,77 @@ export async function validateAdForm(form: FormData, existing: AdRecord | null):
   }
   if (values.terms.length > 2000) errors.push('Price and terms must be under 2,000 characters.');
 
-  const uploads: ImageUpload[] = [];
+  const choices: ImageChoice[] = [];
   const removals: ImageSize[] = [];
-  for (const size of Object.keys(IMAGE_SIZES) as ImageSize[]) {
+  let uploaded = false;
+  for (const [size, spec] of Object.entries(IMAGE_SIZES) as [ImageSize, (typeof IMAGE_SIZES)[ImageSize]][]) {
+    const label = `${spec.label} image`;
     const file = form.get(`image_${size}`);
+    const pick = cleanText(form.get(`library_${size}`));
     if (file instanceof File && file.size > 0) {
-      const checked = await checkImage(file, size);
+      uploaded = true;
+      const checked = await checkUpload(file, MAX_IMAGE_BYTES, label);
       if (typeof checked === 'string') errors.push(checked);
-      else uploads.push(checked);
+      else if (!fitsSize(checked, size)) errors.push(sizeError(label, checked, size));
+      else choices.push({ size, upload: { ...checked, filename: file.name } });
+    } else if (pick) {
+      const media = isMediaId(pick) ? await env.DB.prepare('SELECT id, object_key, width, height FROM media WHERE id = ?').bind(pick).first<LibraryImage>() : null;
+      if (!media) errors.push(`${label}: that image is no longer in the media library.`);
+      else if (!fitsSize(media, size)) errors.push(sizeError(label, media, size));
+      else choices.push({ size, media });
     } else if (form.get(`remove_${size}`) === 'on') removals.push(size);
   }
-  if (errors.length && uploads.length) errors.push('Choose your image files again after fixing these.');
+  if (errors.length && uploaded) errors.push('Choose your image files again after fixing these.');
 
-  return errors.length ? { ok: false, values, errors } : { ok: true, values, uploads, removals };
+  return errors.length ? { ok: false, values, errors } : { ok: true, values, choices, removals };
 }
 
-const IMAGE_TYPES: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };
+const fitsSize = (image: { width: number; height: number }, size: ImageSize) =>
+  [1, 2].some((scale) => image.width === IMAGE_SIZES[size].width * scale && image.height === IMAGE_SIZES[size].height * scale);
+const sizeError = (label: string, image: { width: number; height: number }, size: ImageSize) => {
+  const { width, height } = IMAGE_SIZES[size];
+  return `${label} is ${image.width}×${image.height}; it must be ${width}×${height} (or ${width * 2}×${height * 2}).`;
+};
 
-async function checkImage(file: File, size: ImageSize): Promise<ImageUpload | string> {
-  const spec = IMAGE_SIZES[size];
-  const label = `${spec.label} image`;
-  if (file.size > MAX_IMAGE_BYTES) return `${label} must be under 1 MB.`;
-  const bytes = await file.arrayBuffer();
-  const sniffed = imageInfo(new Uint8Array(bytes));
-  if (!sniffed) return `${label} must be a PNG, JPEG, GIF or WebP file.`;
-  const { type, width, height } = sniffed;
-  const fits = [1, 2].some((scale) => width === spec.width * scale && height === spec.height * scale);
-  if (!fits) return `${label} is ${width}×${height}; it must be ${spec.width}×${spec.height} (or ${spec.width * 2}×${spec.height * 2}).`;
-  return { size, bytes, type, ext: IMAGE_TYPES[type], width: spec.width, height: spec.height };
+type LibraryImage = { id: string; object_key: string; width: number; height: number };
+
+/** Library images that fit each banner size, newest first, for the ad form's pickers. */
+export async function libraryForAdSizes(): Promise<Record<ImageSize, (LibraryImage & { filename: string })[]>> {
+  const sizes = Object.entries(IMAGE_SIZES).flatMap(([, s]) => [[s.width, s.height], [s.width * 2, s.height * 2]]);
+  const result = await env.DB.prepare(`
+    SELECT id, object_key, width, height, filename FROM media
+    WHERE ${sizes.map(() => '(width = ? AND height = ?)').join(' OR ')}
+    ORDER BY created_at DESC LIMIT 300
+  `).bind(...sizes.flat()).all<LibraryImage & { filename: string }>();
+  const bySize = Object.fromEntries(Object.keys(IMAGE_SIZES).map((s) => [s, [] as (LibraryImage & { filename: string })[]])) as Record<ImageSize, (LibraryImage & { filename: string })[]>;
+  for (const image of result.results) for (const size of Object.keys(IMAGE_SIZES) as ImageSize[]) if (fitsSize(image, size)) bySize[size].push(image);
+  return bySize;
 }
 
-/** Reads an image's real type and pixel size from its header, ignoring the file name and claimed type. */
-export function imageInfo(b: Uint8Array): { type: string; width: number; height: number } | null {
-  const u16 = (i: number) => (b[i] << 8) | b[i + 1];
-  const u32 = (i: number) => ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
-  const le16 = (i: number) => b[i] | (b[i + 1] << 8);
-  const le24 = (i: number) => b[i] | (b[i + 1] << 8) | (b[i + 2] << 16);
-  const ascii = (i: number, n: number) => String.fromCharCode(...b.slice(i, i + n));
-  if (b.length < 30) return null;
-  if (b[0] === 0x89 && ascii(1, 3) === 'PNG') return { type: 'image/png', width: u32(16), height: u32(20) };
-  if (ascii(0, 4) === 'GIF8') return { type: 'image/gif', width: le16(6), height: le16(8) };
-  if (ascii(0, 4) === 'RIFF' && ascii(8, 4) === 'WEBP') {
-    const chunk = ascii(12, 4);
-    if (chunk === 'VP8X') return { type: 'image/webp', width: le24(24) + 1, height: le24(27) + 1 };
-    if (chunk === 'VP8 ') return { type: 'image/webp', width: le16(26) & 0x3fff, height: le16(28) & 0x3fff };
-    if (chunk === 'VP8L') { const v = b[21] | (b[22] << 8) | (b[23] << 16) | (b[24] << 24); return { type: 'image/webp', width: (v & 0x3fff) + 1, height: ((v >> 14) & 0x3fff) + 1 }; }
-    return null;
-  }
-  if (b[0] === 0xff && b[1] === 0xd8) {
-    let i = 2;
-    while (i + 9 < b.length) {
-      if (b[i] !== 0xff) return null;
-      const marker = b[i + 1];
-      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) return { type: 'image/jpeg', width: u16(i + 7), height: u16(i + 5) };
-      i += 2 + u16(i + 2);
-    }
-  }
-  return null;
-}
-
-/** Statements to store new images and drop removed ones; returns the R2 keys to delete once the database is updated. */
-export async function applyImages(adId: string, uploads: ImageUpload[], removals: ImageSize[], current: AdImageRow[]) {
+/**
+ * Statements that point the ad's banner sizes at their new images and drop removed ones. New uploads join
+ * the media library, credited to the advertiser. Replaced images stay in the library; nothing is deleted from R2 here.
+ */
+export async function applyImages(ad: { id: string; name: string }, business: { name: string }, choices: ImageChoice[], removals: ImageSize[], actor: { id: string; name: string }) {
   const now = Date.now();
   const statements: D1PreparedStatement[] = [];
-  const staleKeys: string[] = [];
-  for (const upload of uploads) {
-    const key = `ads/${adId}/${upload.size}-${crypto.randomUUID().slice(0, 8)}.${upload.ext}`;
-    await env.MEDIA.put(key, upload.bytes, { httpMetadata: { contentType: upload.type } });
+  for (const choice of choices) {
+    let media: LibraryImage;
+    if ('upload' in choice) {
+      const { record, statement } = await storeMedia(choice.upload, choice.upload.filename,
+        { alt: '', caption: '', credit: `Supplied by ${business.name}`, source: 'Advertiser creative' }, actor.id);
+      statements.push(statement, mediaAudit(actor, record, 'media-upload', `${IMAGE_SIZES[choice.size].label} banner for ${ad.name}`));
+      media = record;
+    } else media = choice.media;
+    const spec = IMAGE_SIZES[choice.size];
     statements.push(env.DB.prepare(`
-      INSERT INTO ad_images (ad_id, size, object_key, content_type, width, height, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT (ad_id, size) DO UPDATE SET object_key = excluded.object_key, content_type = excluded.content_type, width = excluded.width, height = excluded.height, created_at = excluded.created_at
-    `).bind(adId, upload.size, key, upload.type, upload.width, upload.height, now));
+      INSERT INTO ad_images (ad_id, size, object_key, content_type, width, height, media_id, created_at)
+      SELECT ?1, ?2, object_key, content_type, ?3, ?4, id, ?5 FROM media WHERE id = ?6
+      ON CONFLICT (ad_id, size) DO UPDATE SET object_key = excluded.object_key, content_type = excluded.content_type, width = excluded.width, height = excluded.height, media_id = excluded.media_id, created_at = excluded.created_at
+    `).bind(ad.id, choice.size, spec.width, spec.height, now, media.id));
   }
-  for (const size of removals) statements.push(env.DB.prepare('DELETE FROM ad_images WHERE ad_id = ? AND size = ?').bind(adId, size));
-  const replaced = new Set<ImageSize>([...uploads.map((u) => u.size), ...removals]);
-  for (const image of current) if (replaced.has(image.size)) staleKeys.push(image.object_key);
-  return { statements, staleKeys };
-}
-
-export async function deleteMedia(keys: string[]) {
-  if (keys.length) await env.MEDIA.delete(keys);
+  for (const size of removals) statements.push(env.DB.prepare('DELETE FROM ad_images WHERE ad_id = ? AND size = ?').bind(ad.id, size));
+  return statements;
 }
 
 export const adBinds = (v: AdFormValues) => [
