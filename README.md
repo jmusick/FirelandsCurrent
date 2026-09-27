@@ -47,7 +47,7 @@ Apple requires a paid Apple Developer account and an HTTPS callback origin. The 
 
 ## Cloudflare deployment
 
-Astro 7's Cloudflare adapter targets Workers. The `main` branch is connected to Cloudflare Workers Builds with `npm run build` and `npx wrangler deploy`. The production D1 binding and `SITE_URL=https://firelandscurrent.com` are in `wrangler.jsonc`; `BETTER_AUTH_SECRET` is a Cloudflare secret. Apply migrations to the production database with `npx wrangler d1 migrations apply DB --remote` when schema changes are deployed.
+Astro 7's Cloudflare adapter targets Workers. The `main` branch is connected to Cloudflare Workers Builds with `npm run build` and `npx wrangler deploy`; Cloudflare pulls and deploys each push. The production custom domains, D1 binding, and `SITE_URL=https://firelandscurrent.com` are in `wrangler.jsonc`; `BETTER_AUTH_SECRET` is a Cloudflare secret. Namecheap delegates `firelandscurrent.com` to Cloudflare nameservers. Apply migrations to the production database with `npx wrangler d1 migrations apply DB --remote` when schema changes are deployed.
 
 ## Before a public launch
 
