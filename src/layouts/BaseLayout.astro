@@ -107,7 +107,7 @@ const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID 
       <div class="topline"><div class="topline-inner"><span>Independent news for Ohio's Firelands</span><span>Sandusky and the surrounding region</span></div></div>
       <div class="masthead"><a class="brand" href="/" aria-label="Firelands Current home"><img class="brand-mark" src="/logo-mark.svg" alt="" width="64" height="64" /><span class="brand-text">Firelands <span>Current</span></span></a><p>Local stories. Common ground.</p></div>
       <nav class="nav" aria-label="Main navigation"><div class="nav-inner">
-        <a href="/">Home</a><a href="/news">News</a><a href="/talk">Talk of the Town</a>
+        <a href="/">Home</a><a href="/news">News</a><a href="/events">Events</a><a href="/talk">Talk of the Town</a>
         {staffRole && <a class="right" href="/admin/news">Newsroom</a>}
         {user ? <a class={staffRole ? undefined : "right"} href="/account">{user.name}</a> : <a class="right" href="/sign-in">Sign in</a>}
       </div></nav>

@@ -2,6 +2,23 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.6.0] - 2026-09-27
+
+### Added
+
+- Local events calendar at `/events`: upcoming events grouped by day, filters by category and community, and past events
+- Event pages with date, time, venue and map link, cost, organizer, an optional image and details, and an **Add to calendar** download (`.ics`)
+- schema.org `Event` data on event pages, so search engines can show events in their own listings
+- *Coming up* on the front page, showing the next four events, and an Events link in the site navigation
+- Events admin at `/admin/events` for administrators and editors: create, edit, cancel, and duplicate events for another date; administrators can delete
+- Upcoming events on the admin dashboard, and published events in the sitemap
+- D1 migration 0009, which adds the `events` table
+- Demo events in `scripts/seed-demo.sql`
+
+### Changed
+
+- Media library images used by events count as in use and can't be deleted; an image's page lists those events
+
 ## [1.5.0] - 2026-09-27
 
 ### Added

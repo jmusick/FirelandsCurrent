@@ -11,12 +11,13 @@ An Astro and Cloudflare Workers foundation for an independent local newspaper ce
 - Rate limits on threads, replies, and reports
 - Member reports, reviewed in the admin panel with hide/dismiss actions
 - News: section pages, story pages, and the latest stories on the homepage; story text is Markdown, with lead images and captioned photos from the media library
-- Media library for story and ad images, stored in R2, with credits, usage tracking and social-preview images
+- Local events calendar at `/events`, with an upcoming-events block on the front page, event pages with an add-to-calendar file, and search-engine event data
+- Media library for story, ad and event images, stored in R2, with credits, usage tracking and social-preview images
 - `/sitemap.xml` listing the main pages, news sections, published stories, and visible discussions, and a `/robots.txt` that points to it and keeps crawlers out of admin, account, business, and API routes
 - Google Analytics (GA4) on every page outside the admin panel, with the measurement ID set as `GA_MEASUREMENT_ID` in `wrangler.jsonc`; the tag loads only in production builds
 - Privacy Policy at `/privacy`, linked from the footer and the registration page. It describes exactly what the site collects (accounts, sessions, posts, Google Analytics, Cloudflare Web Analytics, ad counts), so update it whenever that changes
-- Admin panel at `/admin` (dashboard, News editor, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
-- D1 migrations for auth, forum, news, staff, user-management, and business records
+- Admin panel at `/admin` (dashboard, News editor, events calendar, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
+- D1 migrations for auth, forum, news, staff, user-management, business, ad, media, and event records
 
 ## Local setup
 
@@ -37,7 +38,7 @@ The admin panel at `/admin` is available to users with a row in `staff_roles`:
 | Role | Access |
 | --- | --- |
 | `admin` | Every admin section, including Users and Businesses; can delete stories |
-| `editor` | News and Media |
+| `editor` | News, Events, and Media |
 | `moderator` | Talk of the Town |
 
 Sections and the roles allowed in each are listed in `src/lib/admin.ts`; a new content area (classifieds, jobs, …) adds an entry there. Once one administrator exists, roles are managed at `/admin/users`. To create the first administrator, register the account, then:
@@ -68,6 +69,14 @@ Add members from the business page by account email, or from a user's page. The 
 
 Business membership is separate from staff roles. Membership records who someone works for, and staff roles still decide who can use the admin panel. The owner/member distinction is groundwork for a future area where businesses manage their own ads and people.
 
+## Events calendar
+
+Administrators and editors manage the calendar at `/admin/events`. Each event has a title, summary, category, date, optional start and end times (blank start time means all day), an optional last day for events that run several days, a venue, community and address, and optional organizer, cost, link, image from the media library, and Markdown details. On multi-day events the times are the daily hours. Dates and times are Eastern wall-clock values.
+
+Events are *Draft* (staff only), *Published*, or *Cancelled*. Cancelled events stay on the calendar, marked as cancelled, so readers who planned to go can see it; delete (administrators only) is for events entered by mistake. For events that repeat, **Duplicate for another date** on an event's page starts a new draft with the same details. An event's URL comes from its title; a second event with the same title gets its date added.
+
+Readers see upcoming events at `/events`, grouped by day, with filters for category and community and a list of past events. Events that have already started stay under *Today* until their last day. Each event page has a map link, an **Add to calendar** `.ics` file (`/events/<slug>.ics`), and schema.org `Event` data so search engines can list it. The next four events appear under *Coming up* on the front page, and published events are in the sitemap.
+
 ## Media library
 
 Every image on the site lives in the media library at `/admin/media`, open to administrators and editors. Each image has a **credit** (required, shown with it on the site), optional **alt text** and **caption**, and a staff-only **source & permission** note recording where it came from and who allowed its use. Only use images the paper made or has permission to run.
@@ -76,7 +85,7 @@ Images are uploaded from the library page or straight from the story editor: the
 
 In a story, an image on a line of its own shows as a figure with its caption and credit. Stories can only show library images: an image linked from another site shows as its alt text instead. Each story can also have a **lead image**, shown above the story, with it on the front page and in the news list, and as the preview image when the story is shared on social media.
 
-An image’s page lists every story and ad that uses it, its details and its history. Images in use can’t be deleted; deleting a story or ad leaves its images in the library. Uploads, edits and deletions are recorded in the audit log.
+An image’s page lists every story, ad and event that uses it, its details and its history. Images in use can’t be deleted; deleting a story, ad or event leaves its images in the library. Uploads, edits and deletions are recorded in the audit log.
 
 Files are stored in the `MEDIA` R2 bucket under `library/` and served from `/media/…` with long-lived caching, so a replaced image gets a new address rather than changing in place.
 
@@ -116,7 +125,7 @@ The site follows [Semantic Versioning](https://semver.org/). The version in `pac
 
 Email/password signups do not yet verify email addresses, and password recovery by email is not wired up. Those require a transactional email sender and an approved sending domain. Social sign-in needs the provider credentials above. The forum is a functional local prototype; configure email verification and bot protection before opening registration to the public.
 
-Articles, the editorial CMS, newsletter, obituaries, jobs, and classifieds are separate later work.
+Reader-submitted events, the newsletter, obituaries, jobs, and classifieds are separate later work.
 
 ## License
 

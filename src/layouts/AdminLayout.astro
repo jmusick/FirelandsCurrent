@@ -1,5 +1,5 @@
 ---
-import { BuildingComplex, ExternalLink, Images, LayoutDashboard, Megaphone, MessagesSquare, Newspaper, Users } from '@lucide/astro';
+import { BuildingComplex, CalendarDays, ExternalLink, Images, LayoutDashboard, Megaphone, MessagesSquare, Newspaper, Users } from '@lucide/astro';
 import { ADMIN, sectionsFor, type AdminSectionKey } from '../lib/admin';
 import { ROLE_LABELS } from '../lib/staff';
 
@@ -7,6 +7,7 @@ import { ROLE_LABELS } from '../lib/staff';
 const SECTION_ICONS = {
   dashboard: LayoutDashboard,
   news: Newspaper,
+  events: CalendarDays,
   media: Images,
   talk: MessagesSquare,
   users: Users,

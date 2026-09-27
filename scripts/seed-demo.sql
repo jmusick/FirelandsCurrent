@@ -1,5 +1,5 @@
--- Demo content for Talk of the Town and News. Local development only.
--- News stories are fictional: invented people and events in real Firelands communities.
+-- Demo content for Talk of the Town, News, and Events. Local development only.
+-- News stories and events are fictional: invented people and events in real Firelands communities.
 -- Re-runnable: removes previous demo rows (ids prefixed "demo-") before inserting.
 -- Demo users have no account rows, so nobody can sign in as them.
 -- Timestamps are relative to the moment the seed runs.
@@ -7,6 +7,7 @@
 DELETE FROM forum_replies WHERE id LIKE 'demo-%';
 DELETE FROM forum_threads WHERE id LIKE 'demo-%';
 DELETE FROM news_articles WHERE id LIKE 'demo-%';
+DELETE FROM events WHERE id LIKE 'demo-%';
 DELETE FROM "user" WHERE id LIKE 'demo-%';
 
 INSERT INTO "user" (id, name, email, emailVerified, createdAt, updatedAt) VALUES
@@ -182,3 +183,33 @@ SET published_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000 - published_at 
     created_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000 - published_at * 3600000,
     updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000 - published_at * 3600000
 WHERE id LIKE 'demo-a%';
+
+-- Events, dated in days from today so the calendar always has something coming up.
+INSERT INTO events (id, slug, title, summary, description, category, starts_on, start_time, ends_on, end_time, venue, address, community, organizer, cost, link, status, created_at, updated_at) VALUES
+  ('demo-e1', 'demo-lakefront-farmers-market', 'Lakefront Farmers Market', 'Late-season produce, baked goods and local honey from growers across Erie and Huron counties.',
+   'Vendors set up along the waterfront every week through the end of the season. Bring your own bags.
+
+- Fall squash and apples
+- Fresh bread and pies
+- Kids'' pumpkin painting table',
+   'food', date('now', '+1 day'), '09:00', NULL, '13:00', 'Jackson Street Pier', 'Jackson St.', 'Sandusky', 'Downtown Sandusky Market Association', 'Free admission', '', 'published', 0, 0),
+  ('demo-e2', 'demo-city-commission-meeting', 'City Commission regular meeting', 'Commissioners take up the downtown parking study and next year''s street resurfacing list.',
+   'The meeting is open to the public, with time for comments at the start. The agenda is posted the Friday before.',
+   'meetings', date('now', '+3 days'), '17:00', NULL, NULL, 'City Hall', '240 Columbus Ave.', 'Sandusky', 'City of Sandusky', 'Free', '', 'published', 0, 0),
+  ('demo-e3', 'demo-harvest-fest', 'Milan Harvest Fest', 'Three days of hayrides, a craft fair and live bluegrass on the village green.',
+   'Parking is available at the school, with a free shuttle to the green every 15 minutes.',
+   'community', date('now', '+5 days'), '10:00', date('now', '+7 days'), '18:00', 'Milan Village Green', '', 'Milan', 'Milan Chamber of Commerce', 'Free; hayrides $3', '', 'published', 0, 0),
+  ('demo-e4', 'demo-jazz-on-the-lake', 'Jazz on the Lake: Autumn Session', 'A quartet from Cleveland plays standards and originals in the theater''s lobby lounge.', '',
+   'music', date('now', '+6 days'), '19:30', NULL, '21:30', 'Sandusky State Theatre', '107 Columbus Ave.', 'Sandusky', '', '$15', '', 'published', 0, 0),
+  ('demo-e5', 'demo-story-time-vermilion', 'Story time for preschoolers', 'Picture books, songs and a craft for children ages 3 to 6 and their grown-ups.', '',
+   'family', date('now', '+8 days'), '10:30', NULL, '11:15', 'Ritter Public Library', '5680 Liberty Ave.', 'Vermilion', 'Ritter Public Library', 'Free', '', 'published', 0, 0),
+  ('demo-e6', 'demo-birding-walk', 'Fall migration birding walk', 'Look for warblers and waterfowl with a volunteer naturalist. Binoculars available to borrow.', '',
+   'outdoors', date('now', '+10 days'), '08:00', NULL, '10:00', 'Sheldon Marsh State Nature Preserve', '2514 Cleveland Rd. W.', 'Huron', '', 'Free', '', 'cancelled', 0, 0),
+  ('demo-e7', 'demo-watercolor-workshop', 'Beginner watercolor workshop', 'Paint a Lake Erie sunset in one afternoon. All supplies included.', '',
+   'classes', date('now', '+12 days'), '13:00', NULL, '16:00', 'Norwalk Arts Center', '', 'Norwalk', '', '$25', '', 'draft', 0, 0),
+  ('demo-e8', 'demo-community-cleanup', 'Shoreline cleanup', 'Volunteers picked up litter along the beach; gloves and bags were provided.', '',
+   'outdoors', date('now', '-4 days'), NULL, NULL, NULL, 'Lakeview Park', '', 'Lorain', '', 'Free', '', 'published', 0, 0);
+
+UPDATE events
+SET created_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000, updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000
+WHERE id LIKE 'demo-e%';

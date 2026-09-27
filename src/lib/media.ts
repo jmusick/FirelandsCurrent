@@ -157,16 +157,19 @@ export async function getMedia(id: string): Promise<(MediaRecord & { uploader_na
 export type MediaUsage = {
   stories: { id: string; headline: string; status: string; lead: number }[];
   ads: { id: string; name: string; size: string }[];
+  events: { id: string; title: string; status: string }[];
 };
 
-/** Where an item runs: as a story's lead image, inside a story's text, or as an ad banner. */
+/** Where an item runs: as a story's lead image, inside a story's text, as an ad banner, or with an event. */
 export async function mediaUsage(media: { id: string; object_key: string }): Promise<MediaUsage> {
-  const [stories, ads] = await env.DB.batch([
+  const [stories, ads, events] = await env.DB.batch([
     env.DB.prepare('SELECT id, headline, status, lead_media_id = ?1 AS lead FROM news_articles WHERE lead_media_id = ?1 OR instr(body, ?2) > 0 ORDER BY updated_at DESC')
       .bind(media.id, mediaUrl(media.object_key)),
     env.DB.prepare('SELECT a.id, a.name, i.size FROM ad_images i JOIN ads a ON a.id = i.ad_id WHERE i.media_id = ? ORDER BY a.name').bind(media.id),
+    env.DB.prepare('SELECT id, title, status FROM events WHERE image_media_id = ?1 OR instr(description, ?2) > 0 ORDER BY starts_on DESC')
+      .bind(media.id, mediaUrl(media.object_key)),
   ]);
-  return { stories: stories.results as MediaUsage['stories'], ads: ads.results as MediaUsage['ads'] };
+  return { stories: stories.results as MediaUsage['stories'], ads: ads.results as MediaUsage['ads'], events: events.results as MediaUsage['events'] };
 }
 
 export async function mediaAuditLog(id: string) {

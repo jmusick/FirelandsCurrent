@@ -1,0 +1,89 @@
+---
+import { Plus } from '@lucide/astro';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { CATEGORIES, STATUS_LABELS, fmtDates, fmtHours, isPast, listAdminEvents } from '../../../lib/events';
+
+const denied = requireSection(Astro, ADMIN.events);
+if (denied) return denied;
+
+const all = await listAdminEvents();
+// Upcoming events read soonest first; past ones stay newest first.
+const upcoming = all.filter((e) => !isPast(e)).reverse();
+const events = [...upcoming, ...all.filter(isPast)];
+---
+<AdminLayout title="Events">
+  <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
+    <div><span class="eyebrow">Events</span><h1>Local events</h1></div>
+    <a class="button" href="/admin/events/new"><Plus />New event</a>
+  </div>
+  {Astro.url.searchParams.has('deleted') && <p class="message" role="status">Event deleted.</p>}
+
+  <div class="filters">
+    <input id="f-search" type="search" placeholder="Search title, venue, community, organizer…" aria-label="Search events" />
+    <select id="f-when" aria-label="When"><option value="upcoming">Upcoming</option><option value="past">Past</option><option value="">All dates</option></select>
+    <select id="f-status" aria-label="Status"><option value="">All statuses</option>{Object.entries(STATUS_LABELS).map(([key, label]) => <option value={key}>{label}</option>)}</select>
+    <select id="f-category" aria-label="Category"><option value="">All categories</option>{Object.entries(CATEGORIES).map(([key, label]) => <option value={key}>{label}</option>)}</select>
+    <span id="f-count" class="meta"></span>
+  </div>
+
+  {events.length === 0 ? <div class="card"><h2>No events yet</h2><p class="muted">Add the first one to start the calendar.</p></div> :
+  <div class="table-wrap"><table>
+    <thead><tr><th>Event</th><th>When</th><th>Category</th><th>Status</th></tr></thead>
+    <tbody id="rows">
+      {events.map((e) => <tr data-search={`${e.title} ${e.venue} ${e.community} ${e.organizer} ${e.slug}`.toLowerCase()} data-when={isPast(e) ? 'past' : 'upcoming'} data-status={e.status} data-category={e.category}>
+        <td><a class="headline" href={`/admin/events/${e.id}`}>{e.title}</a><div class="meta">{e.venue} · {e.community}</div></td>
+        <td>{fmtDates(e, { year: true })}<div class="meta">{fmtHours(e)}</div></td>
+        <td>{CATEGORIES[e.category]}</td>
+        <td><span class={`pill ${e.status}`}>{STATUS_LABELS[e.status]}</span></td>
+      </tr>)}
+    </tbody>
+  </table></div>}
+  <p id="no-match" class="muted" hidden>No events match those filters.</p>
+</AdminLayout>
+
+<script is:inline>
+  (function () {
+    var rows = Array.from(document.querySelectorAll('#rows tr'));
+    var search = document.getElementById('f-search');
+    var when = document.getElementById('f-when');
+    var status = document.getElementById('f-status');
+    var category = document.getElementById('f-category');
+    var params = new URLSearchParams(location.search);
+    if (params.get('status') === 'draft') { status.value = 'draft'; when.value = ''; }
+    var count = document.getElementById('f-count');
+    var none = document.getElementById('no-match');
+    function apply() {
+      var q = search.value.trim().toLowerCase();
+      var shown = 0;
+      rows.forEach(function (r) {
+        var ok = (!q || r.dataset.search.includes(q)) && (!when.value || r.dataset.when === when.value) && (!status.value || r.dataset.status === status.value) && (!category.value || r.dataset.category === category.value);
+        r.hidden = !ok;
+        if (ok) shown++;
+      });
+      count.textContent = shown === rows.length ? rows.length + ' events' : shown + ' of ' + rows.length + ' events';
+      none.hidden = shown !== 0 || rows.length === 0;
+    }
+    [search, when, status, category].forEach(function (el) { el.addEventListener('input', apply); });
+    apply();
+  })();
+</script>
+
+<style>
+  .filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.5rem 0 1rem; }
+  .filters input, .filters select { padding: .6rem .75rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .filters input { flex: 1; min-width: 220px; }
+  .filters .meta { margin-left: auto; }
+  .table-wrap { overflow-x: auto; border-top: 3px solid #173d4a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: #687a7d; padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; }
+  td { padding: .9rem .6rem; border-bottom: 1px solid #c9d1cd; vertical-align: top; }
+  td .meta { margin-top: .2rem; }
+  .headline { font-weight: 700; color: #173d4a; text-decoration: none; }
+  .headline:hover { color: #ad5835; text-decoration: underline; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+  .pill.published { background: #e3f1e8; color: #1f5a41; }
+  .pill.draft { background: #fbeee2; color: #853d26; }
+  .pill.cancelled { background: #ecefee; color: #4d6367; text-decoration: line-through; }
+  @media (max-width: 700px) { th:nth-child(3), td:nth-child(3) { display: none; } }
+</style>

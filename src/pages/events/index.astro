@@ -1,0 +1,115 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { adPlanFor } from '../../lib/ads';
+import { CATEGORIES, fmtDay, fmtDates, fmtHours, isCategory, listEvents, today, upcomingCommunities, type CalendarEvent } from '../../lib/events';
+
+const params = Astro.url.searchParams;
+const category = isCategory(params.get('category')) ? params.get('category') as keyof typeof CATEGORIES : undefined;
+const past = params.get('when') === 'past';
+const communities = await upcomingCommunities();
+const communityParam = params.get('community') ?? '';
+// Past events can be from anywhere; the upcoming list only offers communities that have something coming up.
+const community = communityParam && (past || communities.includes(communityParam)) && communityParam.length <= 60 ? communityParam : undefined;
+const requestedPage = Number(params.get('page') ?? 1);
+const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 1000 ? requestedPage : 1;
+const PAGE_SIZE = 30;
+const fetched = await listEvents({ category, community, past }, page - 1, PAGE_SIZE);
+const hasMore = fetched.length > PAGE_SIZE;
+const events = fetched.slice(0, PAGE_SIZE);
+await adPlanFor(Astro.request, Astro.locals);
+
+// Upcoming events that have already started sit under today, so a weekend festival shows on Sunday too.
+const now = today();
+const groups: { day: string; events: CalendarEvent[] }[] = [];
+for (const e of events) {
+  const day = !past && e.starts_on < now ? now : e.starts_on;
+  if (groups.at(-1)?.day !== day) groups.push({ day, events: [] });
+  groups.at(-1)!.events.push(e);
+}
+const tomorrow = new Date(Date.parse(`${now}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
+const dayLabel = (day: string) => day === now ? `Today · ${fmtDay(day)}` : day === tomorrow ? `Tomorrow · ${fmtDay(day)}` : fmtDay(day, { weekday: 'long', month: 'long', day: 'numeric', ...(day.slice(0, 4) !== now.slice(0, 4) ? { year: 'numeric' } : {}) });
+
+const href = (changes: { category?: string | null; community?: string | null; past?: boolean; page?: number }) => {
+  const next = new URLSearchParams();
+  const c = changes.category === undefined ? category : changes.category;
+  const m = changes.community === undefined ? community : changes.community;
+  const p = changes.past ?? past;
+  if (c) next.set('category', c);
+  if (m) next.set('community', m);
+  if (p) next.set('when', 'past');
+  if (changes.page && changes.page > 1) next.set('page', String(changes.page));
+  const query = next.toString();
+  return query ? `/events?${query}` : '/events';
+};
+const heading = past ? 'Past events' : category ? CATEGORIES[category] : 'Local events';
+---
+<BaseLayout title={past ? 'Past events' : category ? `${CATEGORIES[category]} events` : 'Local events'} description="What's happening in Sandusky and across the Firelands: concerts, festivals, meetings, markets and more.">
+  <span class="eyebrow">Events calendar{community && ` · ${community}`}</span>
+  <h1>{heading}</h1>
+  <nav aria-label="Event categories" class="chips">
+    <a class={category ? 'button secondary small' : 'button small'} href={href({ category: null, page: 1 })}>All</a>
+    {Object.entries(CATEGORIES).map(([key, label]) => <a class={category === key ? 'button small' : 'button secondary small'} href={href({ category: key, page: 1 })}>{label}</a>)}
+  </nav>
+  <form method="get" action="/events" class="refine">
+    {category && <input type="hidden" name="category" value={category} />}
+    {past && <input type="hidden" name="when" value="past" />}
+    {!past && communities.length > 1 && <label>Community
+      <select name="community" id="community">
+        <option value="">Everywhere</option>
+        {communities.map((c) => <option value={c} selected={community === c}>{c}</option>)}
+      </select>
+    </label>}
+    {!past && communities.length > 1 && <noscript><button class="button secondary small" type="submit">Show</button></noscript>}
+    <a class="when" href={href({ past: !past, community: null, page: 1 })}>{past ? '← Upcoming events' : 'Past events →'}</a>
+  </form>
+
+  <div class="calendar">
+    {groups.length === 0 ? <div class="card" style="margin-top:1rem"><h2>{past ? 'No past events' : 'Nothing on the calendar yet'}</h2><p class="muted">{category || community ? <>Try <a href={href({ category: null, community: null, page: 1 })}>all events</a>.</> : 'Check back soon for what’s happening around the region.'}</p></div>
+    : groups.map((g) => <section class="day">
+      <h2>{dayLabel(g.day)}</h2>
+      {g.events.map((e) => <article class:list={['event', { cancelled: e.status === 'cancelled' }]}>
+        <p class="time">{fmtHours(e)}</p>
+        <div class="text">
+          <span class="eyebrow">{CATEGORIES[e.category]} · {e.community}{e.status === 'cancelled' && <span class="flag">Cancelled</span>}</span>
+          <h3><a href={`/events/${e.slug}`}>{e.title}</a></h3>
+          <p class="muted summary">{e.summary}</p>
+          <p class="meta">{e.venue}{e.ends_on && <> · {fmtDates(e)}</>}{e.cost && <> · {e.cost}</>}</p>
+        </div>
+        {e.lead_key && <a class="thumb" href={`/events/${e.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${e.lead_key}`} alt="" width={e.lead_width!} height={e.lead_height!} loading="lazy" /></a>}
+      </article>)}
+    </section>)}
+  </div>
+  {(page > 1 || hasMore) && <nav aria-label="Event pages" class="pages"><span>{page > 1 && <a href={href({ page: page - 1 })}>← {past ? 'More recent' : 'Sooner'}</a>}</span><span>{hasMore && <a href={href({ page: page + 1 })}>{past ? 'Older' : 'Later'} →</a>}</span></nav>}
+</BaseLayout>
+
+<script is:inline>
+  document.getElementById('community')?.addEventListener('change', function () { this.form.submit(); });
+</script>
+
+<style>
+  .chips { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0 0; }
+  .refine { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; align-items: center; margin-top: 1rem; }
+  .refine label { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: .9rem; }
+  .refine select { padding: .45rem .6rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .refine .when { margin-left: auto; font-weight: 700; }
+  .calendar { border-top: 3px solid #173d4a; margin-top: 1.25rem; }
+  .day h2 { font-size: 1.15rem; margin: 1.8rem 0 .2rem; padding-bottom: .5rem; border-bottom: 1px solid #c9d1cd; }
+  .event { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto; gap: 1.25rem; align-items: start; padding: 1.1rem 0; border-bottom: 1px solid #e0e4df; }
+  .time { margin: .15rem 0 0; font-weight: 700; color: #173d4a; font-size: .95rem; }
+  .text { min-width: 0; }
+  .event h3 { margin: .3rem 0; font-size: 1.2rem; }
+  .event h3 a { text-decoration: none; color: inherit; }
+  .event h3 a:hover { color: #ad5835; }
+  .summary { max-width: 700px; margin: .3rem 0; }
+  .event .meta { margin: .3rem 0 0; }
+  .flag { margin-left: .5rem; padding: .1rem .45rem; border-radius: 999px; background: #853d26; color: #fff; letter-spacing: .08em; }
+  .cancelled h3 a { text-decoration: line-through; color: #62767a; }
+  .thumb img { display: block; width: 160px; aspect-ratio: 3 / 2; height: auto; object-fit: cover; border-radius: 4px; background: #ecf0ec; }
+  .pages { display: flex; justify-content: space-between; margin-top: 1.5rem; }
+  @media (max-width: 640px) {
+    .event { grid-template-columns: minmax(0, 1fr) auto; gap: .9rem; }
+    .time { grid-column: 1 / -1; margin: 0; }
+    .thumb img { width: 96px; }
+    .refine .when { margin-left: 0; }
+  }
+</style>

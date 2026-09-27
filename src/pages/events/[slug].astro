@@ -1,0 +1,65 @@
+---
+import { CalendarPlus, Clock, ExternalLink, MapPin, Ticket, Users } from '@lucide/astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { adPlanFor } from '../../lib/ads';
+import { CATEGORIES, eventJsonLd, fmtDates, fmtHours, getEvent, isPast, mapsUrl } from '../../lib/events';
+import { mediaByKeys, mediaKeysIn } from '../../lib/media';
+import { figureHtml, leadMedia, renderBodyBlocks } from '../../lib/news';
+
+const event = await getEvent(Astro.params.slug ?? '');
+if (!event) return new Response('Event not found', { status: 404 });
+await adPlanFor(Astro.request, Astro.locals);
+
+const image = leadMedia(event);
+const details = event.description ? renderBodyBlocks(event.description, await mediaByKeys(mediaKeysIn(event.description))).join('') : '';
+const pageUrl = new URL(`/events/${event.slug}`, Astro.url.origin).href;
+const imageUrl = image ? new URL(`/media/${image.object_key}`, Astro.url.origin).href : null;
+const cancelled = event.status === 'cancelled';
+const over = isPast(event);
+---
+<BaseLayout title={event.title} description={event.summary.slice(0, 155)} image={image && { url: `/media/${image.object_key}`, width: image.width, height: image.height, alt: image.alt }}>
+  <script slot="head" type="application/ld+json" set:html={eventJsonLd(event, pageUrl, imageUrl)} />
+  <a href={`/events?category=${event.category}`}>← {CATEGORIES[event.category]} events</a>
+  <article class="event">
+    <span class="eyebrow">{CATEGORIES[event.category]} · {event.community}</span>
+    <h1 class:list={{ struck: cancelled }}>{event.title}</h1>
+    {cancelled && <p class="message" role="status"><strong>This event has been cancelled.</strong></p>}
+    {!cancelled && over && <p class="notice">This event has already taken place.</p>}
+    <p class="lede" style="margin-top:0">{event.summary}</p>
+
+    <dl class="facts">
+      <div><dt><Clock />When</dt><dd>{fmtDates(event, { year: true })}<br />{fmtHours(event)}{event.ends_on && event.start_time && <span class="meta"> each day</span>}</dd></div>
+      <div><dt><MapPin />Where</dt><dd>{event.venue}<br />{event.address ? `${event.address}, ${event.community}` : event.community}<br /><a href={mapsUrl(event)} rel="noopener">Map</a></dd></div>
+      {event.cost && <div><dt><Ticket />Cost</dt><dd>{event.cost}</dd></div>}
+      {event.organizer && <div><dt><Users />Organizer</dt><dd>{event.organizer}</dd></div>}
+    </dl>
+    <div class="actions">
+      {!cancelled && !over && <a class="button" href={`/events/${event.slug}.ics`} download={`${event.slug}.ics`}><CalendarPlus />Add to calendar</a>}
+      {event.link && <a class="button secondary" href={event.link} rel="noopener">More details<ExternalLink /></a>}
+    </div>
+
+    {image && <Fragment set:html={figureHtml(image, { className: 'story-figure', eager: true })} />}
+    {details && <div class="story"><Fragment set:html={details} /></div>}
+  </article>
+  <p style="margin-top:2.5rem"><a href="/events">See everything on the calendar →</a></p>
+</BaseLayout>
+
+<style>
+  .event { max-width: 760px; margin-top: 1.7rem; }
+  .struck { text-decoration: line-through; text-decoration-thickness: 2px; color: #62767a; }
+  .notice { padding: .6rem .9rem; background: #ecf0ec; border-left: 3px solid #9eb0ae; color: #4d6367; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem 2rem; margin: 1.5rem 0; padding: 1.1rem 0; border-top: 1px solid #c9d1cd; border-bottom: 1px solid #c9d1cd; }
+  .facts dt { display: flex; align-items: center; gap: .4rem; font-size: .76rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #ad5835; }
+  .facts dt :global(.lucide) { width: 1rem; height: 1rem; }
+  .facts dd { margin: .35rem 0 0; line-height: 1.55; }
+  .actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .actions .button { display: inline-flex; align-items: center; gap: .45rem; }
+  .actions :global(.lucide) { width: 1.1em; height: 1.1em; }
+  .story { line-height: 1.8; font-size: 1.08rem; }
+  .story :global(img) { max-width: 100%; height: auto; border-radius: 4px; }
+  .story :global(ul), .story :global(ol) { padding-left: 1.4rem; }
+  :global(.story-figure) { margin: 0 0 2rem; }
+  :global(.story-figure img) { display: block; width: 100%; height: auto; border-radius: 4px; background: #ecf0ec; }
+  :global(.story-figure figcaption) { margin-top: .55rem; font-size: .88rem; line-height: 1.5; color: #4d6367; }
+  :global(.story-figure .credit) { color: #687a7d; font-size: .8rem; letter-spacing: .02em; }
+</style>

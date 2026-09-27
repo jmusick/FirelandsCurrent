@@ -4,6 +4,7 @@ import { env } from 'cloudflare:workers';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, canAccess, requireSection } from '../../../lib/admin';
 import { IMAGE_SIZES, type ImageSize } from '../../../lib/ads';
+import { STATUS_LABELS, type EventStatus } from '../../../lib/events';
 import { sameOrigin } from '../../../lib/forum';
 import { detailsFrom, fmtBytes, getMedia, mediaAudit, mediaAuditLog, mediaUrl, mediaUsage, validateDetails, type MediaDetails } from '../../../lib/media';
 import { AUDIT_LABELS, fmtDateTime } from '../../../lib/users';
@@ -34,7 +35,7 @@ if (Astro.request.method === 'POST') {
 }
 
 const [usage, log] = await Promise.all([mediaUsage(media), mediaAuditLog(media.id)]);
-const inUse = usage.stories.length + usage.ads.length;
+const inUse = usage.stories.length + usage.ads.length + usage.events.length;
 const url = mediaUrl(media.object_key);
 const markdown = `![${media.alt.replace(/[[\]\n]/g, ' ')}](${url})`;
 const canSeeAds = canAccess(Astro.locals.staffRole, ADMIN.ads);
@@ -47,7 +48,7 @@ const inUseError = Astro.url.searchParams.get('error') === 'in-use';
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Media</span>
   <h1 class="filename">{media.filename}</h1>
   {notice && <p class="message ok" role="status">{notice}</p>}
-  {inUseError && <p class="message" role="alert">This image is still in use, so it wasn’t deleted. Remove it from the stories and ads below first.</p>}
+  {inUseError && <p class="message" role="alert">This image is still in use, so it wasn’t deleted. Remove it from the stories, ads and events below first.</p>}
 
   <div class="layout">
     <div class="main">
@@ -84,9 +85,10 @@ const inUseError = Astro.url.searchParams.get('error') === 'in-use';
 
       <section class="card">
         <h2><Link2 />Used in <span class="meta">({inUse})</span></h2>
-        {inUse === 0 ? <p class="muted" style="margin:0">Not used in any story or ad.</p> : <ul class="uses">
+        {inUse === 0 ? <p class="muted" style="margin:0">Not used in any story, ad or event.</p> : <ul class="uses">
           {usage.stories.map((s) => <li><a href={`/admin/news/${s.id}`}>{s.headline}</a><div class="meta">Story{s.lead ? ', lead image' : ''} · {s.status === 'published' ? 'Published' : 'Draft'}</div></li>)}
           {usage.ads.map((a) => <li>{canSeeAds ? <a href={`/admin/ads/${a.id}`}>{a.name}</a> : a.name}<div class="meta">Ad · {IMAGE_SIZES[a.size as ImageSize]?.label ?? a.size} banner</div></li>)}
+          {usage.events.map((e) => <li><a href={`/admin/events/${e.id}`}>{e.title}</a><div class="meta">Event · {STATUS_LABELS[e.status as EventStatus] ?? e.status}</div></li>)}
         </ul>}
       </section>
 

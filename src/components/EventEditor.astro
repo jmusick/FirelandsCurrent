@@ -1,0 +1,159 @@
+---
+import { Copy, ImagePlus, Save, Trash, X } from '@lucide/astro';
+import { env } from 'cloudflare:workers';
+import MediaPicker from './MediaPicker.astro';
+import { CATEGORIES, STATUS_LABELS } from '../lib/events';
+import type { EventFormValues } from '../lib/events-admin';
+import { getMedia, mediaUrl } from '../lib/media';
+
+interface Props {
+  values: EventFormValues;
+  errors: string[];
+  saved?: boolean;
+  eventId?: string;
+  liveUrl?: string | null;
+  canDelete?: boolean;
+}
+
+const { values, errors, saved = false, eventId, liveUrl, canDelete = false } = Astro.props;
+const image = values.image_media_id ? await getMedia(values.image_media_id) : null;
+// Communities already in use, so the calendar's community filter doesn't split "Sandusky" and "sandusky".
+const communities = (await env.DB.prepare('SELECT community FROM events UNION SELECT community FROM news_articles ORDER BY 1 LIMIT 300').all<{ community: string }>()).results;
+---
+{errors.length > 0 && <div class="message" role="alert"><strong>Couldn’t save the event.</strong><ul>{errors.map((e) => <li>{e}</li>)}</ul></div>}
+{saved && <p class="message saved" role="status">Event saved.{liveUrl && <> <a href={liveUrl}>View it on the site →</a></>}</p>}
+
+<form method="post" id="event-form" class="form editor">
+  <label>Title <input name="title" value={values.title} required minlength="3" maxlength="140" /></label>
+  <label>Summary <span class="hint">One or two sentences, shown in the calendar and in link previews.</span><textarea name="summary" required minlength="10" maxlength="300" style="min-height:80px">{values.summary}</textarea></label>
+  <div class="row">
+    <label>Category
+      <select name="category" required>
+        <option value="" disabled selected={!values.category}>Choose…</option>
+        {Object.entries(CATEGORIES).map(([key, label]) => <option value={key} selected={values.category === key}>{label}</option>)}
+      </select>
+    </label>
+    <label>Status
+      <select name="status">
+        {Object.entries(STATUS_LABELS).map(([key, label]) => <option value={key} selected={values.status === key}>{label}</option>)}
+      </select>
+    </label>
+  </div>
+
+  <fieldset>
+    <legend>When <span class="hint">Eastern time. Leave the start time blank for an all-day event. On events that run several days, the times are the daily hours.</span></legend>
+    <div class="row four">
+      <label>Date <input type="date" name="starts_on" value={values.starts_on} required /></label>
+      <label>Start time <input type="time" name="start_time" value={values.start_time} /></label>
+      <label>End time <input type="time" name="end_time" value={values.end_time} /></label>
+      <label>Last day <span class="hint">If it runs several days</span><input type="date" name="ends_on" value={values.ends_on} /></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Where</legend>
+    <div class="row">
+      <label>Venue <input name="venue" value={values.venue} required maxlength="120" placeholder="Sandusky State Theatre" /></label>
+      <label>Community <input name="community" value={values.community} required maxlength="60" placeholder="Sandusky" list="communities" /></label>
+    </div>
+    <label>Address <span class="hint">Optional; linked to a map.</span><input name="address" value={values.address} maxlength="200" placeholder="107 Columbus Ave." /></label>
+  </fieldset>
+
+  <div class="row three">
+    <label>Organizer <input name="organizer" value={values.organizer} maxlength="120" /></label>
+    <label>Cost <input name="cost" value={values.cost} maxlength="80" placeholder="Free, $10, $5 for kids…" /></label>
+    <label>Link <span class="hint">Tickets or details</span><input name="link" value={values.link} maxlength="500" inputmode="url" placeholder="https://" /></label>
+  </div>
+
+  <div class="image-field">
+    <span class="field-label">Image <span class="hint">Optional. Shown on the event page and in link previews on social media.</span></span>
+    <input type="hidden" name="image_media_id" id="image-id" value={image ? image.id : ''} />
+    <div class="image-preview" id="image-preview" hidden={!image}>
+      <img id="image-img" src={image ? mediaUrl(image.object_key) : undefined} alt="" />
+      <div><strong id="image-name">{image?.filename}</strong><span class="meta" id="image-credit">{image?.credit}</span></div>
+    </div>
+    <div class="image-actions">
+      <button type="button" class="button secondary small" id="image-choose"><ImagePlus /><span>{image ? 'Change image' : 'Choose image'}</span></button>
+      <button type="button" class="button secondary small" id="image-remove" hidden={!image}><X />Remove</button>
+    </div>
+  </div>
+
+  <label>Details <span class="hint">Optional. Markdown: blank line between paragraphs, **bold**, [links](https://…), - for lists.</span><textarea name="description" maxlength="20000" style="min-height:220px">{values.description}</textarea></label>
+  <label>URL slug <span class="hint">/events/{values.slug || '…'} · Leave blank to make one from the title.</span><input name="slug" value={values.slug} maxlength="120" pattern="[a-z0-9-]*" /></label>
+
+  <div class="actions">
+    {eventId ? <a class="button secondary" href={`/admin/events/new?copy=${eventId}`}><Copy />Duplicate for another date</a> : <span></span>}
+    <button class="button" type="submit"><Save />Save event</button>
+  </div>
+  <datalist id="communities">{communities.map((c) => <option value={c.community} />)}</datalist>
+</form>
+
+<MediaPicker />
+
+{canDelete && eventId && <section class="card danger">
+  <h2><Trash />Delete event</h2>
+  <p class="muted">Removes the event permanently. If it isn’t happening, set it to Cancelled instead so readers can see that. Its image stays in the media library.</p>
+  <form method="post" action="/api/admin/events" id="delete-form"><input type="hidden" name="action" value="delete" /><input type="hidden" name="id" value={eventId} /><button class="button secondary small" type="submit"><Trash />Delete permanently</button></form>
+</section>}
+
+<script>
+  import { openMediaPicker } from '../scripts/media-picker';
+
+  const form = document.getElementById('event-form') as HTMLFormElement;
+  let dirty = false;
+  form.addEventListener('input', () => { dirty = true; });
+  form.addEventListener('submit', () => { dirty = false; });
+  window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
+
+  const imageId = document.getElementById('image-id') as HTMLInputElement;
+  const preview = document.getElementById('image-preview')!;
+  const img = document.getElementById('image-img') as HTMLImageElement;
+  const choose = document.getElementById('image-choose')!;
+  const remove = document.getElementById('image-remove')!;
+  const setImage = (item: { id: string; url: string; filename: string; credit: string } | null) => {
+    imageId.value = item?.id ?? '';
+    if (item) img.src = item.url; else img.removeAttribute('src');
+    document.getElementById('image-name')!.textContent = item?.filename ?? '';
+    document.getElementById('image-credit')!.textContent = item?.credit ?? '';
+    preview.hidden = !item;
+    remove.hidden = !item;
+    choose.querySelector('span')!.textContent = item ? 'Change image' : 'Choose image';
+    dirty = true;
+  };
+  choose.addEventListener('click', async () => {
+    const item = await openMediaPicker({ title: 'Choose an event image' });
+    if (item) setImage(item);
+  });
+  remove.addEventListener('click', () => setImage(null));
+
+  document.getElementById('delete-form')?.addEventListener('submit', (e) => {
+    if (!confirm('Delete this event permanently? This cannot be undone.')) e.preventDefault();
+  });
+</script>
+
+<style>
+  .editor { max-width: 900px; }
+  .hint { font-weight: 400; color: #687a7d; font-size: .82rem; }
+  .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .row.four { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; }
+  fieldset { border: 1px solid #d9dfda; border-radius: 4px; padding: .9rem 1rem 1rem; margin: 0; display: grid; gap: 1rem; background: #fffdfa; }
+  legend { font-weight: 700; font-size: .95rem; padding: 0 .35rem; }
+  legend .hint { display: block; margin-top: .15rem; }
+  .form :global(select) { width: 100%; padding: .8rem .85rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .image-field { display: grid; gap: .5rem; }
+  .field-label { font-weight: 700; font-size: .9rem; }
+  .image-preview { display: flex; gap: .9rem; align-items: center; padding: .6rem; border: 1px solid #d9dfda; border-radius: 4px; background: #fffdfa; }
+  .image-preview[hidden] { display: none; }
+  .image-preview img { width: 160px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 2px; background: #ecf0ec; }
+  .image-preview div { display: grid; gap: .2rem; min-width: 0; overflow-wrap: anywhere; }
+  .image-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .image-actions [hidden] { display: none; }
+  .actions { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid #c9d1cd; }
+  .message ul { margin: .4rem 0 0; padding-left: 1.2rem; }
+  .saved { border-color: #8fb8a4; color: #1f5a41; background: #eef7f1; }
+  .danger { max-width: 900px; margin-top: 3rem; border-color: #e0b6a3; }
+  .danger h2 { margin-top: 0; font-size: 1.15rem; color: #853d26; }
+  @media (max-width: 800px) { .row.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { .row, .row.three { grid-template-columns: minmax(0, 1fr); } }
+</style>

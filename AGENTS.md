@@ -57,7 +57,7 @@ scripts/             Demo seed SQL; auth-schema.ts only generated the initial au
 
 ## Database migrations
 
-- Add a new numbered file in `migrations/` (next is `0009_*.sql`); never edit a migration that has shipped.
+- Add a new numbered file in `migrations/` (next is `0010_*.sql`); never edit a migration that has shipped.
 - Apply locally with `npm run db:migrate:local`. Update `scripts/seed-demo.sql` or `scripts/seed-ads-demo.sql` if the schema change affects demo data.
 - Production migrations are applied deliberately with `npx wrangler d1 migrations apply DB --remote`. Don't run `--remote` commands unless the user asks.
 

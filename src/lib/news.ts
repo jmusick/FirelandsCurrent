@@ -32,7 +32,7 @@ export type LeadImage = {
   lead_alt: string | null; lead_caption: string | null; lead_credit: string | null;
 };
 
-const LEAD_COLUMNS = `m.object_key AS lead_key, m.width AS lead_width, m.height AS lead_height, m.alt AS lead_alt, m.caption AS lead_caption, m.credit AS lead_credit`;
+export const LEAD_COLUMNS = `m.object_key AS lead_key, m.width AS lead_width, m.height AS lead_height, m.alt AS lead_alt, m.caption AS lead_caption, m.credit AS lead_credit`;
 
 /** The lead image in the shape figureHtml takes, or null. */
 export const leadMedia = (a: LeadImage) => a.lead_key

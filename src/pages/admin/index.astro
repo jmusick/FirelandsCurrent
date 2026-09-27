@@ -1,8 +1,9 @@
 ---
-import { FilePen, Flag, MessagesSquare, Newspaper, Plus, Users } from '@lucide/astro';
+import { CalendarDays, CalendarPlus, FilePen, Flag, MessagesSquare, Newspaper, Plus, Users } from '@lucide/astro';
 import { env } from 'cloudflare:workers';
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { ADMIN, canAccess, requireSection } from '../../lib/admin';
+import { today } from '../../lib/events';
 
 const denied = requireSection(Astro, ADMIN.dashboard);
 if (denied) return denied;
@@ -11,12 +12,14 @@ const stats = await env.DB.prepare(`
   SELECT
     (SELECT COUNT(*) FROM news_articles WHERE status = 'published') AS published,
     (SELECT COUNT(*) FROM news_articles WHERE status = 'draft') AS drafts,
+    (SELECT COUNT(*) FROM events WHERE status = 'published' AND COALESCE(ends_on, starts_on) >= ?1) AS events,
     (SELECT COUNT(*) FROM forum_threads WHERE status = 'published') AS threads,
     (SELECT COUNT(*) FROM forum_reports WHERE status = 'open') AS reports,
     (SELECT COUNT(*) FROM "user") AS users
-`).first<{ published: number; drafts: number; threads: number; reports: number; users: number }>();
+`).bind(today()).first<{ published: number; drafts: number; events: number; threads: number; reports: number; users: number }>();
 const role = Astro.locals.staffRole;
 const news = canAccess(role, ADMIN.news);
+const events = canAccess(role, ADMIN.events);
 const talk = canAccess(role, ADMIN.talk);
 const users = canAccess(role, ADMIN.users);
 ---
@@ -26,6 +29,7 @@ const users = canAccess(role, ADMIN.users);
   <div class="tiles">
     {news && <a class="card tile" href="/admin/news?status=published"><span class="meta"><Newspaper />Published stories</span><strong>{stats?.published ?? 0}</strong></a>}
     {news && <a class="card tile" href="/admin/news?status=draft"><span class="meta"><FilePen />Drafts</span><strong>{stats?.drafts ?? 0}</strong></a>}
+    {events && <a class="card tile" href="/admin/events"><span class="meta"><CalendarDays />Upcoming events</span><strong>{stats?.events ?? 0}</strong></a>}
     {talk && <a class="card tile" href="/admin/talk"><span class="meta"><Flag />Open reports</span><strong class={stats?.reports ? 'alert' : undefined}>{stats?.reports ?? 0}</strong></a>}
     <div class="card tile"><span class="meta"><MessagesSquare />Talk of the Town discussions</span><strong>{stats?.threads ?? 0}</strong></div>
     {users ? <a class="card tile" href="/admin/users"><span class="meta"><Users />Registered accounts</span><strong>{stats?.users ?? 0}</strong></a> : <div class="card tile"><span class="meta"><Users />Registered accounts</span><strong>{stats?.users ?? 0}</strong></div>}
@@ -34,6 +38,7 @@ const users = canAccess(role, ADMIN.users);
   <div style="display:flex;gap:.6rem;flex-wrap:wrap">
     {news && <a class="button" href="/admin/news/new"><Plus />New story</a>}
     {news && <a class="button secondary" href="/admin/news"><Newspaper />Manage stories</a>}
+    {events && <a class="button secondary" href="/admin/events/new"><CalendarPlus />New event</a>}
     {talk && <a class="button secondary" href="/admin/talk"><Flag />Review reports</a>}
     {users && <a class="button secondary" href="/admin/users"><Users />Manage users</a>}
   </div>

@@ -1,0 +1,32 @@
+---
+import { ArrowLeft } from '@lucide/astro';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import EventEditor from '../../../components/EventEditor.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { STATUS_LABELS, getAdminEvent } from '../../../lib/events';
+import { saveEventFromForm, valuesFromEvent } from '../../../lib/events-admin';
+import { sameOrigin } from '../../../lib/forum';
+
+const denied = requireSection(Astro, ADMIN.events);
+if (denied) return denied;
+
+const event = await getAdminEvent(Astro.params.id ?? '');
+if (!event) return new Response('Event not found', { status: 404 });
+
+let values = valuesFromEvent(event);
+let errors: string[] = [];
+if (Astro.request.method === 'POST') {
+  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  const result = await saveEventFromForm(await Astro.request.formData(), event);
+  if (result.ok) return Astro.redirect(`/admin/events/${result.id}?saved=1`, 303);
+  ({ values, errors } = result);
+}
+const liveUrl = event.status !== 'draft' ? `/events/${event.slug}` : null;
+---
+<AdminLayout title={`Edit: ${event.title}`}>
+  <a class="back" href="/admin/events"><ArrowLeft />All events</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Events · {STATUS_LABELS[event.status]}</span>
+  <h1>Edit event</h1>
+  <p class="meta">Last saved {new Date(event.updated_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/New_York' })}{liveUrl && <> · <a href={liveUrl}>View on site</a></>}</p>
+  <EventEditor values={values} errors={errors} saved={Astro.url.searchParams.has('saved') && !errors.length} eventId={event.id} liveUrl={liveUrl} canDelete={Astro.locals.staffRole === 'admin'} />
+</AdminLayout>

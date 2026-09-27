@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return Response.redirect(url, 303);
     };
     const usage = await mediaUsage(media);
-    if (usage.stories.length || usage.ads.length) return back({ error: 'in-use' });
+    if (usage.stories.length || usage.ads.length || usage.events.length) return back({ error: 'in-use' });
     await env.DB.batch([
       mediaAudit(actor, media, 'media-delete', media.credit),
       env.DB.prepare('DELETE FROM media WHERE id = ?').bind(media.id),
