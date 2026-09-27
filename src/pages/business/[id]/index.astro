@@ -1,0 +1,63 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import AdStats from '../../../components/AdStats.astro';
+import { RANGES, STATE_LABELS, ctr, describeRun, fmtNum, getStats, listAds, rangeFrom, type RangeDays } from '../../../lib/ads-admin';
+import { requireBusiness } from '../../../lib/business-portal';
+
+const access = await requireBusiness(Astro, Astro.params.id ?? '');
+if (access instanceof Response) return access;
+const { business, viewer } = access;
+
+const range = rangeFrom(Astro.url.searchParams);
+const [ads, stats] = await Promise.all([
+  listAds({ q: '', business: business.id, state: '' }, { includeDrafts: false }),
+  getStats({ businessId: business.id }, range),
+]);
+const byAd = new Map(stats.byAd.map((s) => [s.ad_id, s]));
+const running = ads.filter((a) => a.state === 'running').length;
+const rangeHref = (days: RangeDays) => `/business/${business.id}?range=${days}`;
+const adHref = (id: string) => `/business/${business.id}/ads/${id}${range === 30 ? '' : `?range=${range}`}`;
+---
+<BaseLayout title={`${business.name} dashboard`}>
+  {viewer === 'staff' && <p class="message" role="status" style="margin-top:0">You’re viewing this dashboard as staff: this is what {business.name}’s members see. <a href={`/admin/ads?business=${business.id}`}>Back to ads admin</a></p>}
+  <span class="eyebrow">Business dashboard</span>
+  <h1>{business.name}</h1>
+  <p class="muted" style="margin-top:-.4rem">{running === 1 ? '1 ad running' : `${running} ads running`} on Firelands Current{ads.length > running && ` · ${ads.length} ads in total`}.</p>
+
+  {ads.length === 0 ? <div class="card" style="max-width:700px"><h2 style="margin-top:0">No ads yet</h2><p class="muted" style="margin-bottom:0">When your ads are booked, you’ll see how often readers see and click them here.</p></div> : <>
+    <h2>Performance</h2>
+    <AdStats stats={stats} rangeHref={rangeHref} />
+
+    <h2 style="margin-top:2.5rem">Your ads</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Ad</th><th>Status</th><th>Runs</th><th class="num">Impressions</th><th class="num">Clicks</th><th class="num">CTR</th></tr></thead>
+      <tbody>
+        {ads.map((a) => { const s = byAd.get(a.id) ?? { impressions: 0, clicks: 0 }; return <tr>
+          <td><a class="name" href={adHref(a.id)}>{a.name}</a><div class="meta">{a.headline}</div></td>
+          <td><span class={`pill state-${a.state}`}>{STATE_LABELS[a.state]}</span></td>
+          <td class="meta">{describeRun(a.starts_on, a.ends_on)}</td>
+          <td class="num">{fmtNum(s.impressions)}</td>
+          <td class="num">{fmtNum(s.clicks)}</td>
+          <td class="num">{ctr(s.clicks, s.impressions)}</td>
+        </tr>; })}
+      </tbody>
+    </table></div>
+    <p class="meta">Numbers in the table cover {RANGES[range].toLowerCase()}.</p>
+  </>}
+  <p class="meta" style="margin-top:2rem">Questions about your ads or want to book more? Contact your Firelands Current representative.</p>
+</BaseLayout>
+
+<style>
+  .table-wrap { overflow-x: auto; border-top: 3px solid #173d4a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: #687a7d; padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; white-space: nowrap; }
+  td { padding: .85rem .6rem; border-bottom: 1px solid #c9d1cd; vertical-align: top; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .name { font-weight: 700; color: #173d4a; text-decoration: none; }
+  .name:hover { color: #ad5835; text-decoration: underline; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; background: #ecf0ec; color: #62767a; }
+  .pill.state-running { background: #e3f1e8; color: #1f5a41; }
+  .pill.state-scheduled { background: #e2ecef; color: #173d4a; }
+  .pill.state-paused { background: #fbeee2; color: #853d26; }
+  @media (max-width: 700px) { th:nth-child(3), td:nth-child(3) { display: none; } }
+</style>

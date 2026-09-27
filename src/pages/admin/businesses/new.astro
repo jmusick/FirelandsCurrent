@@ -1,0 +1,37 @@
+---
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import BusinessForm from '../../../components/BusinessForm.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { emptyBusiness, validateBusinessForm } from '../../../lib/businesses';
+import { sameOrigin } from '../../../lib/forum';
+import { auditStatement } from '../../../lib/users';
+
+const denied = requireSection(Astro, ADMIN.businesses);
+if (denied) return denied;
+
+let values = emptyBusiness;
+let errors: string[] = [];
+if (Astro.request.method === 'POST') {
+  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  const result = await validateBusinessForm(await Astro.request.formData(), null);
+  if (result.ok) {
+    const id = crypto.randomUUID();
+    const now = Date.now();
+    const v = result.values;
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO businesses (id, name, kind, website, email, phone, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(id, v.name, v.kind, v.website || null, v.email || null, v.phone || null, v.notes || null, now, now),
+      auditStatement(Astro.locals.user!, { business: { id, name: v.name } }, 'business-create'),
+    ]);
+    return Astro.redirect(`/admin/businesses/${id}?notice=created`, 303);
+  }
+  ({ values, errors } = result);
+}
+---
+<AdminLayout title="New business">
+  <a href="/admin/businesses">← All businesses</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Businesses</span>
+  <h1>New business</h1>
+  <div class="card" style="max-width:720px"><BusinessForm values={values} errors={errors} submitLabel="Create business" /></div>
+</AdminLayout>

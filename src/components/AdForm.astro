@@ -1,0 +1,148 @@
+---
+import AdCreative from './AdCreative.astro';
+import { FORMAT_SIZES, IMAGE_SIZES, PLACEMENTS, mediaUrl, type Ad, type AdImageRow, type ImageSize } from '../lib/ads';
+import { STATUS_LABELS, type AdFormValues } from '../lib/ads-admin';
+import { SECTIONS } from '../lib/news';
+
+interface Props {
+  values: AdFormValues;
+  errors: string[];
+  businesses: { id: string; name: string }[];
+  images?: AdImageRow[];
+  submitLabel: string;
+}
+
+const { values, errors, businesses, images = [], submitLabel } = Astro.props;
+const current = Object.fromEntries(images.map((i) => [i.size, i])) as Partial<Record<ImageSize, AdImageRow>>;
+const advertiser = businesses.find((b) => b.id === values.business_id)?.name ?? 'Business name';
+const preview: Ad = {
+  id: 'preview', businessId: values.business_id, advertiser, kind: 'booked',
+  headline: values.headline || 'Your headline here', body: values.body, cta: values.cta || 'Learn more', href: '#',
+  theme: { bg: values.theme_bg, fg: values.theme_fg, accent: values.theme_accent },
+  placements: [], sections: [], weight: 1,
+  images: Object.fromEntries(images.map((i) => [i.size, { url: mediaUrl(i.object_key), width: i.width, height: i.height }])),
+};
+---
+<form class="form ad-form" method="post" enctype="multipart/form-data">
+  <div class="fields">
+    {errors.length > 0 && <div class="message" role="alert"><strong>Please fix:</strong><ul style="margin:.4rem 0 0">{errors.map((e) => <li>{e}</li>)}</ul></div>}
+
+    <fieldset>
+      <legend>Client</legend>
+      <div class="row">
+        <label>Business
+          <select name="business_id" required data-advertiser>
+            <option value="" disabled selected={!values.business_id}>Choose…</option>
+            {businesses.map((b) => <option value={b.id} selected={values.business_id === b.id}>{b.name}</option>)}
+          </select>
+        </label>
+        <label>Status
+          <select name="status">{Object.entries(STATUS_LABELS).map(([key, label]) => <option value={key} selected={values.status === key}>{label}</option>)}</select>
+        </label>
+      </div>
+      <label>Ad name <span class="hint">Internal, shown to staff and the client</span><input name="name" value={values.name} required minlength="2" maxlength="120" placeholder="e.g. Fall sale — October" /></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Creative</legend>
+      <label>Headline <input name="headline" value={values.headline} required minlength="2" maxlength="70" data-live="headline" /></label>
+      <label>Text <span class="hint">Optional, up to 150 characters</span><textarea name="body" maxlength="150" style="min-height:70px" data-live="body">{values.body}</textarea></label>
+      <div class="row">
+        <label>Button text <input name="cta" value={values.cta} required minlength="2" maxlength="30" data-live="cta" /></label>
+        <label>Link <input name="href" value={values.href} required maxlength="500" placeholder="example.com/offer" /></label>
+      </div>
+      <div class="row colors">
+        <label>Background <input type="color" name="theme_bg" value={values.theme_bg} data-color="--ad-bg" /></label>
+        <label>Text <input type="color" name="theme_fg" value={values.theme_fg} data-color="--ad-fg" /></label>
+        <label>Accent <input type="color" name="theme_accent" value={values.theme_accent} data-color="--ad-accent" /></label>
+      </div>
+      <p class="hint" style="margin:0">Banner images are optional. Where a size has no image, the ad is built from the text and colors above. PNG, JPEG, GIF or WebP, under 1 MB, at the exact size or double it.</p>
+      <div class="images">
+        {(Object.entries(IMAGE_SIZES) as [ImageSize, (typeof IMAGE_SIZES)[ImageSize]][]).map(([size, spec]) => <div class="image-field">
+          <span class="image-label">{spec.label} <span class="hint">{spec.width}×{spec.height}</span></span>
+          {current[size] && <div class="thumb"><img src={mediaUrl(current[size]!.object_key)} alt="" /><label class="check"><input type="checkbox" name={`remove_${size}`} /> Remove</label></div>}
+          <input type="file" name={`image_${size}`} accept="image/png,image/jpeg,image/gif,image/webp" />
+        </div>)}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Targeting</legend>
+      <span class="group-label">Placements <span class="hint">None checked = anywhere its sizes fit</span></span>
+      <div class="checks">
+        {Object.entries(PLACEMENTS).map(([key, p]) => <label class="check"><input type="checkbox" name="placements" value={key} checked={values.placements.includes(key as never)} /> <span>{p.label} <span class="hint">{p.format === 'native' ? 'text' : FORMAT_SIZES[p.format].replace(/ \(.*\)$/, '')}</span></span></label>)}
+      </div>
+      <span class="group-label">News sections <span class="hint">Ads aimed at a section show first on its pages; none checked = run of site</span></span>
+      <div class="checks">
+        {Object.entries(SECTIONS).map(([key, label]) => <label class="check"><input type="checkbox" name="sections" value={key} checked={values.sections.includes(key as never)} /> {label}</label>)}
+      </div>
+      <label style="max-width:240px">Rotation weight <span class="hint">1–10; higher shows more often</span><input type="number" name="weight" value={values.weight} min="1" max="10" required /></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Schedule &amp; terms</legend>
+      <div class="row">
+        <label>Start date <input type="date" name="starts_on" value={values.starts_on} /></label>
+        <label>End date <input type="date" name="ends_on" value={values.ends_on} /></label>
+        <label>Impression cap <input name="impression_cap" value={values.impression_cap} inputmode="numeric" placeholder="No cap" /></label>
+      </div>
+      <p class="hint" style="margin:0">Dates are Eastern time and include the whole end day. The ad stops once it reaches its cap.</p>
+      <label>Price &amp; terms <span class="hint">Staff only, never shown to the client</span><textarea name="terms" maxlength="2000" style="min-height:80px" placeholder="e.g. $250/month, invoiced monthly, 3-month commitment">{values.terms}</textarea></label>
+    </fieldset>
+
+    <div><button class="button" type="submit">{submitLabel}</button></div>
+  </div>
+
+  <aside class="preview" aria-label="Preview">
+    <span class="eyebrow">Preview</span>
+    <div class="pv"><span class="meta">Rectangle</span><div style="width:300px;max-width:100%"><AdCreative ad={preview} format="rectangle" href="#" viewport="desktop" /></div></div>
+    <div class="pv"><span class="meta">Phone leaderboard</span><div style="width:320px;max-width:100%"><AdCreative ad={preview} format="leaderboard" href="#" viewport="mobile" /></div></div>
+    <div class="pv"><span class="meta">Sponsored listing</span><div class="native-pv"><span class="meta" style="color:#ad5835;font-weight:700;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase">Sponsored · <span data-live-advertiser>{advertiser}</span></span><AdCreative ad={preview} format="native" href="#" /></div></div>
+    <p class="hint">Uploaded images show here after saving.</p>
+  </aside>
+</form>
+
+<script>
+  // Keeps the preview in step with the form as staff type.
+  const form = document.querySelector<HTMLFormElement>('.ad-form');
+  if (form) {
+    const fallback: Record<string, string> = { headline: 'Your headline here', cta: 'Learn more', body: '' };
+    form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-live]').forEach((input) => input.addEventListener('input', () => {
+      const key = input.dataset.live!;
+      form.querySelectorAll(`.preview [data-preview="${key}"]`).forEach((el) => { el.textContent = input.value.trim() || fallback[key]; });
+    }));
+    form.querySelectorAll<HTMLInputElement>('[data-color]').forEach((input) => input.addEventListener('input', () => {
+      form.querySelectorAll<HTMLElement>('.preview [data-preview-theme]').forEach((el) => el.style.setProperty(input.dataset.color!, input.value));
+    }));
+    const select = document.querySelector('.ad-form [data-advertiser]') as HTMLSelectElement | null;
+    select?.addEventListener('change', () => {
+      const name = select.selectedOptions[0]?.textContent ?? '';
+      form.querySelectorAll('.preview .ad-advertiser, .preview [data-live-advertiser]').forEach((el) => { el.textContent = name; });
+    });
+  }
+</script>
+
+<style>
+  .ad-form { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 2rem; align-items: start; }
+  .fields { display: grid; gap: 1.25rem; min-width: 0; }
+  fieldset { border: 1px solid #d9dfda; border-radius: 4px; background: #fffdfa; padding: 1.1rem 1.25rem 1.25rem; margin: 0; display: grid; gap: 1rem; min-width: 0; }
+  legend { font: 700 1.05rem 'Libre Baskerville', Georgia, serif; color: #173d4a; padding: 0 .4rem; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
+  .colors input[type='color'] { height: 2.6rem; padding: .2rem; cursor: pointer; }
+  .hint { font-weight: 400; color: #687a7d; font-size: .8rem; }
+  .group-label { font-weight: 700; font-size: .9rem; margin-bottom: -.5rem; }
+  .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .35rem .9rem; }
+  .form label.check { display: flex; align-items: flex-start; gap: .45rem; font-weight: 500; line-height: 1.35; }
+  .form label.check input { width: auto; margin: .15rem 0 0; }
+  .images { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+  .image-field { display: grid; gap: .4rem; align-content: start; }
+  .image-label { font-weight: 700; font-size: .9rem; }
+  .image-field input[type='file'] { font-size: .85rem; }
+  .thumb { display: grid; gap: .3rem; }
+  .thumb img { max-width: 100%; max-height: 90px; object-fit: contain; object-position: left; border: 1px solid #d9dfda; background: #fff; }
+  .preview { position: sticky; top: 1rem; display: grid; gap: 1rem; }
+  .pv { display: grid; gap: .3rem; }
+  .native-pv { border-left: 3px solid #e7a98d; background: linear-gradient(90deg, #fbf3ea, transparent 80%); padding: .7rem .9rem; }
+  .native-pv :global(h2) { font-size: 1.2rem; }
+  @media (max-width: 1100px) { .ad-form { grid-template-columns: minmax(0, 1fr); } .preview { position: static; order: -1; } }
+</style>

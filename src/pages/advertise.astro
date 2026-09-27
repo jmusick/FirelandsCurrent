@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { FORMAT_SIZES, PLACEMENTS } from '../lib/ads';
+---
+<BaseLayout title="Advertise" description="Reach readers across Sandusky and the Firelands with Firelands Current.">
+  <span class="eyebrow">Advertise</span>
+  <h1>Reach your neighbors.</h1>
+  <p class="lede">Firelands Current readers live, work and shop across Sandusky and the Firelands. Put your business in front of them alongside the local news and conversation they come here for.</p>
+
+  <h2 style="margin-top:2.5rem">Where your ad can run</h2>
+  <p class="muted" style="max-width:740px">Every ad is clearly labeled and sized so it never jumps around the page. Ads can run everywhere or be aimed at the sections your customers read most, such as Business, Schools or Outdoors. We show at most one ad from each advertiser on a page.</p>
+  <div class="placements">
+    {Object.entries(PLACEMENTS).map(([, p]) => <div class="card">
+      <h3 style="margin:0 0 .4rem">{p.label}</h3>
+      <p class="meta" style="margin:0 0 .6rem">{FORMAT_SIZES[p.format]}</p>
+      <p class="muted" style="margin:0">{p.where}</p>
+    </div>)}
+  </div>
+
+  <section class="card" style="margin-top:2.5rem;max-width:760px">
+    <h2 style="margin-top:0">Get started</h2>
+    <p class="muted">Tell us about your business and what you want to promote, and we'll put together a plan and pricing that fit.</p>
+    <p class="muted" style="margin-bottom:0">Contact details for our advertising team are coming soon.</p>
+  </section>
+</BaseLayout>
+
+<style>
+  .placements { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-top: 1.2rem; }
+</style>

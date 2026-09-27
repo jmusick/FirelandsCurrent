@@ -1,0 +1,83 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { SECTIONS, listAdminArticles } from '../../../lib/news';
+
+const denied = requireSection(Astro, ADMIN.news);
+if (denied) return denied;
+
+const articles = await listAdminArticles();
+const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium' });
+---
+<AdminLayout title="News">
+  <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
+    <div><span class="eyebrow">News</span><h1>Stories</h1></div>
+    <a class="button" href="/admin/news/new">New story</a>
+  </div>
+  {Astro.url.searchParams.has('deleted') && <p class="message" role="status">Story deleted.</p>}
+
+  <div class="filters">
+    <input id="f-search" type="search" placeholder="Search headline, community, byline…" aria-label="Search stories" />
+    <select id="f-status" aria-label="Status"><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option></select>
+    <select id="f-section" aria-label="Section"><option value="">All sections</option>{Object.entries(SECTIONS).map(([key, label]) => <option value={key}>{label}</option>)}</select>
+    <span id="f-count" class="meta"></span>
+  </div>
+
+  {articles.length === 0 ? <div class="card"><h2>No stories yet</h2><p class="muted">Write the first one.</p></div> :
+  <div class="table-wrap"><table>
+    <thead><tr><th>Headline</th><th>Section</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody id="rows">
+      {articles.map((a) => <tr data-search={`${a.headline} ${a.community} ${a.byline} ${a.slug}`.toLowerCase()} data-status={a.status} data-section={a.section}>
+        <td><a class="headline" href={`/admin/news/${a.id}`}>{a.headline}</a><div class="meta">{a.community} · {a.byline}</div></td>
+        <td>{SECTIONS[a.section]}</td>
+        <td><span class={`pill ${a.status}`}>{a.status === 'published' ? 'Published' : 'Draft'}</span></td>
+        <td class="meta">{a.published_at ? fmt(a.published_at) : `Edited ${fmt(a.updated_at)}`}</td>
+      </tr>)}
+    </tbody>
+  </table></div>}
+  <p id="no-match" class="muted" hidden>No stories match those filters.</p>
+</AdminLayout>
+
+<script is:inline>
+  (function () {
+    var rows = Array.from(document.querySelectorAll('#rows tr'));
+    var search = document.getElementById('f-search');
+    var status = document.getElementById('f-status');
+    var section = document.getElementById('f-section');
+    var initial = new URLSearchParams(location.search).get('status');
+    if (initial === 'published' || initial === 'draft') status.value = initial;
+    var count = document.getElementById('f-count');
+    var none = document.getElementById('no-match');
+    function apply() {
+      var q = search.value.trim().toLowerCase();
+      var shown = 0;
+      rows.forEach(function (r) {
+        var ok = (!q || r.dataset.search.includes(q)) && (!status.value || r.dataset.status === status.value) && (!section.value || r.dataset.section === section.value);
+        r.hidden = !ok;
+        if (ok) shown++;
+      });
+      count.textContent = shown === rows.length ? rows.length + ' stories' : shown + ' of ' + rows.length + ' stories';
+      none.hidden = shown !== 0 || rows.length === 0;
+    }
+    [search, status, section].forEach(function (el) { el.addEventListener('input', apply); });
+    apply();
+  })();
+</script>
+
+<style>
+  .filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.5rem 0 1rem; }
+  .filters input, .filters select { padding: .6rem .75rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .filters input { flex: 1; min-width: 220px; }
+  .filters .meta { margin-left: auto; }
+  .table-wrap { overflow-x: auto; border-top: 3px solid #173d4a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: #687a7d; padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; }
+  td { padding: .9rem .6rem; border-bottom: 1px solid #c9d1cd; vertical-align: top; }
+  td .meta { margin-top: .2rem; }
+  .headline { font-weight: 700; color: #173d4a; text-decoration: none; }
+  .headline:hover { color: #ad5835; text-decoration: underline; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+  .pill.published { background: #e3f1e8; color: #1f5a41; }
+  .pill.draft { background: #fbeee2; color: #853d26; }
+  @media (max-width: 700px) { th:nth-child(2), td:nth-child(2), th:nth-child(4), td:nth-child(4) { display: none; } }
+</style>

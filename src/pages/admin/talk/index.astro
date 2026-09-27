@@ -1,0 +1,78 @@
+---
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+
+const denied = requireSection(Astro, ADMIN.talk);
+if (denied) return denied;
+
+type Report = { id: string; reason: string; created_at: number; thread_id: string | null; reporter_name: string; item_text: string | null; item_status: string | null; discussion_id: string | null };
+type ThreadRow = { id: string; title: string; status: 'published' | 'hidden'; author_name: string; created_at: number; reply_count: number };
+
+const [reports, threads] = await env.DB.batch([
+  env.DB.prepare(`
+    SELECT reports.id, reports.reason, reports.created_at, reports.thread_id,
+           reporter.name AS reporter_name,
+           COALESCE(threads.title, replies.body) AS item_text,
+           COALESCE(threads.status, replies.status) AS item_status,
+           COALESCE(threads.id, replies.thread_id) AS discussion_id
+    FROM forum_reports reports
+    JOIN "user" reporter ON reporter.id = reports.reporter_id
+    LEFT JOIN forum_threads threads ON threads.id = reports.thread_id
+    LEFT JOIN forum_replies replies ON replies.id = reports.reply_id
+    WHERE reports.status = 'open'
+    ORDER BY reports.created_at DESC
+    LIMIT 100
+  `),
+  env.DB.prepare(`
+    SELECT t.id, t.title, t.status, u.name AS author_name, t.created_at, COUNT(r.id) AS reply_count
+    FROM forum_threads t
+    JOIN "user" u ON u.id = t.author_id
+    LEFT JOIN forum_replies r ON r.thread_id = t.id
+    GROUP BY t.id
+    ORDER BY t.last_activity_at DESC
+    LIMIT 100
+  `),
+]);
+const openReports = reports.results as Report[];
+const discussions = threads.results as ThreadRow[];
+const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+---
+<AdminLayout title="Talk of the Town">
+  <span class="eyebrow">Talk of the Town</span>
+  <h1>Moderation</h1>
+
+  <h2>Open reports <span class="meta">({openReports.length})</span></h2>
+  {openReports.length === 0 ? <div class="card"><p class="muted" style="margin:0">No open reports. Nothing to review right now.</p></div> : openReports.map((report) => <article class="card" style="margin-bottom:1rem">
+    <p class="meta" style="margin-top:0">Reported by {report.reporter_name} · {fmt(report.created_at)}</p>
+    <h3 style="font-size:1.05rem">{report.thread_id ? 'Discussion' : 'Reply'}: {report.item_text?.slice(0, 160) ?? '[removed]'}</h3>
+    <p><strong>Reason:</strong> {report.reason}</p>
+    <p class="meta">Content is currently {report.item_status ?? 'removed'}{report.discussion_id && <> · <a href={`/talk/${report.discussion_id}`}>View discussion</a></>}</p>
+    <form method="post" action="/api/admin/talk" style="display:flex;gap:.6rem;flex-wrap:wrap"><input type="hidden" name="reportId" value={report.id} /><button class="button small" name="action" value="hide-reported" type="submit">Hide content</button><button class="button secondary small" name="action" value="dismiss" type="submit">Dismiss report</button></form>
+  </article>)}
+
+  <h2 style="margin-top:2.5rem">Discussions</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Discussion</th><th>Replies</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {discussions.map((t) => <tr>
+        <td>{t.status === 'published' ? <a class="title" href={`/talk/${t.id}`}>{t.title}</a> : <span class="title">{t.title}</span>}<div class="meta">{t.author_name} · {fmt(t.created_at)}</div></td>
+        <td>{t.reply_count}</td>
+        <td><span class={`pill ${t.status}`}>{t.status === 'published' ? 'Visible' : 'Hidden'}</span></td>
+        <td style="text-align:right"><form method="post" action="/api/admin/talk"><input type="hidden" name="threadId" value={t.id} /><button class="button secondary small" name="action" value={t.status === 'published' ? 'hide-thread' : 'restore-thread'} type="submit">{t.status === 'published' ? 'Hide' : 'Restore'}</button></form></td>
+      </tr>)}
+    </tbody>
+  </table></div>
+</AdminLayout>
+
+<style>
+  .table-wrap { overflow-x: auto; border-top: 3px solid #173d4a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: #687a7d; padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; }
+  td { padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; vertical-align: top; }
+  .title { font-weight: 700; color: #173d4a; text-decoration: none; }
+  a.title:hover { color: #ad5835; text-decoration: underline; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; }
+  .pill.published { background: #e3f1e8; color: #1f5a41; }
+  .pill.hidden { background: #fbeee2; color: #853d26; }
+</style>

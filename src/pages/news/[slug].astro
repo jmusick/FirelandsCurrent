@@ -1,0 +1,52 @@
+---
+import AdSlot from '../../components/AdSlot.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { adPlanFor, inlineAdBreaks } from '../../lib/ads';
+import { SECTIONS, getArticle, renderBodyBlocks } from '../../lib/news';
+
+const article = await getArticle(Astro.params.slug ?? '');
+if (!article) return new Response('Story not found', { status: 404 });
+await adPlanFor(Astro.request, Astro.locals, { section: article.section });
+
+// Split the story into chunks with an ad between each. A break never lands right under a subheading.
+const blocks = renderBodyBlocks(article.body);
+const chunks: string[] = [];
+let start = 0;
+for (let at of inlineAdBreaks(blocks.length)) {
+  while (at < blocks.length - 1 && /^<h\d/.test(blocks[at - 1])) at++;
+  if (at <= start || at >= blocks.length) continue;
+  chunks.push(blocks.slice(start, at).join(''));
+  start = at;
+}
+chunks.push(blocks.slice(start).join(''));
+---
+<BaseLayout title={article.headline} description={article.summary.slice(0, 155)}>
+  <a href={`/news?section=${article.section}`}>← {SECTIONS[article.section]}</a>
+  <div class="story-layout">
+  <article style="max-width:760px;min-width:0">
+    <span class="eyebrow">{SECTIONS[article.section]} · {article.community}</span>
+    <h1>{article.headline}</h1>
+    <p class="lede" style="margin-top:0">{article.summary}</p>
+    <p class="meta" style="border-top:1px solid #c9d1cd;border-bottom:1px solid #c9d1cd;padding:.7rem 0">By <strong>{article.byline}</strong> · {new Date(article.published_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</p>
+    <div class="story">
+      {chunks.map((html, i) => <>{i > 0 && <AdSlot placement="article-inline" class="story-ad" />}<Fragment set:html={html} /></>)}
+    </div>
+  </article>
+  <div class="story-rail"><AdSlot placement="article-rail" /></div>
+  </div>
+  <aside class="card" style="max-width:760px;margin-top:2.5rem"><h2 style="margin-top:0">Talk about it</h2><p class="muted">Have something to add? Start a conversation with your neighbors in Talk of the Town.</p><a href="/talk">Visit Talk of the Town →</a></aside>
+</BaseLayout>
+
+<style>
+  .story-layout { display: grid; grid-template-columns: minmax(0, 760px) 300px; justify-content: space-between; gap: 3rem; margin-top: 1.7rem; }
+  .story-rail { padding-top: .5rem; }
+  .story-rail :global(.ad-slot) { position: sticky; top: 1.5rem; }
+  .story :global(.story-ad) { margin: 2rem auto; padding: 1rem 0; border-top: 1px solid #e0e4df; border-bottom: 1px solid #e0e4df; width: 100%; max-width: none; line-height: normal; }
+  .story :global(.story-ad .ad-creative) { width: 300px; max-width: 100%; }
+  @media (max-width: 1100px) { .story-layout { grid-template-columns: minmax(0, 1fr); } .story-rail { display: none; } }
+  .story { line-height: 1.8; font-size: 1.08rem; }
+  .story :global(h2), .story :global(h3) { margin-top: 2rem; }
+  .story :global(blockquote) { margin: 1.5rem 0; padding: .2rem 0 .2rem 1.2rem; border-left: 3px solid #bc633e; color: #4d6367; font-style: italic; }
+  .story :global(img) { max-width: 100%; height: auto; border-radius: 4px; }
+  .story :global(ul), .story :global(ol) { padding-left: 1.4rem; }
+</style>

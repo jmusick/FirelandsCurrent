@@ -1,0 +1,47 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { ROLE_LABELS } from '../../../lib/staff';
+import { MIN_PASSWORD } from '../../../lib/users';
+
+const denied = requireSection(Astro, ADMIN.users);
+if (denied) return denied;
+
+const ERRORS: Record<string, string> = {
+  profile: 'Enter a name (up to 80 characters) and a valid email address.',
+  'email-taken': 'An account with that email address already exists.',
+  password: `Passwords must be ${MIN_PASSWORD}–128 characters.`,
+  role: 'Choose a valid role.',
+};
+const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
+---
+<AdminLayout title="Add user">
+  <a href="/admin/users">← All users</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Users</span>
+  <h1>Add user</h1>
+  <p class="muted" style="max-width:600px">Creates an email and password account, for example for a new staff member. Give them the password privately; they can change it from their account page.</p>
+  {error && <p class="message" role="alert">{error}</p>}
+  <form class="form card" method="post" action="/api/admin/users" style="max-width:600px">
+    <label>Display name <input name="name" required maxlength="80" /></label>
+    <label>Email <input name="email" type="email" required maxlength="254" /></label>
+    <label>Temporary password
+      <span class="pw"><input id="password" name="password" type="text" required minlength={MIN_PASSWORD} maxlength="128" autocomplete="off" spellcheck="false" /><button id="generate" class="button secondary small" type="button">Generate</button></span>
+    </label>
+    <label>Staff role
+      <select name="role"><option value="">None (member)</option>{Object.entries(ROLE_LABELS).map(([key, label]) => <option value={key}>{label}</option>)}</select>
+    </label>
+    <div><button class="button" name="action" value="create" type="submit">Create account</button></div>
+  </form>
+</AdminLayout>
+
+<script is:inline>
+  document.getElementById('generate').addEventListener('click', function () {
+    var chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var bytes = crypto.getRandomValues(new Uint8Array(16));
+    document.getElementById('password').value = Array.from(bytes, function (b) { return chars[b % chars.length]; }).join('');
+  });
+</script>
+
+<style>
+  .pw { display: flex; gap: .5rem; }
+</style>

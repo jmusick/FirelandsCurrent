@@ -1,0 +1,59 @@
+---
+import AdCreative from './AdCreative.astro';
+import { PLACEMENTS, adPlanFor, type PlacementKey } from '../lib/ads';
+
+interface Props {
+  placement: PlacementKey;
+  class?: string;
+}
+
+const { placement, class: className } = Astro.props;
+const { format } = PLACEMENTS[placement];
+const { ad, href, token } = await (await adPlanFor(Astro.request, Astro.locals)).take(placement);
+const label = ad.kind === 'house' ? 'From Firelands Current' : format === 'native' ? `Sponsored · ${ad.advertiser}` : 'Advertisement';
+---
+<aside class:list={[format === 'native' ? 'ad-native' : ['ad-slot', `slot-${format}`], className]} data-ad={ad.id} data-placement={placement} data-ad-token={token} aria-label={format === 'native' ? 'Sponsored' : 'Advertisement'}>
+  <span class="ad-label">{label}{ad.kind === 'sample' && <span class="ad-sample">Sample</span>}</span>
+  <AdCreative ad={ad} format={format} href={href} />
+</aside>
+
+<script>
+  // Counts an impression once an ad has been at least half on screen for a second (the IAB viewability standard).
+  const pending = new Set<string>();
+  const timers = new Map<Element, number>();
+  const flush = () => {
+    if (!pending.size) return;
+    navigator.sendBeacon('/api/ads/impressions', new Blob([JSON.stringify([...pending])], { type: 'text/plain' }));
+    pending.clear();
+  };
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const el = entry.target as HTMLElement;
+      if (entry.isIntersecting && document.visibilityState === 'visible') {
+        if (!timers.has(el)) timers.set(el, window.setTimeout(() => {
+          pending.add(el.dataset.adToken!);
+          observer.unobserve(el);
+          timers.delete(el);
+          window.setTimeout(flush, 500);
+        }, 1000));
+      } else {
+        window.clearTimeout(timers.get(el));
+        timers.delete(el);
+      }
+    }
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-ad-token]').forEach((el) => observer.observe(el));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+</script>
+
+<style>
+  .ad-slot { display: grid; justify-items: center; gap: .3rem; margin: 0 auto; }
+  .slot-leaderboard { max-width: 728px; width: 100%; }
+  .slot-rectangle { width: 300px; max-width: 100%; }
+  .slot-billboard { max-width: 970px; width: 100%; }
+  @media (max-width: 760px) { .slot-leaderboard { max-width: 320px; } .slot-billboard { max-width: 300px; } }
+  .ad-label { display: flex; gap: .45rem; align-items: center; color: #7b8b8d; font-size: .66rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .ad-sample { background: #ecf0ec; color: #62767a; border-radius: 999px; padding: .05rem .45rem; letter-spacing: .08em; }
+  .ad-native { padding: 1.4rem 0 1.4rem 1rem; border-bottom: 1px solid #c9d1cd; background: linear-gradient(90deg, #fbf3ea, transparent 70%); border-left: 3px solid #e7a98d; }
+  .ad-native .ad-label { color: #ad5835; }
+</style>

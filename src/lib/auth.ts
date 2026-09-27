@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { betterAuth } from 'better-auth';
+import { APIError } from 'better-auth/api';
 import { importPKCS8, SignJWT } from 'jose';
 
 async function appleClientSecret(clientId: string, teamId: string, keyId: string, privateKey: string): Promise<string> {
@@ -21,6 +22,17 @@ export function enabledProviders(): Array<'google' | 'facebook' | 'apple'> {
   if (env.FACEBOOK_CLIENT_ID && env.FACEBOOK_CLIENT_SECRET) providers.push('facebook');
   if (env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY) providers.push('apple');
   return providers;
+}
+
+/** Refuses new sessions for suspended accounts, so they can't sign in by any method. */
+async function refuseSuspended(session: { userId: string }): Promise<void> {
+  const suspension = await env.DB.prepare('SELECT expires_at FROM user_suspensions WHERE user_id = ? AND (expires_at IS NULL OR expires_at > ?)')
+    .bind(session.userId, Date.now()).first<{ expires_at: number | null }>();
+  if (!suspension) return;
+  const until = suspension.expires_at
+    ? ` until ${new Date(suspension.expires_at).toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'America/New_York' })}`
+    : '';
+  throw new APIError('FORBIDDEN', { message: `This account is suspended${until}.`, code: 'ACCOUNT_SUSPENDED' });
 }
 
 export function createAuth() {
@@ -56,6 +68,7 @@ export function createAuth() {
       ...(facebookId && facebookSecret ? { facebook: { clientId: facebookId, clientSecret: facebookSecret } } : {}),
       ...(appleId && appleTeam && appleKeyId && appleKey ? { apple: async () => ({ clientId: appleId, clientSecret: await appleClientSecret(appleId, appleTeam, appleKeyId, appleKey) }) } : {}),
     },
+    databaseHooks: { session: { create: { before: refuseSuspended } } },
     trustedOrigins: providers.includes('apple') ? ['https://appleid.apple.com'] : [],
   });
 }

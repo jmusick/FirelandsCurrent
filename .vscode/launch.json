@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Local Dev",
+      "type": "firefox",
+      "request": "launch",
+      "reAttach": true,
+      "url": "http://127.0.0.1:4321/",
+      "webRoot": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "FirelandsCurrent: dev"
+    }
+  ]
+}

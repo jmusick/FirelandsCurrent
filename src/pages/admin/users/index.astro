@@ -1,0 +1,116 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { businessOptions } from '../../../lib/businesses';
+import { ROLE_LABELS } from '../../../lib/staff';
+import { PAGE_SIZE, PROVIDER_LABELS, filtersFrom, fmtDate, listUsers, userCounts } from '../../../lib/users';
+
+const denied = requireSection(Astro, ADMIN.users);
+if (denied) return denied;
+
+const filters = filtersFrom(Astro.url.searchParams);
+const [rows, counts, businesses] = await Promise.all([listUsers(filters), userCounts(), businessOptions()]);
+const users = rows.slice(0, PAGE_SIZE);
+const hasNext = rows.length > PAGE_SIZE;
+const deleted = Astro.url.searchParams.get('deleted');
+
+const pageUrl = (page: number) => {
+  const params = new URLSearchParams(Astro.url.searchParams);
+  params.delete('deleted');
+  if (page) params.set('page', String(page)); else params.delete('page');
+  const qs = params.toString();
+  return `/admin/users${qs ? `?${qs}` : ''}`;
+};
+const filtered = Boolean(filters.q || filters.role || filters.status || filters.business);
+---
+<AdminLayout title="Users">
+  <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
+    <div><span class="eyebrow">Users</span><h1>Accounts</h1></div>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap"><a class="button secondary" href="/admin/users/log">Activity log</a><a class="button" href="/admin/users/new">Add user</a></div>
+  </div>
+  {deleted && <p class="message" role="status">Deleted the account for {deleted}.</p>}
+
+  <div class="stats">
+    <a href="/admin/users"><strong>{counts.total}</strong><span>accounts</span></a>
+    <a href="/admin/users?role=staff"><strong>{counts.staff}</strong><span>staff</span></a>
+    <a href="/admin/users?status=suspended"><strong class={counts.suspended ? 'alert' : undefined}>{counts.suspended}</strong><span>suspended</span></a>
+    <a href="/admin/users?sort=newest"><strong>{counts.new_week}</strong><span>joined this week</span></a>
+  </div>
+
+  <form class="filters" method="get" action="/admin/users">
+    <input name="q" type="search" value={filters.q} placeholder="Search name, email or ID…" aria-label="Search users" />
+    <select name="role" aria-label="Role">
+      <option value="">All roles</option>
+      <option value="staff" selected={filters.role === 'staff'}>Any staff</option>
+      {Object.entries(ROLE_LABELS).map(([key, label]) => <option value={key} selected={filters.role === key}>{label}</option>)}
+      <option value="member" selected={filters.role === 'member'}>Members (no role)</option>
+    </select>
+    <select name="status" aria-label="Status">
+      <option value="">Any status</option>
+      <option value="active" selected={filters.status === 'active'}>Active</option>
+      <option value="suspended" selected={filters.status === 'suspended'}>Suspended</option>
+    </select>
+    <select name="business" aria-label="Business">
+      <option value="">Any business</option>
+      {businesses.map((b) => <option value={b.id} selected={filters.business === b.id}>{b.name}</option>)}
+      <option value="none" selected={filters.business === 'none'}>No business</option>
+    </select>
+    <select name="sort" aria-label="Sort">
+      <option value="newest" selected={filters.sort === 'newest'}>Newest first</option>
+      <option value="oldest" selected={filters.sort === 'oldest'}>Oldest first</option>
+      <option value="name" selected={filters.sort === 'name'}>Name</option>
+      <option value="active" selected={filters.sort === 'active'}>Recently active</option>
+    </select>
+    <button class="button small" type="submit">Apply</button>
+    {filtered && <a href="/admin/users">Clear</a>}
+  </form>
+
+  {users.length === 0 ? <div class="card"><p class="muted" style="margin:0">{filtered ? 'No accounts match those filters.' : 'No accounts yet.'}</p></div> :
+  <div class="table-wrap"><table>
+    <thead><tr><th>Account</th><th>Role</th><th>Status</th><th>Sign-in</th><th>Posts</th><th>Joined</th><th>Last active</th></tr></thead>
+    <tbody>
+      {users.map((u) => <tr>
+        <td><a class="name" href={`/admin/users/${u.id}`}>{u.name}</a><div class="meta">{u.email}{u.emailVerified ? '' : ' · unverified'}</div>{u.businesses && <div class="meta biz">{u.businesses}</div>}</td>
+        <td>{u.role ? <span class={`pill role-${u.role}`}>{ROLE_LABELS[u.role]}</span> : <span class="meta" style="white-space:nowrap">Member</span>}</td>
+        <td>{u.suspended ? <span class="pill suspended">Suspended</span> : <span class="pill active">Active</span>}</td>
+        <td class="meta">{u.providers ? u.providers.split(',').map((p) => PROVIDER_LABELS[p] ?? p).join(', ') : 'None'}</td>
+        <td>{u.posts}</td>
+        <td class="meta">{fmtDate(u.createdAt)}</td>
+        <td class="meta">{u.last_active ? fmtDate(u.last_active) : 'Never'}</td>
+      </tr>)}
+    </tbody>
+  </table></div>}
+
+  {(filters.page > 0 || hasNext) && <nav class="pager" aria-label="Pages">
+    {filters.page > 0 ? <a class="button secondary small" href={pageUrl(filters.page - 1)}>← Previous</a> : <span></span>}
+    <span class="meta">Page {filters.page + 1}</span>
+    {hasNext ? <a class="button secondary small" href={pageUrl(filters.page + 1)}>Next →</a> : <span></span>}
+  </nav>}
+</AdminLayout>
+
+<style>
+  .stats { display: flex; flex-wrap: wrap; gap: .5rem 1.75rem; margin: .5rem 0 1.5rem; }
+  .stats a { display: flex; align-items: baseline; gap: .4rem; text-decoration: none; color: #62767a; font-size: .9rem; }
+  .stats strong { font: 700 1.4rem 'Libre Baskerville', Georgia, serif; color: #173d4a; }
+  .stats strong.alert { color: #ad5835; }
+  .stats a:hover span { text-decoration: underline; }
+  .filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 0 0 1rem; }
+  .filters input, .filters select { padding: .6rem .75rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .filters input { flex: 1; min-width: 220px; }
+  .table-wrap { overflow-x: auto; border-top: 3px solid #173d4a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: #687a7d; padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; white-space: nowrap; }
+  td { padding: .85rem .6rem; border-bottom: 1px solid #c9d1cd; vertical-align: top; }
+  td .meta { margin-top: .2rem; overflow-wrap: anywhere; }
+  td .meta.biz { color: #ad5835; font-weight: 600; }
+  .name { font-weight: 700; color: #173d4a; text-decoration: none; }
+  .name:hover { color: #ad5835; text-decoration: underline; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+  .pill.active { background: #e3f1e8; color: #1f5a41; }
+  .pill.suspended { background: #fbeee2; color: #853d26; }
+  .pill.role-admin { background: #173d4a; color: #fff; }
+  .pill.role-editor, .pill.role-moderator { background: #e2ecef; color: #173d4a; }
+  .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; }
+  @media (max-width: 900px) { th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5), th:nth-child(7), td:nth-child(7) { display: none; } }
+  @media (max-width: 600px) { th:nth-child(6), td:nth-child(6) { display: none; } }
+</style>

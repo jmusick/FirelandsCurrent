@@ -1,0 +1,85 @@
+---
+import { sectionsFor } from '../lib/admin';
+import { ROLE_LABELS } from '../lib/staff';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const user = Astro.locals.user!;
+const role = Astro.locals.staffRole!;
+const path = Astro.url.pathname;
+const isActive = (href: string) => href === '/admin' ? path === '/admin' : path === href || path.startsWith(`${href}/`);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
+    <title>{title} | Admin | Firelands Current</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <slot name="head" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet" />
+    <style is:global>
+      :root { font-family: 'DM Sans', sans-serif; color: #172f36; background: #f7f5ef; }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      a { color: #15596b; }
+      button, input, textarea, select { font: inherit; }
+      button { cursor: pointer; }
+      h1, h2, h3 { font-family: 'Libre Baskerville', Georgia, serif; color: #173d4a; line-height: 1.2; }
+      h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -.045em; margin: .2rem 0 1rem; }
+      h2 { font-size: 1.35rem; letter-spacing: -.03em; }
+      .eyebrow { color: #ad5835; font-weight: 700; font-size: .76rem; letter-spacing: .15em; text-transform: uppercase; }
+      .button { display: inline-block; background: #173d4a; color: white; border: 1px solid #173d4a; border-radius: 3px; padding: .7rem 1rem; text-decoration: none; font-weight: 700; }
+      .button:hover { background: #245668; }
+      .button.secondary { background: transparent; color: #173d4a; }
+      .button.secondary:hover { background: #e9eeea; }
+      .button.small { padding: .45rem .7rem; font-size: .85rem; }
+      .card { background: #fffdfa; border: 1px solid #d9dfda; border-radius: 4px; padding: 1.3rem; }
+      .muted { color: #62767a; }
+      .meta { color: #687a7d; font-size: .84rem; }
+      .form { display: grid; gap: 1rem; }
+      .form label { display: grid; gap: .4rem; font-weight: 700; font-size: .9rem; }
+      .form input, .form textarea, .form select { width: 100%; padding: .75rem .85rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; }
+      .form textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
+      .form input:focus, .form textarea:focus, .form select:focus { outline: 2px solid #61a9b6; outline-offset: 1px; }
+      .message { padding: .75rem 1rem; border: 1px solid #d69f80; color: #853d26; background: #fff4ec; }
+      .admin-top { background: #173d4a; color: #edf2ed; }
+      .admin-top-inner { display: flex; align-items: center; gap: 1rem; padding: .7rem 1.25rem; }
+      .admin-brand { display: inline-flex; align-items: center; gap: .6rem; color: #fff; text-decoration: none; font: 700 1.1rem 'Libre Baskerville', Georgia, serif; letter-spacing: -.04em; }
+      .admin-brand img { width: 1.8rem; height: auto; }
+      .admin-brand small { font: 700 .7rem 'DM Sans', sans-serif; letter-spacing: .15em; text-transform: uppercase; color: #e7a98d; }
+      .admin-top a.plain { color: #edf2ed; font-size: .85rem; }
+      .admin-top .who { margin-left: auto; display: flex; gap: 1rem; align-items: center; font-size: .85rem; }
+      .admin-shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 52px); }
+      .admin-side { background: #ecf0ec; border-right: 1px solid #c9d1cd; padding: 1.25rem .75rem; }
+      .admin-side a { display: block; padding: .55rem .75rem; border-radius: 3px; color: #173d4a; text-decoration: none; font-weight: 600; font-size: .92rem; }
+      .admin-side a:hover { background: #dfe6e1; }
+      .admin-side a[aria-current='page'] { background: #173d4a; color: #fff; }
+      .admin-main { padding: 1.75rem clamp(1rem, 3vw, 2.5rem) 4rem; min-width: 0; }
+      @media (max-width: 800px) {
+        .admin-shell { grid-template-columns: minmax(0, 1fr); }
+        .admin-side { display: flex; gap: .25rem; overflow-x: auto; padding: .5rem; border-right: 0; border-bottom: 1px solid #c9d1cd; }
+        .admin-side a { white-space: nowrap; }
+        .admin-top .role { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="admin-top"><div class="admin-top-inner">
+      <a class="admin-brand" href="/admin"><img src="/logo-mark.svg" alt="" width="29" height="29" /><span>Firelands Current <small>Admin</small></span></a>
+      <div class="who"><a class="plain" href="/">View site</a><span class="role">{user.name} · {ROLE_LABELS[role]}</span></div>
+    </div></header>
+    <div class="admin-shell">
+      <nav class="admin-side" aria-label="Admin sections">
+        {sectionsFor(role).map((s) => <a href={s.href} aria-current={isActive(s.href) ? 'page' : undefined}>{s.label}</a>)}
+      </nav>
+      <main class="admin-main"><slot /></main>
+    </div>
+  </body>
+</html>

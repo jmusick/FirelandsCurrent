@@ -1,4 +1,7 @@
 ---
+import AdSlot from '../components/AdSlot.astro';
+import { pageTakesAds } from '../lib/ads';
+
 interface Props {
   title: string;
   description?: string;
@@ -6,6 +9,8 @@ interface Props {
 
 const { title, description = 'Independent local news and conversation for Sandusky and the Firelands.' } = Astro.props;
 const user = Astro.locals.user;
+const staffRole = Astro.locals.staffRole;
+const showAds = pageTakesAds(Astro.url.pathname);
 ---
 <!doctype html>
 <html lang="en">
@@ -17,6 +22,7 @@ const user = Astro.locals.user;
     <title>{title} | Firelands Current</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <slot name="head" />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet" />
     <style is:global>
       :root { font-family: 'DM Sans', sans-serif; color: #172f36; background: #f7f5ef; }
@@ -59,6 +65,8 @@ const user = Astro.locals.user;
       .form textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
       .form input:focus, .form textarea:focus { outline: 2px solid #61a9b6; outline-offset: 1px; }
       .message { padding: .75rem 1rem; border: 1px solid #d69f80; color: #853d26; background: #fff4ec; }
+      .ad-band { border-bottom: 1px solid #e0e4df; padding: .9rem 1.25rem; background: #f2f1ea; }
+      .ad-band + main { padding-top: 1.6rem; }
       .site-footer { border-top: 1px solid #c9d1cd; background: #ecf0ec; color: #53696b; padding: 2rem 1.25rem; }
       .site-footer-inner { max-width: 1180px; margin: auto; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .85rem; }
       @media(max-width: 700px) { .masthead { display: block; } .masthead p { text-align: left; margin-top: .65rem; } .topline-inner span:last-child { display: none; } .nav .right { margin-left: 0; } }
@@ -70,11 +78,13 @@ const user = Astro.locals.user;
       <div class="topline"><div class="topline-inner"><span>Independent news for Ohio's Firelands</span><span>Sandusky and the surrounding region</span></div></div>
       <div class="masthead"><a class="brand" href="/" aria-label="Firelands Current home"><img class="brand-mark" src="/logo-mark.svg" alt="" width="64" height="64" /><span class="brand-text">Firelands <span>Current</span></span></a><p>Local stories. Common ground.</p></div>
       <nav class="nav" aria-label="Main navigation"><div class="nav-inner">
-        <a href="/">Home</a><a href="/talk">Talk of the Town</a>
-        {user ? <a class="right" href="/account">{user.name}</a> : <a class="right" href="/sign-in">Sign in</a>}
+        <a href="/">Home</a><a href="/news">News</a><a href="/talk">Talk of the Town</a>
+        {staffRole && <a class="right" href="/admin/news">Newsroom</a>}
+        {user ? <a class={staffRole ? undefined : "right"} href="/account">{user.name}</a> : <a class="right" href="/sign-in">Sign in</a>}
       </div></nav>
     </header>
+    {showAds && <div class="ad-band"><AdSlot placement="site-leaderboard" /></div>}
     <main><slot /></main>
-    <footer class="site-footer"><div class="site-footer-inner"><span>© {new Date().getFullYear()} Firelands Current</span><span>Independent local reporting and conversation</span></div></footer>
+    <footer class="site-footer"><div class="site-footer-inner"><span>© {new Date().getFullYear()} Firelands Current · v{__APP_VERSION__}</span><span>Independent local reporting and conversation · <a href="/advertise">Advertise</a></span></div></footer>
   </body>
 </html>

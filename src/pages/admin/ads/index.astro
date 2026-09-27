@@ -1,0 +1,89 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { PLACEMENTS, isPlacement } from '../../../lib/ads';
+import { STATE_LABELS, adFiltersFrom, ctr, describeRun, fmtNum, getStats, listAds } from '../../../lib/ads-admin';
+import { businessOptions } from '../../../lib/businesses';
+
+const denied = requireSection(Astro, ADMIN.ads);
+if (denied) return denied;
+
+const filters = adFiltersFrom(Astro.url.searchParams);
+const [ads, businesses, month] = await Promise.all([listAds(filters), businessOptions(), getStats({ all: true }, 30)]);
+const running = ads.filter((a) => a.state === 'running').length;
+const deleted = Astro.url.searchParams.get('deleted');
+const filtered = Boolean(filters.q || filters.business || filters.state);
+const placementSummary = (json: string) => {
+  let list: string[] = [];
+  try { list = (JSON.parse(json) as string[]).filter(isPlacement); } catch {}
+  if (!list.length) return 'All placements';
+  return list.length === 1 && isPlacement(list[0]) ? PLACEMENTS[list[0]].label : `${list.length} placements`;
+};
+const newHref = filters.business ? `/admin/ads/new?business=${filters.business}` : '/admin/ads/new';
+---
+<AdminLayout title="Ads">
+  <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
+    <div><span class="eyebrow">Advertising</span><h1>Ads</h1></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="button secondary" href="/advertise" target="_blank">Advertise page</a><a class="button" href={newHref}>New ad</a></div>
+  </div>
+  {deleted && <p class="message" role="status">Deleted “{deleted}” and its stats.</p>}
+
+  <div class="tiles">
+    <div class="card tile"><span class="meta">Running now</span><strong>{running}</strong></div>
+    <div class="card tile"><span class="meta">Impressions, 30 days</span><strong>{fmtNum(month.totals.impressions)}</strong></div>
+    <div class="card tile"><span class="meta">Clicks, 30 days</span><strong>{fmtNum(month.totals.clicks)}</strong></div>
+    <div class="card tile"><span class="meta">Click-through, 30 days</span><strong>{ctr(month.totals.clicks, month.totals.impressions)}</strong></div>
+  </div>
+
+  <form class="filters" method="get" action="/admin/ads">
+    <input name="q" type="search" value={filters.q} placeholder="Search ad, headline or business…" aria-label="Search ads" />
+    <select name="business" aria-label="Business">
+      <option value="">All businesses</option>
+      {businesses.map((b) => <option value={b.id} selected={filters.business === b.id}>{b.name}</option>)}
+    </select>
+    <select name="state" aria-label="Status">
+      <option value="">Any status</option>
+      {Object.entries(STATE_LABELS).map(([key, label]) => <option value={key} selected={filters.state === key}>{label}</option>)}
+    </select>
+    <button class="button small" type="submit">Apply</button>
+    {filtered && <a href="/admin/ads">Clear</a>}
+  </form>
+
+  {ads.length === 0 ? <div class="card"><p class="muted" style="margin:0">{filtered ? 'No ads match those filters.' : 'No ads yet. Create one for an advertiser to start selling space.'}</p></div> :
+  <div class="table-wrap"><table>
+    <thead><tr><th>Ad</th><th>Status</th><th>Runs</th><th>Where</th><th class="num">Impressions</th><th class="num">Clicks</th><th class="num">CTR</th></tr></thead>
+    <tbody>
+      {ads.map((a) => <tr>
+        <td><a class="name" href={`/admin/ads/${a.id}`}>{a.name}</a><div class="meta"><a href={`/admin/businesses/${a.business_id}`}>{a.business_name}</a>{a.business_status === 'archived' && ' (archived, not showing)'}</div></td>
+        <td><span class={`pill state-${a.state}`}>{STATE_LABELS[a.state]}</span></td>
+        <td class="meta">{describeRun(a.starts_on, a.ends_on)}{a.impression_cap && <div>Cap {fmtNum(a.impression_cap)}</div>}</td>
+        <td class="meta">{placementSummary(a.placements)}</td>
+        <td class="num">{fmtNum(a.impressions)}</td>
+        <td class="num">{fmtNum(a.clicks)}</td>
+        <td class="num">{ctr(a.clicks, a.impressions)}</td>
+      </tr>)}
+    </tbody>
+  </table></div>}
+  <p class="meta">Impressions, clicks and CTR in the table are lifetime totals. Open an ad for day-by-day numbers.</p>
+</AdminLayout>
+
+<style>
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin: 1rem 0 .5rem; }
+  .tile { display: grid; gap: .4rem; }
+  .tile strong { font: 700 1.8rem 'Libre Baskerville', Georgia, serif; color: #173d4a; }
+  .filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.25rem 0 1rem; }
+  .filters input, .filters select { padding: .6rem .75rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .filters input { flex: 1; min-width: 220px; }
+  .table-wrap { overflow-x: auto; border-top: 3px solid #173d4a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: #687a7d; padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; white-space: nowrap; }
+  td { padding: .85rem .6rem; border-bottom: 1px solid #c9d1cd; vertical-align: top; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .name { font-weight: 700; color: #173d4a; text-decoration: none; }
+  .name:hover { color: #ad5835; text-decoration: underline; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; background: #ecf0ec; color: #62767a; }
+  .pill.state-running { background: #e3f1e8; color: #1f5a41; }
+  .pill.state-scheduled { background: #e2ecef; color: #173d4a; }
+  .pill.state-paused { background: #fbeee2; color: #853d26; }
+  @media (max-width: 800px) { th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) { display: none; } }
+</style>

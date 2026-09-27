@@ -1,15 +1,40 @@
 ---
+import AdSlot from '../components/AdSlot.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { SECTIONS, listArticles } from '../lib/news';
+
+const [lead, ...rest] = await listArticles(0, undefined, 5);
+const more = rest.slice(0, 4);
 ---
 <BaseLayout title="Home">
-  <section style="max-width:850px;padding:2.5rem 0 3rem;border-bottom:1px solid #c9d1cd">
+  {lead ? <section class="front">
+    <article style="min-width:0;max-width:760px">
+      <span class="eyebrow">{SECTIONS[lead.section]} · {lead.community}</span>
+      <h1 style="margin-top:.4rem"><a href={`/news/${lead.slug}`} style="text-decoration:none;color:inherit">{lead.headline}</a></h1>
+      <p class="lede" style="margin-top:0">{lead.summary}</p>
+      <p class="meta">By {lead.byline} · {new Date(lead.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>
+    </article>
+    <div style="border-top:3px solid #173d4a;min-width:0">
+      {more.map((article) => <article style="padding:1rem 0;border-bottom:1px solid #c9d1cd"><span class="eyebrow">{SECTIONS[article.section]}</span><h3 style="margin:.3rem 0;font-size:1.1rem"><a href={`/news/${article.slug}`} style="text-decoration:none;color:inherit">{article.headline}</a></h3><p class="meta" style="margin:0">{article.community} · {new Date(article.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p></article>)}
+      <p><a href="/news">All the latest news →</a></p>
+      <AdSlot placement="home-rail" class="home-rail" />
+    </div>
+  </section> : <section style="max-width:850px;padding:2.5rem 0 3rem;border-bottom:1px solid #c9d1cd">
     <span class="eyebrow">A new local newspaper</span>
     <h1>The region's stories belong here.</h1>
     <p class="lede">Firelands Current is taking shape as an independent home for news and conversation centered on Sandusky and the communities around it.</p>
     <a class="button" href="/talk">Visit Talk of the Town</a>
-  </section>
+  </section>}
+  <div class="home-billboard"><AdSlot placement="home-billboard" /></div>
   <section style="padding-top:2.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem">
-    <div class="card"><span class="eyebrow">Local reporting</span><h2>News with a local address</h2><p class="muted">Coverage will begin with Sandusky and extend across roughly 50 miles of the Firelands region.</p></div>
+    <div class="card"><span class="eyebrow">Local reporting</span><h2>News with a local address</h2><p class="muted">Coverage begins with Sandusky and extends across roughly 50 miles of the Firelands region.</p><a href="/news">Read the news →</a></div>
     <div class="card"><span class="eyebrow">Community</span><h2>Talk of the Town</h2><p class="muted">Start a discussion, share what is happening, and hear from neighbors. A free account is needed to post.</p><a href="/talk">Browse discussions →</a></div>
   </section>
 </BaseLayout>
+
+<style>
+  .front { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 2.5rem; padding-bottom: 2.5rem; border-bottom: 1px solid #c9d1cd; }
+  .home-billboard { padding: 2rem 0 0; }
+  :global(.home-rail) { margin-top: 1.5rem; }
+  @media (max-width: 800px) { .front { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; } }
+</style>

@@ -1,0 +1,270 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { KIND_LABELS, MEMBER_ROLE_LABELS, businessOptions, membershipsFor } from '../../../lib/businesses';
+import { ROLE_LABELS } from '../../../lib/staff';
+import { AUDIT_LABELS, MIN_PASSWORD, PROVIDER_LABELS, describeAgent, fmtDate, fmtDateTime, getUserDetail } from '../../../lib/users';
+
+const denied = requireSection(Astro, ADMIN.users);
+if (denied) return denied;
+
+const detail = await getUserDetail(Astro.params.id ?? '');
+if (!detail) return new Response('User not found', { status: 404 });
+const { user, role, suspension, providers, sessions, posts, counts, audit } = detail;
+const [memberships, allBusinesses] = await Promise.all([membershipsFor(user.id), businessOptions()]);
+const joinable = allBusinesses.filter((b) => !memberships.some((m) => m.business_id === b.id));
+
+const self = user.id === Astro.locals.user!.id;
+const currentSession = Astro.locals.session?.id;
+const hasPassword = providers.some((p) => p.providerId === 'credential');
+const protectedAccount = self || role !== null;
+
+const NOTICES: Record<string, string> = {
+  created: 'Account created. Share the password with them privately; they can change it from their account page.',
+  profile: 'Profile saved.',
+  unchanged: 'Nothing changed.',
+  role: 'Staff role updated.',
+  suspended: 'Account suspended and signed out everywhere.',
+  unsuspended: 'Suspension lifted. They can sign in again.',
+  session: 'Session signed out.',
+  sessions: 'All sessions signed out.',
+  password: 'Password set and all sessions signed out.',
+  hidden: 'All posts hidden and open reports about them resolved.',
+  'member-added': 'Added to the business.',
+  'member-updated': 'Business membership updated.',
+  'member-removed': 'Removed from the business.',
+};
+const ERRORS: Record<string, string> = {
+  profile: 'Enter a name (up to 80 characters) and a valid email address.',
+  'email-taken': 'Another account already uses that email address.',
+  role: 'Choose a valid role.',
+  'self-role': 'You can’t change your own role. Ask another administrator.',
+  'suspended-role': 'Lift the suspension before giving this account a staff role.',
+  suspend: 'Give a reason (3–500 characters) and a duration.',
+  self: 'You can’t do that to your own account.',
+  staff: 'Remove this account’s staff role first.',
+  'current-session': 'That’s the session you’re using now. Sign out from your account page instead.',
+  'self-password': 'Change your own password from your account page.',
+  password: `Passwords must be ${MIN_PASSWORD}–128 characters.`,
+  confirm: 'The email address you typed didn’t match. Nothing was deleted.',
+  member: 'Choose a business role, and keep the title under 80 characters.',
+  'already-member': 'They’re already a member of that business.',
+  archived: 'That business is archived. Restore it before adding members.',
+};
+const notice = NOTICES[Astro.url.searchParams.get('notice') ?? ''];
+const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
+---
+<AdminLayout title={user.name}>
+  <a href="/admin/users">← All users</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">User{self && ' · You'}</span>
+  <h1>{user.name}</h1>
+  <p class="headline-meta">
+    {role ? <span class={`pill role-${role}`}>{ROLE_LABELS[role]}</span> : <span class="pill member">Member</span>}
+    {suspension ? <span class="pill suspended">Suspended</span> : <span class="pill active">Active</span>}
+    <span class="meta">{user.email} · Joined {fmtDate(user.createdAt)} · ID <code>{user.id}</code></span>
+  </p>
+  {notice && <p class="message ok" role="status">{notice}</p>}
+  {error && <p class="message" role="alert">{error}</p>}
+
+  {suspension && <div class="card banner">
+    <div>
+      <strong>Suspended {suspension.expires_at ? `until ${fmtDateTime(suspension.expires_at)}` : 'until lifted'}</strong>
+      <p style="margin:.35rem 0 0">{suspension.reason}</p>
+      <p class="meta" style="margin:.35rem 0 0">By {suspension.suspended_by_name ?? 'a former staff member'} on {fmtDateTime(suspension.created_at)}</p>
+    </div>
+    <form method="post" action="/api/admin/users"><input type="hidden" name="userId" value={user.id} /><button class="button small" name="action" value="unsuspend" type="submit">Lift suspension</button></form>
+  </div>}
+
+  <div class="grid">
+    <div class="col">
+      <section class="card">
+        <h2>Profile</h2>
+        <form class="form" method="post" action="/api/admin/users">
+          <input type="hidden" name="userId" value={user.id} />
+          <label>Display name <input name="name" value={user.name} required maxlength="80" /></label>
+          <label>Email <input name="email" type="email" value={user.email} required maxlength="254" /></label>
+          <label class="check"><input name="emailVerified" type="checkbox" checked={Boolean(user.emailVerified)} /> Email address verified</label>
+          <div><button class="button small" name="action" value="update-profile" type="submit">Save profile</button></div>
+        </form>
+        <p class="meta" style="margin-bottom:0">Last updated {fmtDateTime(user.updatedAt)}</p>
+      </section>
+
+      <section class="card">
+        <h2>Staff role</h2>
+        {self ? <p class="muted" style="margin:0">You’re an {ROLE_LABELS[role!]}. Another administrator has to change your role.</p> :
+        <form class="form" method="post" action="/api/admin/users">
+          <input type="hidden" name="userId" value={user.id} />
+          <label>Role
+            <select name="role">
+              <option value="">None (member)</option>
+              {Object.entries(ROLE_LABELS).map(([key, label]) => <option value={key} selected={role === key}>{label}</option>)}
+            </select>
+          </label>
+          <p class="meta" style="margin:0">Administrators: every section, including users. Editors: News. Moderators: Talk of the Town.</p>
+          <div><button class="button small" name="action" value="set-role" type="submit">Update role</button></div>
+        </form>}
+      </section>
+
+      <section class="card">
+        <h2>Businesses</h2>
+        {memberships.length === 0 ? <p class="muted" style="margin-top:0">Not part of any business.</p> : <ul class="memberships">
+          {memberships.map((m) => <li>
+            <div>
+              <a class="biz" href={`/admin/businesses/${m.business_id}`}>{m.name}</a>
+              {m.role === 'owner' && <span class="pill owner">Owner</span>}
+              {m.status === 'archived' && <span class="pill member">Archived</span>}
+              <div class="meta">{KIND_LABELS[m.kind]}{m.title && ` · ${m.title}`}</div>
+            </div>
+            <form method="post" action="/api/admin/businesses">
+              <input type="hidden" name="businessId" value={m.business_id} /><input type="hidden" name="userId" value={user.id} /><input type="hidden" name="return" value="user" />
+              <button class="button secondary small" name="action" value="remove-member" type="submit">Remove</button>
+            </form>
+          </li>)}
+        </ul>}
+        {joinable.length > 0 ? <details>
+          <summary>Add to a business</summary>
+          <form class="form" method="post" action="/api/admin/businesses" style="margin-top:.8rem">
+            <input type="hidden" name="userId" value={user.id} /><input type="hidden" name="return" value="user" />
+            <label>Business <select name="businessId" required>{joinable.map((b) => <option value={b.id}>{b.name}</option>)}</select></label>
+            <div class="biz-row">
+              <label>Role <select name="role">{Object.entries(MEMBER_ROLE_LABELS).map(([key, label]) => <option value={key} selected={key === 'member'}>{label}</option>)}</select></label>
+              <label>Title <input name="title" maxlength="80" placeholder="Optional" /></label>
+            </div>
+            <div><button class="button small" name="action" value="add-member" type="submit">Add</button> <a class="meta" href="/admin/businesses/new">New business</a></div>
+          </form>
+        </details> : <p class="meta" style="margin-bottom:0">{allBusinesses.length ? 'Already in every active business.' : 'No businesses yet.'} <a href="/admin/businesses/new">New business</a></p>}
+      </section>
+
+      <section class="card">
+        <h2>Talk of the Town</h2>
+        <p class="counts"><span><strong>{counts.threads}</strong> discussions</span><span><strong>{counts.replies}</strong> replies</span><span><strong>{counts.hidden}</strong> hidden</span><span><strong>{counts.reports_against}</strong> reports about them</span><span><strong>{counts.reports_filed}</strong> reports filed</span></p>
+        {posts.length === 0 ? <p class="muted" style="margin:0">No posts yet.</p> : <ul class="posts">
+          {posts.map((p) => <li>
+            <div class="meta">{p.kind === 'thread' ? 'Started' : 'Replied to'} <a href={`/talk/${p.thread_id}`}>{p.title}</a> · {fmtDateTime(p.created_at)}{p.status === 'hidden' && <> · <span class="pill suspended">Hidden</span></>}</div>
+            {p.kind === 'reply' && <p>{p.excerpt}{p.excerpt.length >= 200 && '…'}</p>}
+          </li>)}
+        </ul>}
+      </section>
+
+      <section class="card">
+        <h2>Admin activity</h2>
+        {audit.length === 0 ? <p class="muted" style="margin:0">No admin changes to this account.</p> : <ul class="log">
+          {audit.map((a) => <li><strong>{AUDIT_LABELS[a.action] ?? a.action}</strong>{a.detail && <span> — {a.detail}</span>}<div class="meta">{a.actor_name} · {fmtDateTime(a.created_at)}</div></li>)}
+        </ul>}
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card">
+        <h2>Sign-in methods</h2>
+        {providers.length === 0 ? <p class="muted">None. This account can’t sign in.</p> : <ul class="plain">
+          {providers.map((p) => <li>{PROVIDER_LABELS[p.providerId] ?? p.providerId} <span class="meta">· added {fmtDate(p.createdAt)}</span></li>)}
+        </ul>}
+        {!self && <details>
+          <summary>{hasPassword ? 'Set a new password' : 'Add email & password sign-in'}</summary>
+          <form class="form" method="post" action="/api/admin/users" style="margin-top:.8rem">
+            <input type="hidden" name="userId" value={user.id} />
+            <label>New password <input name="password" type="text" required minlength={MIN_PASSWORD} maxlength="128" autocomplete="off" spellcheck="false" /></label>
+            <p class="meta" style="margin:0">Signs them out everywhere. Give them the password privately and ask them to change it.</p>
+            <div><button class="button small" name="action" value="set-password" type="submit">Set password</button></div>
+          </form>
+        </details>}
+      </section>
+
+      <section class="card">
+        <h2>Sessions <span class="meta">({sessions.length})</span></h2>
+        {sessions.length === 0 ? <p class="muted" style="margin:0">Not signed in anywhere.</p> : <>
+          <ul class="sessions">
+            {sessions.map((s) => <li>
+              <div>
+                <strong>{describeAgent(s.userAgent)}</strong>{s.id === currentSession && <span class="pill active" style="margin-left:.4rem">This session</span>}
+                <div class="meta">{s.ipAddress ?? 'Unknown IP'} · last used {fmtDateTime(s.updatedAt)}</div>
+                <div class="meta">Signed in {fmtDateTime(s.createdAt)}</div>
+              </div>
+              {s.id !== currentSession && <form method="post" action="/api/admin/users"><input type="hidden" name="userId" value={user.id} /><input type="hidden" name="sessionId" value={s.id} /><button class="button secondary small" name="action" value="revoke-session" type="submit">Sign out</button></form>}
+            </li>)}
+          </ul>
+          <form method="post" action="/api/admin/users" style="margin-top:.8rem"><input type="hidden" name="userId" value={user.id} /><button class="button secondary small" name="action" value="revoke-sessions" type="submit">{self ? 'Sign out other sessions' : 'Sign out everywhere'}</button></form>
+        </>}
+      </section>
+
+      {!suspension && <section class="card">
+        <h2>Suspend</h2>
+        {protectedAccount ? <p class="muted" style="margin:0">{self ? 'You can’t suspend your own account.' : 'Remove this account’s staff role before suspending it.'}</p> :
+        <form class="form" method="post" action="/api/admin/users">
+          <input type="hidden" name="userId" value={user.id} />
+          <label>Reason <span class="meta" style="font-weight:400">(staff only)</span><textarea name="reason" required minlength="3" maxlength="500" style="min-height:80px"></textarea></label>
+          <label>Duration
+            <select name="duration"><option value="1">1 day</option><option value="7" selected>7 days</option><option value="30">30 days</option><option value="permanent">Until lifted</option></select>
+          </label>
+          <label class="check"><input name="hideContent" type="checkbox" /> Also hide all of their posts</label>
+          <p class="meta" style="margin:0">They’re signed out immediately and can’t sign in until the suspension ends.</p>
+          <div><button class="button small warn" name="action" value="suspend" type="submit">Suspend account</button></div>
+        </form>}
+      </section>}
+
+      {!protectedAccount && <section class="card danger">
+        <h2>Danger zone</h2>
+        <form method="post" action="/api/admin/users" data-confirm="Hide every discussion and reply this person has posted?">
+          <input type="hidden" name="userId" value={user.id} />
+          <button class="button secondary small" name="action" value="hide-content" type="submit" disabled={counts.threads + counts.replies === counts.hidden}>Hide all posts</button>
+          <p class="meta">For spam. Hidden posts can be restored one at a time from Talk of the Town.</p>
+        </form>
+        <details>
+          <summary>Delete account</summary>
+          <form class="form" method="post" action="/api/admin/users" style="margin-top:.8rem">
+            <input type="hidden" name="userId" value={user.id} />
+            <p class="meta" style="margin:0">Permanently deletes the account with all of its discussions, replies, reports and sign-in methods. This can’t be undone. The admin activity log keeps a record.</p>
+            <label>Type <code>{user.email}</code> to confirm <input name="confirm" required autocomplete="off" spellcheck="false" /></label>
+            <div><button class="button small warn" name="action" value="delete" type="submit">Delete permanently</button></div>
+          </form>
+        </details>
+      </section>}
+    </div>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+  document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+    form.addEventListener('submit', function (event) { if (!confirm(form.dataset.confirm)) event.preventDefault(); });
+  });
+</script>
+
+<style>
+  .headline-meta { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: -.4rem; }
+  .headline-meta code { overflow-wrap: anywhere; }
+  .message.ok { border-color: #8fbfa2; color: #1f5a41; background: #eef7f1; }
+  .banner { display: flex; justify-content: space-between; align-items: start; gap: 1rem; flex-wrap: wrap; border-color: #d69f80; background: #fff4ec; margin: 1rem 0; }
+  .grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1.25rem; margin-top: 1.25rem; align-items: start; }
+  .col { display: grid; gap: 1.25rem; min-width: 0; }
+  .card h2 { margin: 0 0 1rem; font-size: 1.15rem; }
+  .form label.check { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+  .form label.check input { width: auto; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+  .pill.active { background: #e3f1e8; color: #1f5a41; }
+  .pill.suspended { background: #fbeee2; color: #853d26; }
+  .pill.member { background: #ecf0ec; color: #62767a; }
+  .pill.owner { background: #fbeee2; color: #853d26; margin-left: .35rem; }
+  ul.memberships { list-style: none; margin: 0; padding: 0; }
+  ul.memberships li { display: flex; justify-content: space-between; align-items: start; gap: .75rem; padding: .6rem 0; border-top: 1px solid #e1e6e2; }
+  ul.memberships li:first-child { border-top: 0; padding-top: 0; }
+  .biz { font-weight: 700; color: #173d4a; }
+  .biz-row { display: grid; grid-template-columns: 1fr 1.5fr; gap: .75rem; }
+  .pill.role-admin { background: #173d4a; color: #fff; }
+  .pill.role-editor, .pill.role-moderator { background: #e2ecef; color: #173d4a; }
+  .counts { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; margin: 0 0 1rem; font-size: .9rem; color: #62767a; }
+  .counts strong { color: #173d4a; }
+  ul.posts, ul.log, ul.sessions, ul.plain { list-style: none; margin: 0; padding: 0; }
+  ul.posts li, ul.log li, ul.sessions li { padding: .7rem 0; border-top: 1px solid #e1e6e2; }
+  ul.posts li:first-child, ul.log li:first-child, ul.sessions li:first-child { border-top: 0; padding-top: 0; }
+  ul.posts p { margin: .3rem 0 0; font-size: .92rem; }
+  ul.plain li { padding: .25rem 0; }
+  ul.sessions li { display: flex; justify-content: space-between; align-items: start; gap: .75rem; }
+  details summary { cursor: pointer; font-weight: 700; color: #15596b; margin-top: .8rem; }
+  .button.warn { background: #ad5835; border-color: #ad5835; }
+  .button.warn:hover { background: #8f4629; }
+  .button:disabled { opacity: .5; cursor: not-allowed; }
+  .danger { border-color: #e2b9a3; }
+  .danger h2 { color: #853d26; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+</style>

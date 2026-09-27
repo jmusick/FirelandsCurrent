@@ -1,0 +1,35 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { AUDIT_LABELS, fmtDateTime, listAudit } from '../../../lib/users';
+
+const denied = requireSection(Astro, ADMIN.users);
+if (denied) return denied;
+
+const entries = await listAudit(200);
+---
+<AdminLayout title="User activity log">
+  <a href="/admin/users">← All users</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Users</span>
+  <h1>Activity log</h1>
+  <p class="muted">The 200 most recent changes staff made to user accounts and businesses.</p>
+  {entries.length === 0 ? <div class="card"><p class="muted" style="margin:0">No changes yet.</p></div> :
+  <div class="table-wrap"><table>
+    <thead><tr><th>When</th><th>Staff</th><th>Action</th><th>About</th></tr></thead>
+    <tbody>
+      {entries.map((e) => <tr>
+        <td class="meta" style="white-space:nowrap">{fmtDateTime(e.created_at)}</td>
+        <td>{e.actor_name}</td>
+        <td><strong>{AUDIT_LABELS[e.action] ?? e.action}</strong>{e.detail && <div class="meta">{e.detail}</div>}</td>
+        <td>{e.user_exists ? <a href={`/admin/users/${e.target_user_id}`}>{e.target_label}</a> : e.business_exists && !e.target_user_id ? <a href={`/admin/businesses/${e.target_business_id}`}>{e.target_label}</a> : e.target_label}</td>
+      </tr>)}
+    </tbody>
+  </table></div>}
+</AdminLayout>
+
+<style>
+  .table-wrap { overflow-x: auto; border-top: 3px solid #173d4a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: #687a7d; padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; }
+  td { padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; vertical-align: top; overflow-wrap: anywhere; }
+</style>

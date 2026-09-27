@@ -1,0 +1,141 @@
+---
+import { PLACEMENTS, isPlacement } from '../lib/ads';
+import { RANGES, ctr, fmtDay, fmtNum, type RangeDays, type Stats } from '../lib/ads-admin';
+
+// Performance for one ad, one business or the whole site: totals, a chart per measure, and tables.
+// Used in the admin panel and on business dashboards, so it relies only on shared page styles.
+interface Props {
+  stats: Stats;
+  /** Link for a range choice, keeping the page's other query parameters. */
+  rangeHref: (days: RangeDays) => string;
+}
+
+const { stats, rangeHref } = Astro.props;
+const { totals, daily } = stats;
+
+// Impressions and clicks differ in scale by ~100×, so each gets its own chart and axis.
+const W = 720, H = 150, LEFT = 44, BOTTOM = 22, TOP = 8;
+const plotW = W - LEFT - 4, plotH = H - TOP - BOTTOM;
+function niceMax(max: number) {
+  if (max <= 10) return Math.max(4, Math.ceil(max / 2) * 2);
+  // The axis labels 0, half and the top, so the top only needs a round value with a round half.
+  const pow = 10 ** Math.floor(Math.log10(max));
+  return [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((m) => m * pow).find((top) => top >= max)!;
+}
+function chart(key: 'impressions' | 'clicks') {
+  const max = niceMax(Math.max(...daily.map((d) => d[key])));
+  const step = plotW / Math.max(daily.length, 1);
+  const gap = step > 6 ? 2 : step > 3 ? 1 : 0;
+  const barW = Math.max(step - gap, 0.5);
+  const r = Math.min(4, barW / 2);
+  const bars = daily.map((d, i) => {
+    const h = (d[key] / max) * plotH;
+    const x = LEFT + i * step + gap / 2;
+    const y = TOP + plotH - h;
+    // Rounded at the data end, square on the baseline.
+    const path = h <= 0 ? '' : h < r
+      ? `M${x},${TOP + plotH}v${-h}h${barW}v${h}z`
+      : `M${x},${TOP + plotH}V${y + r}q0,${-r} ${r},${-r}h${barW - 2 * r}q${r},0 ${r},${r}V${TOP + plotH}z`;
+    return { path, x: LEFT + i * step, w: step, tip: `${fmtDay(d.day)}: ${fmtNum(d[key])} ${key === 'clicks' && d[key] === 1 ? 'click' : key === 'impressions' && d[key] === 1 ? 'impression' : key}` };
+  });
+  const ticks = [0, 0.5, 1].map((f) => ({ y: TOP + plotH - f * plotH, label: fmtNum(Math.round(max * f)) }));
+  const labelDays = daily.length > 1 ? [0, Math.floor((daily.length - 1) / 2), daily.length - 1] : [0];
+  const xLabels = labelDays.map((i) => ({ x: LEFT + i * step + step / 2, label: fmtDay(daily[i].day).replace(/, \d{4}$/, ''), anchor: i === 0 ? 'start' : i === daily.length - 1 ? 'end' : 'middle' }));
+  return { bars, ticks, xLabels };
+}
+const charts = [
+  { key: 'impressions' as const, title: 'Impressions per day', color: '#007a99', ...chart('impressions') },
+  { key: 'clicks' as const, title: 'Clicks per day', color: '#ad5835', ...chart('clicks') },
+];
+const busiest = daily.reduce((best, d) => (d.impressions > best.impressions ? d : best), daily[0]);
+---
+<section class="ad-stats">
+  <nav class="ranges" aria-label="Date range">
+    {([7, 30, 90, 0] as RangeDays[]).map((days) => <a class:list={['button small', { secondary: days !== stats.range }]} href={rangeHref(days)} aria-current={days === stats.range ? 'true' : undefined}>{RANGES[days]}</a>)}
+  </nav>
+
+  <div class="stat-tiles">
+    <div class="card stat"><span class="meta">Impressions</span><strong>{fmtNum(totals.impressions)}</strong><span class="meta">Seen at least half on screen for 1 second</span></div>
+    <div class="card stat"><span class="meta">Clicks</span><strong>{fmtNum(totals.clicks)}</strong><span class="meta">Visits to the advertiser’s link</span></div>
+    <div class="card stat"><span class="meta">Click-through rate</span><strong>{ctr(totals.clicks, totals.impressions)}</strong><span class="meta">Clicks per impression</span></div>
+  </div>
+
+  {totals.impressions === 0 && totals.clicks === 0 ? <p class="card muted" style="margin:0">No impressions or clicks in this period yet. Numbers appear here as readers see the ad.</p> : <>
+    <div class="charts">
+      {charts.map((c) => <figure class="card chart">
+        <figcaption><strong>{c.title}</strong>{c.key === 'impressions' && busiest?.impressions > 0 && <span class="meta"> · busiest {fmtDay(busiest.day)} ({fmtNum(busiest.impressions)})</span>}</figcaption>
+        <div class="plot">
+          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${c.title}, ${fmtDay(daily[0].day)} to ${fmtDay(daily[daily.length - 1].day)}`}>
+            {c.ticks.map((t) => <g><line x1={LEFT} x2={W - 4} y1={t.y} y2={t.y} class:list={['grid', { base: t.y === TOP + plotH }]} /><text x={LEFT - 6} y={t.y + 3.5} text-anchor="end" class="tick">{t.label}</text></g>)}
+            {c.bars.map((b) => b.path && <path d={b.path} fill={c.color} />)}
+            {c.xLabels.map((l) => <text x={l.x} y={H - 5} text-anchor={l.anchor} class="tick">{l.label}</text>)}
+            {c.bars.map((b) => <rect class="hit" x={b.x} y={TOP} width={b.w} height={plotH} data-tip={b.tip} />)}
+          </svg>
+          <div class="tip" hidden></div>
+        </div>
+      </figure>)}
+    </div>
+
+    <div class="tables">
+      <div class="card">
+        <h3>By placement</h3>
+        <table class="stats-table">
+          <thead><tr><th>Placement</th><th>Impressions</th><th>Clicks</th><th>CTR</th></tr></thead>
+          <tbody>{stats.byPlacement.map((p) => <tr><td>{isPlacement(p.placement) ? PLACEMENTS[p.placement].label : p.placement}</td><td>{fmtNum(p.impressions)}</td><td>{fmtNum(p.clicks)}</td><td>{ctr(p.clicks, p.impressions)}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <details class="card">
+        <summary>Day-by-day numbers</summary>
+        <table class="stats-table">
+          <thead><tr><th>Day</th><th>Impressions</th><th>Clicks</th><th>CTR</th></tr></thead>
+          <tbody>{[...daily].reverse().filter((d) => d.impressions || d.clicks).map((d) => <tr><td>{fmtDay(d.day)}</td><td>{fmtNum(d.impressions)}</td><td>{fmtNum(d.clicks)}</td><td>{ctr(d.clicks, d.impressions)}</td></tr>)}</tbody>
+        </table>
+      </details>
+    </div>
+  </>}
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.ad-stats .plot').forEach((plot) => {
+    const tip = plot.querySelector<HTMLElement>('.tip')!;
+    plot.querySelectorAll<SVGRectElement>('.hit').forEach((hit) => {
+      hit.addEventListener('pointerenter', () => {
+        const box = hit.getBoundingClientRect();
+        const outer = plot.getBoundingClientRect();
+        tip.textContent = hit.dataset.tip ?? '';
+        tip.hidden = false;
+        const x = Math.min(Math.max(box.left - outer.left + box.width / 2, 60), outer.width - 60);
+        tip.style.left = `${x}px`;
+        hit.classList.add('on');
+      });
+      hit.addEventListener('pointerleave', () => { tip.hidden = true; hit.classList.remove('on'); });
+    });
+  });
+</script>
+
+<style>
+  .ad-stats { display: grid; gap: 1rem; }
+  .ranges { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .stat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+  .stat { display: grid; gap: .3rem; }
+  .stat strong { font: 700 1.9rem 'Libre Baskerville', Georgia, serif; color: #173d4a; letter-spacing: -.03em; }
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
+  .chart { margin: 0; min-width: 0; }
+  .chart figcaption { margin-bottom: .6rem; font-size: .92rem; }
+  .plot { position: relative; }
+  .plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .grid { stroke: #e1e6e2; stroke-width: 1; }
+  .grid.base { stroke: #9eb0ae; }
+  .tick { fill: #687a7d; font-size: 11px; font-family: 'DM Sans', sans-serif; }
+  .hit { fill: transparent; cursor: default; }
+  .hit.on { fill: rgba(23, 61, 74, .06); }
+  .tip { position: absolute; top: -.4rem; transform: translate(-50%, -100%); background: #173d4a; color: #fff; font-size: .8rem; padding: .3rem .55rem; border-radius: 3px; white-space: nowrap; pointer-events: none; }
+  .tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; align-items: start; }
+  .tables h3 { margin: 0 0 .6rem; font-size: 1rem; }
+  .tables summary { cursor: pointer; font-weight: 700; color: #15596b; }
+  .tables details[open] summary { margin-bottom: .6rem; }
+  .stats-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .stats-table th { text-align: left; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: #687a7d; padding: .4rem .3rem; border-bottom: 1px solid #c9d1cd; }
+  .stats-table td { padding: .45rem .3rem; border-bottom: 1px solid #e1e6e2; }
+  .stats-table th:not(:first-child), .stats-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+</style>

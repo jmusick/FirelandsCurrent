@@ -1,0 +1,107 @@
+---
+import { SECTIONS } from '../lib/news';
+import type { ArticleFormValues } from '../lib/news-admin';
+
+interface Props {
+  values: ArticleFormValues;
+  errors: string[];
+  saved?: boolean;
+  articleId?: string;
+  liveUrl?: string | null;
+  canDelete?: boolean;
+}
+
+const { values, errors, saved = false, articleId, liveUrl, canDelete = false } = Astro.props;
+---
+{errors.length > 0 && <div class="message" role="alert"><strong>Couldn’t save the story.</strong><ul>{errors.map((e) => <li>{e}</li>)}</ul></div>}
+{saved && <p class="message saved" role="status">Story saved.{liveUrl && <> <a href={liveUrl}>View it on the site →</a></>}</p>}
+
+<form method="post" id="story-form" class="form editor">
+  <label>Headline <input id="headline" name="headline" value={values.headline} required minlength="8" maxlength="160" /></label>
+  <label>URL slug <span class="hint">/news/<span id="slug-preview">{values.slug || '…'}</span></span><input id="slug" name="slug" value={values.slug} maxlength="120" pattern="[a-z0-9-]*" placeholder="Filled in from the headline" /></label>
+  <label>Summary <span class="hint">Shown under the headline and in story lists.</span><textarea name="summary" required minlength="20" maxlength="400" style="min-height:90px">{values.summary}</textarea></label>
+  <div class="row">
+    <label>Section
+      <select name="section" required>
+        <option value="" disabled selected={!values.section}>Choose…</option>
+        {Object.entries(SECTIONS).map(([key, label]) => <option value={key} selected={values.section === key}>{label}</option>)}
+      </select>
+    </label>
+    <label>Community <input name="community" value={values.community} required maxlength="60" placeholder="Sandusky" /></label>
+    <label>Byline <input name="byline" value={values.byline} required maxlength="80" /></label>
+  </div>
+  <label>Story <span class="hint">Markdown: blank line between paragraphs, ## for subheads, &gt; for pull quotes.</span><textarea id="body" name="body" style="min-height:420px">{values.body}</textarea></label>
+  <div class="actions">
+    <label class="status">Status
+      <select name="status">
+        <option value="draft" selected={values.status === 'draft'}>Draft</option>
+        <option value="published" selected={values.status === 'published'}>Published</option>
+      </select>
+    </label>
+    <button class="button" type="submit">Save story</button>
+  </div>
+</form>
+
+{canDelete && articleId && <section class="card danger">
+  <h2>Delete story</h2>
+  <p class="muted">Removes the story permanently. To take it off the site but keep it, set it to Draft instead.</p>
+  <form method="post" action="/api/admin/news/delete" id="delete-form"><input type="hidden" name="id" value={articleId} /><button class="button secondary small" type="submit">Delete permanently</button></form>
+</section>}
+
+<script is:inline src="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.js"></script>
+<script is:inline>
+  (function () {
+    var headline = document.getElementById('headline');
+    var slug = document.getElementById('slug');
+    var preview = document.getElementById('slug-preview');
+    var toSlug = function (v) { return v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120); };
+    var slugTouched = slug.value !== '';
+    slug.addEventListener('input', function () { slugTouched = true; preview.textContent = slug.value || '…'; });
+    headline.addEventListener('input', function () {
+      if (slugTouched) return;
+      slug.value = toSlug(headline.value);
+      preview.textContent = slug.value || '…';
+    });
+
+    var body = document.getElementById('body');
+    var dirty = false;
+    var form = document.getElementById('story-form');
+    form.addEventListener('input', function () { dirty = true; });
+    if (typeof EasyMDE !== 'undefined') {
+      var editor = new EasyMDE({
+        element: body,
+        spellChecker: false,
+        autosave: { enabled: false },
+        status: ['words'],
+        minHeight: '380px',
+        toolbar: ['bold', 'italic', 'heading-2', 'heading-3', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link', 'image', '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
+      });
+      editor.codemirror.on('change', function () { dirty = true; });
+      form.addEventListener('submit', function () { body.value = editor.value(); });
+    }
+    form.addEventListener('submit', function () { dirty = false; });
+    window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+    var del = document.getElementById('delete-form');
+    if (del) del.addEventListener('submit', function (e) {
+      if (!confirm('Delete this story permanently? This cannot be undone.')) e.preventDefault();
+    });
+  })();
+</script>
+
+<style>
+  .editor { max-width: 900px; }
+  .hint { font-weight: 400; color: #687a7d; font-size: .82rem; }
+  .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .form :global(select) { width: 100%; padding: .8rem .85rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .actions { display: flex; justify-content: space-between; align-items: end; gap: 1rem; padding-top: 1rem; border-top: 1px solid #c9d1cd; }
+  .status { max-width: 220px; }
+  .message ul { margin: .4rem 0 0; padding-left: 1.2rem; }
+  .saved { border-color: #8fb8a4; color: #1f5a41; background: #eef7f1; }
+  .danger { max-width: 900px; margin-top: 3rem; border-color: #e0b6a3; }
+  .danger h2 { margin-top: 0; font-size: 1.15rem; color: #853d26; }
+  :global(.EasyMDEContainer .CodeMirror) { border-color: #9eb0ae; font-family: 'DM Sans', sans-serif; font-size: 1rem; line-height: 1.7; }
+  :global(.editor-toolbar) { border-color: #9eb0ae; background: #fffdfa; opacity: 1; }
+  :global(.editor-preview), :global(.editor-preview-side) { background: #fffdfa; line-height: 1.8; }
+  @media (max-width: 700px) { .row { grid-template-columns: minmax(0, 1fr); } }
+</style>

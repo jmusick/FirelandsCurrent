@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { portalBusinesses } from '../../lib/business-portal';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/sign-in?next=/business');
+const businesses = await portalBusinesses(user.id);
+if (businesses.length === 1) return Astro.redirect(`/business/${businesses[0].id}`);
+---
+<BaseLayout title="Business dashboard">
+  <span class="eyebrow">Business dashboard</span>
+  <h1>Your businesses</h1>
+  {businesses.length === 0
+    ? <div class="card" style="max-width:650px"><p style="margin-top:0">Your account isn’t connected to a business yet.</p><p class="muted" style="margin-bottom:0">If you advertise with Firelands Current, ask your contact here to add you. <a href="/advertise">Interested in advertising?</a></p></div>
+    : <div class="picker">{businesses.map((b) => <a class="card" href={`/business/${b.id}`}><strong>{b.name}</strong><span class="meta">Open dashboard →</span></a>)}</div>}
+</BaseLayout>
+
+<style>
+  .picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+  .picker a { display: grid; gap: .4rem; text-decoration: none; color: #173d4a; }
+  .picker a:hover { border-color: #9eb0ae; }
+</style>

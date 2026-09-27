@@ -1,0 +1,151 @@
+---
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdForm from '../../../components/AdForm.astro';
+import AdStats from '../../../components/AdStats.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { STATE_LABELS, adAudit, adAuditLog, adBinds, applyImages, deleteMedia, describeAdChanges, describeRun, fmtDay, fmtNum, getAd, getStats, rangeFrom, validateAdForm, valuesFromRecord, type RangeDays } from '../../../lib/ads-admin';
+import { businessOptions } from '../../../lib/businesses';
+import { sameOrigin } from '../../../lib/forum';
+import { AUDIT_LABELS, fmtDateTime } from '../../../lib/users';
+
+const denied = requireSection(Astro, ADMIN.ads);
+if (denied) return denied;
+
+const found = await getAd(Astro.params.id ?? '');
+if (!found) return new Response('Ad not found', { status: 404 });
+const { record, images } = found;
+
+const active = await businessOptions();
+// Keep the ad's current business in the picker even if it has since been archived.
+const businesses = active.some((b) => b.id === record.business_id) ? active : [...active, { id: record.business_id, name: `${record.business_name} (archived)` }];
+
+let values = valuesFromRecord(record);
+let errors: string[] = [];
+if (Astro.request.method === 'POST') {
+  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  const result = await validateAdForm(await Astro.request.formData(), record);
+  if (result.ok) {
+    const v = result.values;
+    const names = Object.fromEntries(businesses.map((b) => [b.id, b.name]));
+    const changes = [describeAdChanges(values, v, names), ...result.uploads.map((u) => `New ${u.size} image`), ...result.removals.map((s) => `Removed ${s} image`)].filter(Boolean).join('; ');
+    if (!changes) return Astro.redirect(`/admin/ads/${record.id}?notice=unchanged`, 303);
+    const { statements, staleKeys } = await applyImages(record.id, result.uploads, result.removals, images);
+    await env.DB.batch([
+      env.DB.prepare(`
+        UPDATE ads SET business_id = ?, name = ?, status = ?, headline = ?, body = ?, cta = ?, href = ?, theme_bg = ?, theme_fg = ?, theme_accent = ?,
+          placements = ?, sections = ?, weight = ?, starts_on = ?, ends_on = ?, impression_cap = ?, terms = ?, updated_at = ?
+        WHERE id = ?
+      `).bind(v.business_id, ...adBinds(v), Date.now(), record.id),
+      ...statements,
+      adAudit(Astro.locals.user!, { id: record.id, name: v.name }, { id: v.business_id, name: names[v.business_id] }, 'ad-update', changes),
+    ]);
+    await deleteMedia(staleKeys);
+    return Astro.redirect(`/admin/ads/${record.id}?notice=saved`, 303);
+  }
+  ({ values, errors } = result);
+}
+
+const range = rangeFrom(Astro.url.searchParams);
+const [stats, log] = await Promise.all([getStats({ adId: record.id }, range), adAuditLog(record.id)]);
+const rangeHref = (days: RangeDays) => `/admin/ads/${record.id}?range=${days}#performance`;
+
+const NOTICES: Record<string, string> = {
+  created: 'Ad created. It’s a draft until you activate it.',
+  saved: 'Ad saved.',
+  unchanged: 'Nothing changed.',
+  activated: 'Ad activated.',
+  paused: 'Ad paused. It stops showing right away.',
+};
+const ERRORS: Record<string, string> = {
+  confirm: 'The name you typed didn’t match. Nothing was deleted.',
+  archived: 'This ad’s business is archived. Restore the business before activating its ads.',
+};
+const notice = NOTICES[Astro.url.searchParams.get('notice') ?? ''];
+const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
+const capLeft = record.impression_cap ? Math.max(0, record.impression_cap - record.impressions) : null;
+const STATE_NOTES: Partial<Record<typeof record.state, string>> = {
+  draft: 'Not showing. Activate it when it’s ready to run.',
+  scheduled: `Showing from ${fmtDay(record.starts_on!)}.`,
+  running: 'Showing on the site now.',
+  paused: 'Held by staff; not showing.',
+  ended: 'Its end date has passed.',
+  completed: 'It reached its impression cap.',
+};
+---
+<AdminLayout title={record.name}>
+  <a href="/admin/ads">← All ads</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Ad · <a href={`/admin/businesses/${record.business_id}`}>{record.business_name}</a></span>
+  <div class="head">
+    <h1>{record.name}</h1>
+    <span class={`pill state-${record.state}`}>{STATE_LABELS[record.state]}</span>
+  </div>
+  <p class="meta" style="margin-top:-.4rem">{STATE_NOTES[record.state]}{record.business_status === 'archived' && ' Its business is archived, so it won’t show.'} · {describeRun(record.starts_on, record.ends_on)}{capLeft !== null && ` · ${fmtNum(capLeft)} of ${fmtNum(record.impression_cap!)} impressions left`}</p>
+  {notice && <p class="message ok" role="status">{notice}</p>}
+  {error && <p class="message" role="alert">{error}</p>}
+
+  <div class="actions">
+    <form method="post" action="/api/admin/ads">
+      <input type="hidden" name="adId" value={record.id} />
+      {record.status === 'active'
+        ? <button class="button secondary small" name="action" value="pause" type="submit">Pause</button>
+        : <button class="button small" name="action" value="activate" type="submit">{record.status === 'draft' ? 'Activate' : 'Resume'}</button>}
+    </form>
+    <a class="button secondary small" href="#edit">Edit</a>
+    <a class="button secondary small" href={`/business/${record.business_id}/ads/${record.id}`}>View as client</a>
+  </div>
+
+  <section id="performance" class="block">
+    <h2>Performance</h2>
+    <AdStats stats={stats} rangeHref={rangeHref} />
+  </section>
+
+  <section id="edit" class="block">
+    <h2>Edit ad</h2>
+    <AdForm values={values} errors={errors} businesses={businesses} images={images} submitLabel="Save ad" />
+  </section>
+
+  <div class="bottom">
+    <section class="card">
+      <h2>Activity</h2>
+      {log.length === 0 ? <p class="muted" style="margin:0">No changes yet.</p> : <ul class="log">
+        {log.map((a) => <li><strong>{AUDIT_LABELS[a.action] ?? a.action}</strong>{a.detail && <span> — {a.detail.replace(/^.*? — /, '')}</span>}<div class="meta">{a.actor_name} · {fmtDateTime(a.created_at)}</div></li>)}
+      </ul>}
+    </section>
+    <section class="card danger">
+      <h2>Delete ad</h2>
+      <p class="meta">Deleting removes the ad, its images and all of its stats, including from the client’s dashboard. To stop an ad but keep its record, pause it instead.</p>
+      <details>
+        <summary>Delete permanently</summary>
+        <form class="form" method="post" action="/api/admin/ads" style="margin-top:.8rem">
+          <input type="hidden" name="adId" value={record.id} />
+          <label>Type <code>{record.name}</code> to confirm <input name="confirm" required autocomplete="off" spellcheck="false" /></label>
+          <div><button class="button small warn" name="action" value="delete" type="submit">Delete ad</button></div>
+        </form>
+      </details>
+    </section>
+  </div>
+</AdminLayout>
+
+<style>
+  .head { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
+  .head h1 { margin-bottom: .6rem; }
+  .message.ok { border-color: #8fbfa2; color: #1f5a41; background: #eef7f1; }
+  .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0 0; }
+  .block { margin-top: 2.25rem; }
+  .block > h2 { margin: 0 0 1rem; }
+  .bottom { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1.25rem; margin-top: 2.25rem; align-items: start; }
+  .bottom h2 { margin: 0 0 1rem; font-size: 1.15rem; }
+  ul.log { list-style: none; margin: 0; padding: 0; }
+  ul.log li { padding: .75rem 0; border-top: 1px solid #e1e6e2; overflow-wrap: anywhere; }
+  ul.log li:first-child { border-top: 0; padding-top: 0; }
+  details summary { cursor: pointer; font-weight: 700; color: #15596b; }
+  .danger { border-color: #e2b9a3; }
+  .button.warn { background: #ad5835; border-color: #ad5835; }
+  .button.warn:hover { background: #8f4629; }
+  .pill { display: inline-block; padding: .2rem .65rem; border-radius: 999px; font-size: .8rem; font-weight: 700; background: #ecf0ec; color: #62767a; }
+  .pill.state-running { background: #e3f1e8; color: #1f5a41; }
+  .pill.state-scheduled { background: #e2ecef; color: #173d4a; }
+  .pill.state-paused { background: #fbeee2; color: #853d26; }
+  @media (max-width: 900px) { .bottom { grid-template-columns: minmax(0, 1fr); } }
+</style>

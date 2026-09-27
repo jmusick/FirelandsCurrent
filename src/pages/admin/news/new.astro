@@ -1,0 +1,26 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import NewsEditor from '../../../components/NewsEditor.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { sameOrigin } from '../../../lib/forum';
+import { emptyArticle, saveArticleFromForm, type ArticleFormValues } from '../../../lib/news-admin';
+
+const denied = requireSection(Astro, ADMIN.news);
+if (denied) return denied;
+
+let values: ArticleFormValues = { ...emptyArticle, byline: Astro.locals.user!.name };
+let errors: string[] = [];
+if (Astro.request.method === 'POST') {
+  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  const result = await saveArticleFromForm(await Astro.request.formData(), null);
+  if (result.ok) return Astro.redirect(`/admin/news/${result.id}?saved=1`, 303);
+  ({ values, errors } = result);
+}
+---
+<AdminLayout title="New story">
+  <link slot="head" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.css" />
+  <a href="/admin/news">← All stories</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">News</span>
+  <h1>New story</h1>
+  <NewsEditor values={values} errors={errors} />
+</AdminLayout>

@@ -1,0 +1,45 @@
+---
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdForm from '../../../components/AdForm.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { adAudit, adBinds, applyImages, emptyAd, validateAdForm } from '../../../lib/ads-admin';
+import { businessOptions } from '../../../lib/businesses';
+import { sameOrigin } from '../../../lib/forum';
+
+const denied = requireSection(Astro, ADMIN.ads);
+if (denied) return denied;
+
+const businesses = await businessOptions();
+let values = emptyAd(Astro.url.searchParams.get('business') ?? '');
+let errors: string[] = [];
+if (Astro.request.method === 'POST') {
+  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  const result = await validateAdForm(await Astro.request.formData(), null);
+  if (result.ok) {
+    const id = crypto.randomUUID();
+    const now = Date.now();
+    const v = result.values;
+    const business = businesses.find((b) => b.id === v.business_id)!;
+    const { statements } = await applyImages(id, result.uploads, [], []);
+    await env.DB.batch([
+      env.DB.prepare(`
+        INSERT INTO ads (id, business_id, name, status, headline, body, cta, href, theme_bg, theme_fg, theme_accent, placements, sections, weight, starts_on, ends_on, impression_cap, terms, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(id, v.business_id, ...adBinds(v), now, now),
+      ...statements,
+      adAudit(Astro.locals.user!, { id, name: v.name }, business, 'ad-create'),
+    ]);
+    return Astro.redirect(`/admin/ads/${id}?notice=created`, 303);
+  }
+  ({ values, errors } = result);
+}
+---
+<AdminLayout title="New ad">
+  <a href="/admin/ads">← All ads</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Ads</span>
+  <h1>New ad</h1>
+  {businesses.length === 0
+    ? <div class="card"><p style="margin:0">Add the advertiser under <a href="/admin/businesses/new">Businesses</a> first.</p></div>
+    : <AdForm values={values} errors={errors} businesses={businesses} submitLabel="Create ad" />}
+</AdminLayout>

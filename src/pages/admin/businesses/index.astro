@@ -1,0 +1,70 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { KIND_LABELS, businessFiltersFrom, listBusinesses } from '../../../lib/businesses';
+import { fmtDate } from '../../../lib/users';
+
+const denied = requireSection(Astro, ADMIN.businesses);
+if (denied) return denied;
+
+const filters = businessFiltersFrom(Astro.url.searchParams);
+const businesses = await listBusinesses(filters);
+const deleted = Astro.url.searchParams.get('deleted');
+const filtered = Boolean(filters.q || filters.kind || filters.status !== 'active');
+---
+<AdminLayout title="Businesses">
+  <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
+    <div><span class="eyebrow">Businesses</span><h1>Businesses</h1></div>
+    <a class="button" href="/admin/businesses/new">New business</a>
+  </div>
+  <p class="muted" style="max-width:680px;margin-top:0">Group accounts under the business they work for: the Firelands Current team, advertising clients, and others. One person can belong to several businesses.</p>
+  {deleted && <p class="message" role="status">Deleted {deleted}.</p>}
+
+  <form class="filters" method="get" action="/admin/businesses">
+    <input name="q" type="search" value={filters.q} placeholder="Search name, email or website…" aria-label="Search businesses" />
+    <select name="kind" aria-label="Type">
+      <option value="">All types</option>
+      {Object.entries(KIND_LABELS).map(([key, label]) => <option value={key} selected={filters.kind === key}>{label}</option>)}
+    </select>
+    <select name="status" aria-label="Status">
+      <option value="active" selected={filters.status === 'active'}>Active</option>
+      <option value="archived" selected={filters.status === 'archived'}>Archived</option>
+      <option value="all" selected={filters.status === 'all'}>Active and archived</option>
+    </select>
+    <button class="button small" type="submit">Apply</button>
+    {filtered && <a href="/admin/businesses">Clear</a>}
+  </form>
+
+  {businesses.length === 0 ? <div class="card"><p class="muted" style="margin:0">{filtered ? 'No businesses match those filters.' : 'No businesses yet.'}</p></div> :
+  <div class="table-wrap"><table>
+    <thead><tr><th>Business</th><th>Type</th><th>Members</th><th>Owner</th><th>Added</th></tr></thead>
+    <tbody>
+      {businesses.map((b) => <tr>
+        <td><a class="name" href={`/admin/businesses/${b.id}`}>{b.name}</a>{b.status === 'archived' && <span class="pill archived">Archived</span>}<div class="meta">{[b.website?.replace(/^https?:\/\//, ''), b.email].filter(Boolean).join(' · ')}</div></td>
+        <td><span class={`pill kind-${b.kind}`}>{KIND_LABELS[b.kind]}</span></td>
+        <td><a href={`/admin/users?business=${b.id}`}>{b.member_count}</a></td>
+        <td class="meta">{b.owners ?? '—'}</td>
+        <td class="meta">{fmtDate(b.created_at)}</td>
+      </tr>)}
+    </tbody>
+  </table></div>}
+</AdminLayout>
+
+<style>
+  .filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.25rem 0 1rem; }
+  .filters input, .filters select { padding: .6rem .75rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .filters input { flex: 1; min-width: 220px; }
+  .table-wrap { overflow-x: auto; border-top: 3px solid #173d4a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: #687a7d; padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; }
+  td { padding: .85rem .6rem; border-bottom: 1px solid #c9d1cd; vertical-align: top; }
+  td .meta { margin-top: .2rem; overflow-wrap: anywhere; }
+  .name { font-weight: 700; color: #173d4a; text-decoration: none; }
+  .name:hover { color: #ad5835; text-decoration: underline; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+  .pill.archived { background: #ecf0ec; color: #62767a; margin-left: .5rem; }
+  .pill.kind-internal { background: #173d4a; color: #fff; }
+  .pill.kind-advertiser { background: #fbeee2; color: #853d26; }
+  .pill.kind-other { background: #e2ecef; color: #173d4a; }
+  @media (max-width: 700px) { th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5) { display: none; } }
+</style>

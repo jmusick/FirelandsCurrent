@@ -1,0 +1,60 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import AdCreative from '../../../../components/AdCreative.astro';
+import AdStats from '../../../../components/AdStats.astro';
+import { PLACEMENTS, isPlacement } from '../../../../lib/ads';
+import { STATE_LABELS, describeRun, fmtNum, getAd, getStats, rangeFrom, type RangeDays } from '../../../../lib/ads-admin';
+import { requireBusiness } from '../../../../lib/business-portal';
+import { SECTIONS, isSection } from '../../../../lib/news';
+
+const access = await requireBusiness(Astro, Astro.params.id ?? '');
+if (access instanceof Response) return access;
+const { business, viewer } = access;
+
+const found = await getAd(Astro.params.adId ?? '');
+// Drafts are staff work in progress; clients see an ad once it has been activated.
+if (!found || found.record.business_id !== business.id || (found.record.status === 'draft' && viewer !== 'staff')) return new Response('Not found', { status: 404 });
+const { record, ad } = found;
+
+const range = rangeFrom(Astro.url.searchParams);
+const stats = await getStats({ adId: record.id }, range);
+const rangeHref = (days: RangeDays) => `/business/${business.id}/ads/${record.id}?range=${days}`;
+const list = (json: string) => { try { return JSON.parse(json) as string[]; } catch { return []; } };
+const placements = list(record.placements).filter(isPlacement).map((p) => PLACEMENTS[p].label);
+const sections = list(record.sections).filter(isSection).map((s) => SECTIONS[s]);
+---
+<BaseLayout title={`${record.name} · ${business.name}`}>
+  {viewer === 'staff' && <p class="message" role="status" style="margin-top:0">Staff view of the client dashboard. <a href={`/admin/ads/${record.id}`}>Back to this ad in admin</a></p>}
+  <a href={`/business/${business.id}`}>← {business.name} dashboard</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Ad · {STATE_LABELS[record.state]}</span>
+  <h1>{record.name}</h1>
+
+  <div class="overview">
+    <div class="card">
+      <dl>
+        <dt>Runs</dt><dd>{describeRun(record.starts_on, record.ends_on)}</dd>
+        {record.impression_cap && <><dt>Impressions booked</dt><dd>{fmtNum(record.impressions)} of {fmtNum(record.impression_cap)} delivered</dd></>}
+        <dt>Where it shows</dt><dd>{placements.length ? placements.join(', ') : 'Anywhere on the site its sizes fit'}</dd>
+        <dt>Aimed at</dt><dd>{sections.length ? sections.join(', ') : 'All readers'}</dd>
+        <dt>Links to</dt><dd><a href={record.href} rel="noopener" target="_blank">{record.href.replace(/^https?:\/\//, '')}</a></dd>
+        <dt>All time</dt><dd>{fmtNum(record.impressions)} impressions · {fmtNum(record.clicks)} clicks</dd>
+      </dl>
+    </div>
+    <div class="preview">
+      <span class="meta">How it looks</span>
+      <div style="width:300px;max-width:100%"><AdCreative ad={ad} format="rectangle" href={record.href} viewport="desktop" /></div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:2.5rem">Performance</h2>
+  <AdStats stats={stats} rangeHref={rangeHref} />
+</BaseLayout>
+
+<style>
+  .overview { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1.5rem; align-items: start; }
+  .preview { display: grid; gap: .4rem; }
+  dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .6rem 1.2rem; margin: 0; }
+  dt { font-weight: 700; color: #173d4a; font-size: .9rem; }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  @media (max-width: 800px) { .overview { grid-template-columns: minmax(0, 1fr); } dl { grid-template-columns: minmax(0, 1fr); gap: .2rem; } dd { margin-bottom: .6rem; } }
+</style>

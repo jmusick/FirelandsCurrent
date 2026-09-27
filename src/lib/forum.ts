@@ -60,11 +60,6 @@ export async function listReplies(threadId: string, page = 0): Promise<Reply[]> 
   return result.results;
 }
 
-export async function isModerator(userId: string): Promise<boolean> {
-  const row = await env.DB.prepare('SELECT user_id FROM forum_moderators WHERE user_id = ?').bind(userId).first();
-  return row !== null;
-}
-
 export function sameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
   return origin !== null && origin === new URL(request.url).origin;
