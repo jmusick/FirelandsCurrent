@@ -1,4 +1,5 @@
 ---
+import { ArrowLeft, Dices, UserPlus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { ROLE_LABELS } from '../../../lib/staff';
@@ -16,7 +17,7 @@ const ERRORS: Record<string, string> = {
 const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
 ---
 <AdminLayout title="Add user">
-  <a href="/admin/users">← All users</a>
+  <a class="back" href="/admin/users"><ArrowLeft />All users</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Users</span>
   <h1>Add user</h1>
   <p class="muted" style="max-width:600px">Creates an email and password account, for example for a new staff member. Give them the password privately; they can change it from their account page.</p>
@@ -25,12 +26,12 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
     <label>Display name <input name="name" required maxlength="80" /></label>
     <label>Email <input name="email" type="email" required maxlength="254" /></label>
     <label>Temporary password
-      <span class="pw"><input id="password" name="password" type="text" required minlength={MIN_PASSWORD} maxlength="128" autocomplete="off" spellcheck="false" /><button id="generate" class="button secondary small" type="button">Generate</button></span>
+      <span class="pw"><input id="password" name="password" type="text" required minlength={MIN_PASSWORD} maxlength="128" autocomplete="off" spellcheck="false" /><button id="generate" class="button secondary small" type="button"><Dices />Generate</button></span>
     </label>
     <label>Staff role
       <select name="role"><option value="">None (member)</option>{Object.entries(ROLE_LABELS).map(([key, label]) => <option value={key}>{label}</option>)}</select>
     </label>
-    <div><button class="button" name="action" value="create" type="submit">Create account</button></div>
+    <div><button class="button" name="action" value="create" type="submit"><UserPlus />Create account</button></div>
   </form>
 </AdminLayout>
 

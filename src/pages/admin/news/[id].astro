@@ -1,4 +1,5 @@
 ---
+import { ArrowLeft } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import NewsEditor from '../../../components/NewsEditor.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
@@ -24,7 +25,7 @@ const liveUrl = article.status === 'published' ? `/news/${article.slug}` : null;
 ---
 <AdminLayout title={`Edit: ${article.headline}`}>
   <link slot="head" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.css" />
-  <a href="/admin/news">← All stories</a>
+  <a class="back" href="/admin/news"><ArrowLeft />All stories</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">News · {article.status === 'published' ? 'Published' : 'Draft'}</span>
   <h1>Edit story</h1>
   <p class="meta">Last saved {new Date(article.updated_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}{liveUrl && <> · <a href={liveUrl}>View on site</a></>}</p>

@@ -1,6 +1,17 @@
 ---
-import { sectionsFor } from '../lib/admin';
+import { BuildingComplex, ExternalLink, LayoutDashboard, Megaphone, MessagesSquare, Newspaper, Users } from '@lucide/astro';
+import { ADMIN, sectionsFor, type AdminSectionKey } from '../lib/admin';
 import { ROLE_LABELS } from '../lib/staff';
+
+// One icon per admin section; a section added to ADMIN won't type-check until it has one here.
+const SECTION_ICONS = {
+  dashboard: LayoutDashboard,
+  news: Newspaper,
+  talk: MessagesSquare,
+  users: Users,
+  businesses: BuildingComplex,
+  ads: Megaphone,
+} satisfies Record<AdminSectionKey, unknown>;
 
 interface Props {
   title: string;
@@ -35,11 +46,16 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
       h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -.045em; margin: .2rem 0 1rem; }
       h2 { font-size: 1.35rem; letter-spacing: -.03em; }
       .eyebrow { color: #ad5835; font-weight: 700; font-size: .76rem; letter-spacing: .15em; text-transform: uppercase; }
-      .button { display: inline-block; background: #173d4a; color: white; border: 1px solid #173d4a; border-radius: 3px; padding: .7rem 1rem; text-decoration: none; font-weight: 700; }
+      .lucide { flex-shrink: 0; }
+      .button { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; background: #173d4a; color: white; border: 1px solid #173d4a; border-radius: 3px; padding: .7rem 1rem; text-decoration: none; font-weight: 700; }
       .button:hover { background: #245668; }
       .button.secondary { background: transparent; color: #173d4a; }
       .button.secondary:hover { background: #e9eeea; }
-      .button.small { padding: .45rem .7rem; font-size: .85rem; }
+      .button.small { padding: .45rem .7rem; font-size: .85rem; gap: .35rem; }
+      .button .lucide { width: 1.1em; height: 1.1em; }
+      .back { display: inline-flex; align-items: center; gap: .3rem; }
+      .back .lucide { width: 1em; height: 1em; }
+      h2 .lucide { width: .85em; height: .85em; margin-right: .45rem; color: #ad5835; vertical-align: -.05em; }
       .card { background: #fffdfa; border: 1px solid #d9dfda; border-radius: 4px; padding: 1.3rem; }
       .muted { color: #62767a; }
       .meta { color: #687a7d; font-size: .84rem; }
@@ -54,12 +70,15 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
       .admin-brand { display: inline-flex; align-items: center; gap: .6rem; color: #fff; text-decoration: none; font: 700 1.1rem 'Libre Baskerville', Georgia, serif; letter-spacing: -.04em; }
       .admin-brand img { width: 1.8rem; height: auto; }
       .admin-brand small { font: 700 .7rem 'DM Sans', sans-serif; letter-spacing: .15em; text-transform: uppercase; color: #e7a98d; }
-      .admin-top a.plain { color: #edf2ed; font-size: .85rem; }
+      .admin-top a.plain { display: inline-flex; align-items: center; gap: .35rem; color: #edf2ed; font-size: .85rem; white-space: nowrap; }
+      .admin-top a.plain .lucide { width: .95rem; height: .95rem; }
       .admin-top .who { margin-left: auto; display: flex; gap: 1rem; align-items: center; font-size: .85rem; }
       .admin-shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 52px); }
       .admin-side { background: #ecf0ec; border-right: 1px solid #c9d1cd; padding: 1.25rem .75rem; }
-      .admin-side a { display: block; padding: .55rem .75rem; border-radius: 3px; color: #173d4a; text-decoration: none; font-weight: 600; font-size: .92rem; }
+      .admin-side a { display: flex; align-items: center; gap: .65rem; padding: .55rem .75rem; border-radius: 3px; color: #173d4a; text-decoration: none; font-weight: 600; font-size: .92rem; }
+      .admin-side a .lucide { width: 1.1rem; height: 1.1rem; color: #4d6a70; }
       .admin-side a:hover { background: #dfe6e1; }
+      .admin-side a[aria-current='page'] .lucide { color: #e7a98d; }
       .admin-side a[aria-current='page'] { background: #173d4a; color: #fff; }
       .admin-main { padding: 1.75rem clamp(1rem, 3vw, 2.5rem) 4rem; min-width: 0; }
       @media (max-width: 800px) {
@@ -73,11 +92,15 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
   <body>
     <header class="admin-top"><div class="admin-top-inner">
       <a class="admin-brand" href="/admin"><img src="/logo-mark.svg" alt="" width="29" height="29" /><span>Firelands Current <small>Admin</small></span></a>
-      <div class="who"><a class="plain" href="/">View site</a><span class="role">{user.name} · {ROLE_LABELS[role]}</span></div>
+      <div class="who"><a class="plain" href="/"><ExternalLink />View site</a><span class="role">{user.name} · {ROLE_LABELS[role]}</span></div>
     </div></header>
     <div class="admin-shell">
       <nav class="admin-side" aria-label="Admin sections">
-        {sectionsFor(role).map((s) => <a href={s.href} aria-current={isActive(s.href) ? 'page' : undefined}>{s.label}</a>)}
+        {sectionsFor(role).map((key) => {
+          const Icon = SECTION_ICONS[key];
+          const { href, label } = ADMIN[key];
+          return <a href={href} aria-current={isActive(href) ? 'page' : undefined}><Icon />{label}</a>;
+        })}
       </nav>
       <main class="admin-main"><slot /></main>
     </div>

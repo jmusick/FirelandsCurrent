@@ -1,4 +1,5 @@
 ---
+import { ArrowLeft } from '@lucide/astro';
 import { env } from 'cloudflare:workers';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import BusinessForm from '../../../components/BusinessForm.astro';
@@ -30,7 +31,7 @@ if (Astro.request.method === 'POST') {
 }
 ---
 <AdminLayout title="New business">
-  <a href="/admin/businesses">← All businesses</a>
+  <a class="back" href="/admin/businesses"><ArrowLeft />All businesses</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Businesses</span>
   <h1>New business</h1>
   <div class="card" style="max-width:720px"><BusinessForm values={values} errors={errors} submitLabel="Create business" /></div>

@@ -2,6 +2,18 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.1.0] - 2026-09-27
+
+### Added
+
+- Lucide icons throughout the admin panel (`@lucide/astro`, server-rendered inline SVG): sidebar sections, action buttons, card headings, dashboard and ad stat tiles, back links, and pagination
+- Every admin section requires a sidebar icon, enforced by the type checker
+
+### Changed
+
+- Admin buttons align an icon and label side by side
+- The "View site" link in the admin header stays on one line on phones
+
 ## [1.0.0] - 2026-09-27
 
 First versioned release.
@@ -18,4 +30,5 @@ First versioned release.
 - D1 migrations 0001–0007 and local demo seed scripts
 - Canonical-domain redirect from `www.firelandscurrent.com`
 
+[1.1.0]: https://github.com/jmusick/FirelandsCurrent/releases/tag/v1.1.0
 [1.0.0]: https://github.com/jmusick/FirelandsCurrent/releases/tag/v1.0.0

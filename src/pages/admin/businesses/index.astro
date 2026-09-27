@@ -1,4 +1,5 @@
 ---
+import { Plus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { KIND_LABELS, businessFiltersFrom, listBusinesses } from '../../../lib/businesses';
@@ -15,7 +16,7 @@ const filtered = Boolean(filters.q || filters.kind || filters.status !== 'active
 <AdminLayout title="Businesses">
   <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
     <div><span class="eyebrow">Businesses</span><h1>Businesses</h1></div>
-    <a class="button" href="/admin/businesses/new">New business</a>
+    <a class="button" href="/admin/businesses/new"><Plus />New business</a>
   </div>
   <p class="muted" style="max-width:680px;margin-top:0">Group accounts under the business they work for: the Firelands Current team, advertising clients, and others. One person can belong to several businesses.</p>
   {deleted && <p class="message" role="status">Deleted {deleted}.</p>}

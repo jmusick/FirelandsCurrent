@@ -1,4 +1,5 @@
 ---
+import { Plus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { SECTIONS, listAdminArticles } from '../../../lib/news';
@@ -12,7 +13,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle
 <AdminLayout title="News">
   <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
     <div><span class="eyebrow">News</span><h1>Stories</h1></div>
-    <a class="button" href="/admin/news/new">New story</a>
+    <a class="button" href="/admin/news/new"><Plus />New story</a>
   </div>
   {Astro.url.searchParams.has('deleted') && <p class="message" role="status">Story deleted.</p>}
 

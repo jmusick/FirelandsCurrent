@@ -1,4 +1,5 @@
 ---
+import { Archive, ArchiveRestore, ArrowLeft, Check, Info, Megaphone, Plus, RotateCcwClock, Trash, UserMinus, UserPlus, Users } from '@lucide/astro';
 import { env } from 'cloudflare:workers';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import BusinessForm from '../../../components/BusinessForm.astro';
@@ -58,7 +59,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
 const archived = business.status === 'archived';
 ---
 <AdminLayout title={business.name}>
-  <a href="/admin/businesses">← All businesses</a>
+  <a class="back" href="/admin/businesses"><ArrowLeft />All businesses</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Business · {KIND_LABELS[business.kind]}{archived && ' · Archived'}</span>
   <h1>{business.name}</h1>
   <p class="meta" style="margin-top:-.4rem">Added {fmtDate(business.created_at)} · Last updated {fmtDateTime(business.updated_at)}{business.website && <> · <a href={business.website} rel="noopener noreferrer" target="_blank">{business.website.replace(/^https?:\/\//, '')}</a></>}</p>
@@ -68,7 +69,7 @@ const archived = business.status === 'archived';
   <div class="grid">
     <div class="col">
       <section class="card">
-        <h2>Members <span class="meta">({members.length})</span></h2>
+        <h2><Users />Members <span class="meta">({members.length})</span></h2>
         {members.length === 0 ? <p class="muted">No one yet.</p> : <ul class="members">
           {members.map((m) => <li>
             <div class="who">
@@ -84,8 +85,8 @@ const archived = business.status === 'archived';
                 <input type="hidden" name="userId" value={m.user_id} />
                 <select name="role" aria-label="Role">{Object.entries(MEMBER_ROLE_LABELS).map(([key, label]) => <option value={key} selected={m.role === key}>{label}</option>)}</select>
                 <input name="title" value={m.title ?? ''} maxlength="80" placeholder="Job title" aria-label="Job title" />
-                <button class="button small" name="action" value="update-member" type="submit">Save</button>
-                <button class="button secondary small" name="action" value="remove-member" type="submit">Remove</button>
+                <button class="button small" name="action" value="update-member" type="submit"><Check />Save</button>
+                <button class="button secondary small" name="action" value="remove-member" type="submit"><UserMinus />Remove</button>
               </form>
             </details>
           </li>)}
@@ -99,24 +100,24 @@ const archived = business.status === 'archived';
             <label>Role <select name="role">{Object.entries(MEMBER_ROLE_LABELS).map(([key, label]) => <option value={key} selected={key === 'member'}>{label}</option>)}</select></label>
             <label>Title <input name="title" maxlength="80" placeholder="Optional" /></label>
           </div>
-          <div><button class="button small" name="action" value="add-member" type="submit">Add member</button> <a class="meta" href="/admin/users/new">Need a new account?</a></div>
+          <div><button class="button small" name="action" value="add-member" type="submit"><UserPlus />Add member</button> <a class="meta" href="/admin/users/new">Need a new account?</a></div>
         </form>}
       </section>
 
       <section class="card">
-        <h2>Ads <span class="meta">({ads.length})</span></h2>
+        <h2><Megaphone />Ads <span class="meta">({ads.length})</span></h2>
         {ads.length === 0 ? <p class="muted">No ads yet.</p> : <ul class="members">
           {ads.slice(0, 8).map((a) => <li><div class="who"><a class="name" href={`/admin/ads/${a.id}`}>{a.name}</a><div class="meta">{STATE_LABELS[a.state]} · {a.impressions.toLocaleString('en-US')} impressions · {a.clicks.toLocaleString('en-US')} clicks</div></div></li>)}
         </ul>}
         <div style="display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin-top:1rem">
-          {!archived && <a class="button small" href={`/admin/ads/new?business=${business.id}`}>New ad</a>}
+          {!archived && <a class="button small" href={`/admin/ads/new?business=${business.id}`}><Plus />New ad</a>}
           {ads.length > 0 && <a href={`/admin/ads?business=${business.id}`}>All ads for {business.name}</a>}
           <a href={`/business/${business.id}`}>Client dashboard</a>
         </div>
       </section>
 
       <section class="card">
-        <h2>Admin activity</h2>
+        <h2><RotateCcwClock />Admin activity</h2>
         {audit.length === 0 ? <p class="muted" style="margin:0">No changes yet.</p> : <ul class="log">
           {audit.map((a) => <li><strong>{AUDIT_LABELS[a.action] ?? a.action}</strong>{a.target_user_id && <span> · {a.target_label}</span>}{a.detail && <span> — {a.detail}</span>}<div class="meta">{a.actor_name} · {fmtDateTime(a.created_at)}</div></li>)}
         </ul>}
@@ -125,17 +126,17 @@ const archived = business.status === 'archived';
 
     <div class="col">
       <section class="card">
-        <h2>Details</h2>
+        <h2><Info />Details</h2>
         <BusinessForm values={values} errors={errors} submitLabel="Save details" />
       </section>
 
       <section class="card danger">
-        <h2>{archived ? 'Archived' : 'Archive or delete'}</h2>
+        <h2><Archive />{archived ? 'Archived' : 'Archive or delete'}</h2>
         <form method="post" action="/api/admin/businesses">
           <input type="hidden" name="businessId" value={business.id} />
           {archived
-            ? <button class="button small" name="action" value="restore" type="submit">Restore business</button>
-            : <button class="button secondary small" name="action" value="archive" type="submit">Archive business</button>}
+            ? <button class="button small" name="action" value="restore" type="submit"><ArchiveRestore />Restore business</button>
+            : <button class="button secondary small" name="action" value="archive" type="submit"><Archive />Archive business</button>}
           <p class="meta">Archiving hides a business from pickers but keeps its members and history. Use it for former clients.</p>
         </form>
         <details>
@@ -144,7 +145,7 @@ const archived = business.status === 'archived';
             <input type="hidden" name="businessId" value={business.id} />
             <p class="meta" style="margin:0">Permanently deletes the business and its member list. The people’s accounts aren’t affected.</p>
             <label>Type <code>{business.name}</code> to confirm <input name="confirm" required autocomplete="off" spellcheck="false" /></label>
-            <div><button class="button small warn" name="action" value="delete" type="submit">Delete permanently</button></div>
+            <div><button class="button small warn" name="action" value="delete" type="submit"><Trash />Delete permanently</button></div>
           </form>
         </details>
       </section>

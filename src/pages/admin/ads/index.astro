@@ -1,4 +1,5 @@
 ---
+import { CirclePlay, ExternalLink, Eye, MousePointerClick, Percent, Plus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { PLACEMENTS, isPlacement } from '../../../lib/ads';
@@ -24,15 +25,15 @@ const newHref = filters.business ? `/admin/ads/new?business=${filters.business}`
 <AdminLayout title="Ads">
   <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
     <div><span class="eyebrow">Advertising</span><h1>Ads</h1></div>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="button secondary" href="/advertise" target="_blank">Advertise page</a><a class="button" href={newHref}>New ad</a></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="button secondary" href="/advertise" target="_blank"><ExternalLink />Advertise page</a><a class="button" href={newHref}><Plus />New ad</a></div>
   </div>
   {deleted && <p class="message" role="status">Deleted “{deleted}” and its stats.</p>}
 
   <div class="tiles">
-    <div class="card tile"><span class="meta">Running now</span><strong>{running}</strong></div>
-    <div class="card tile"><span class="meta">Impressions, 30 days</span><strong>{fmtNum(month.totals.impressions)}</strong></div>
-    <div class="card tile"><span class="meta">Clicks, 30 days</span><strong>{fmtNum(month.totals.clicks)}</strong></div>
-    <div class="card tile"><span class="meta">Click-through, 30 days</span><strong>{ctr(month.totals.clicks, month.totals.impressions)}</strong></div>
+    <div class="card tile"><span class="meta"><CirclePlay />Running now</span><strong>{running}</strong></div>
+    <div class="card tile"><span class="meta"><Eye />Impressions, 30 days</span><strong>{fmtNum(month.totals.impressions)}</strong></div>
+    <div class="card tile"><span class="meta"><MousePointerClick />Clicks, 30 days</span><strong>{fmtNum(month.totals.clicks)}</strong></div>
+    <div class="card tile"><span class="meta"><Percent />Click-through, 30 days</span><strong>{ctr(month.totals.clicks, month.totals.impressions)}</strong></div>
   </div>
 
   <form class="filters" method="get" action="/admin/ads">
@@ -70,6 +71,8 @@ const newHref = filters.business ? `/admin/ads/new?business=${filters.business}`
 <style>
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin: 1rem 0 .5rem; }
   .tile { display: grid; gap: .4rem; }
+  .tile .meta { display: flex; align-items: center; gap: .4rem; }
+  .tile .meta .lucide { width: 1rem; height: 1rem; color: #ad5835; }
   .tile strong { font: 700 1.8rem 'Libre Baskerville', Georgia, serif; color: #173d4a; }
   .filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.25rem 0 1rem; }
   .filters input, .filters select { padding: .6rem .75rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }

@@ -11,7 +11,9 @@ const ALL_STAFF: StaffRole[] = ['admin', 'editor', 'moderator'];
 
 // The admin panel's sections. Each new content area (classifieds, jobs, …) adds one entry here
 // and uses the same roles when gating its pages and endpoints.
-export const ADMIN: Record<'dashboard' | 'news' | 'talk' | 'users' | 'businesses' | 'ads', AdminSection> = {
+export type AdminSectionKey = 'dashboard' | 'news' | 'talk' | 'users' | 'businesses' | 'ads';
+
+export const ADMIN: Record<AdminSectionKey, AdminSection> = {
   dashboard: { href: '/admin', label: 'Dashboard', roles: ALL_STAFF },
   news: { href: '/admin/news', label: 'News', roles: ['admin', 'editor'] },
   talk: { href: '/admin/talk', label: 'Talk of the Town', roles: ['admin', 'moderator'] },
@@ -20,8 +22,8 @@ export const ADMIN: Record<'dashboard' | 'news' | 'talk' | 'users' | 'businesses
   ads: { href: '/admin/ads', label: 'Ads', roles: ['admin'] },
 };
 
-export function sectionsFor(role: StaffRole): AdminSection[] {
-  return Object.values(ADMIN).filter((s) => s.roles.includes(role));
+export function sectionsFor(role: StaffRole): AdminSectionKey[] {
+  return (Object.keys(ADMIN) as AdminSectionKey[]).filter((key) => ADMIN[key].roles.includes(role));
 }
 
 export function canAccess(role: StaffRole | null, section: AdminSection): boolean {

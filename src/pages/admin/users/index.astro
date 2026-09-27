@@ -1,4 +1,5 @@
 ---
+import { ChevronLeft, ChevronRight, RotateCcwClock, UserPlus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { businessOptions } from '../../../lib/businesses';
@@ -26,7 +27,7 @@ const filtered = Boolean(filters.q || filters.role || filters.status || filters.
 <AdminLayout title="Users">
   <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
     <div><span class="eyebrow">Users</span><h1>Accounts</h1></div>
-    <div style="display:flex;gap:.6rem;flex-wrap:wrap"><a class="button secondary" href="/admin/users/log">Activity log</a><a class="button" href="/admin/users/new">Add user</a></div>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap"><a class="button secondary" href="/admin/users/log"><RotateCcwClock />Activity log</a><a class="button" href="/admin/users/new"><UserPlus />Add user</a></div>
   </div>
   {deleted && <p class="message" role="status">Deleted the account for {deleted}.</p>}
 
@@ -82,9 +83,9 @@ const filtered = Boolean(filters.q || filters.role || filters.status || filters.
   </table></div>}
 
   {(filters.page > 0 || hasNext) && <nav class="pager" aria-label="Pages">
-    {filters.page > 0 ? <a class="button secondary small" href={pageUrl(filters.page - 1)}>← Previous</a> : <span></span>}
+    {filters.page > 0 ? <a class="button secondary small" href={pageUrl(filters.page - 1)}><ChevronLeft />Previous</a> : <span></span>}
     <span class="meta">Page {filters.page + 1}</span>
-    {hasNext ? <a class="button secondary small" href={pageUrl(filters.page + 1)}>Next →</a> : <span></span>}
+    {hasNext ? <a class="button secondary small" href={pageUrl(filters.page + 1)}>Next<ChevronRight /></a> : <span></span>}
   </nav>}
 </AdminLayout>
 

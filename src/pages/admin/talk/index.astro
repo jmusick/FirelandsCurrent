@@ -1,4 +1,5 @@
 ---
+import { Eye, EyeOff, Flag, MessagesSquare, X } from '@lucide/astro';
 import { env } from 'cloudflare:workers';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
@@ -42,16 +43,16 @@ const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'm
   <span class="eyebrow">Talk of the Town</span>
   <h1>Moderation</h1>
 
-  <h2>Open reports <span class="meta">({openReports.length})</span></h2>
+  <h2><Flag />Open reports <span class="meta">({openReports.length})</span></h2>
   {openReports.length === 0 ? <div class="card"><p class="muted" style="margin:0">No open reports. Nothing to review right now.</p></div> : openReports.map((report) => <article class="card" style="margin-bottom:1rem">
     <p class="meta" style="margin-top:0">Reported by {report.reporter_name} · {fmt(report.created_at)}</p>
     <h3 style="font-size:1.05rem">{report.thread_id ? 'Discussion' : 'Reply'}: {report.item_text?.slice(0, 160) ?? '[removed]'}</h3>
     <p><strong>Reason:</strong> {report.reason}</p>
     <p class="meta">Content is currently {report.item_status ?? 'removed'}{report.discussion_id && <> · <a href={`/talk/${report.discussion_id}`}>View discussion</a></>}</p>
-    <form method="post" action="/api/admin/talk" style="display:flex;gap:.6rem;flex-wrap:wrap"><input type="hidden" name="reportId" value={report.id} /><button class="button small" name="action" value="hide-reported" type="submit">Hide content</button><button class="button secondary small" name="action" value="dismiss" type="submit">Dismiss report</button></form>
+    <form method="post" action="/api/admin/talk" style="display:flex;gap:.6rem;flex-wrap:wrap"><input type="hidden" name="reportId" value={report.id} /><button class="button small" name="action" value="hide-reported" type="submit"><EyeOff />Hide content</button><button class="button secondary small" name="action" value="dismiss" type="submit"><X />Dismiss report</button></form>
   </article>)}
 
-  <h2 style="margin-top:2.5rem">Discussions</h2>
+  <h2 style="margin-top:2.5rem"><MessagesSquare />Discussions</h2>
   <div class="table-wrap"><table>
     <thead><tr><th>Discussion</th><th>Replies</th><th>Status</th><th></th></tr></thead>
     <tbody>
@@ -59,7 +60,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'm
         <td>{t.status === 'published' ? <a class="title" href={`/talk/${t.id}`}>{t.title}</a> : <span class="title">{t.title}</span>}<div class="meta">{t.author_name} · {fmt(t.created_at)}</div></td>
         <td>{t.reply_count}</td>
         <td><span class={`pill ${t.status}`}>{t.status === 'published' ? 'Visible' : 'Hidden'}</span></td>
-        <td style="text-align:right"><form method="post" action="/api/admin/talk"><input type="hidden" name="threadId" value={t.id} /><button class="button secondary small" name="action" value={t.status === 'published' ? 'hide-thread' : 'restore-thread'} type="submit">{t.status === 'published' ? 'Hide' : 'Restore'}</button></form></td>
+        <td style="text-align:right"><form method="post" action="/api/admin/talk"><input type="hidden" name="threadId" value={t.id} /><button class="button secondary small" name="action" value={t.status === 'published' ? 'hide-thread' : 'restore-thread'} type="submit">{t.status === 'published' ? <><EyeOff />Hide</> : <><Eye />Restore</>}</button></form></td>
       </tr>)}
     </tbody>
   </table></div>

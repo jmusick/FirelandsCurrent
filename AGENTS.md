@@ -44,11 +44,12 @@ scripts/             Demo seed SQL; auth-schema.ts only generated the initial au
 - **Data access** goes through `src/lib/*` modules that import `env` from `cloudflare:workers` and use `env.DB.prepare(...).bind(...)` with bound parameters. Never interpolate user input into SQL.
 - **Timestamps** are stored as Unix milliseconds (`Date.now()`, or `unixepoch() * 1000` in SQL).
 - **Auth state** comes from `Astro.locals` / `locals` (`user`, `session`, `staffRole`), set by `src/middleware.ts`. Suspended users are treated as signed out.
-- **Admin sections** are declared in `ADMIN` in `src/lib/admin.ts`. Admin pages call `requireSection(Astro, ADMIN.x)`; admin endpoints check `canAccess(locals.staffRole, ADMIN.x)`. A new content area adds an entry there and reuses those roles.
+- **Admin sections** are declared in `ADMIN` in `src/lib/admin.ts`. Admin pages call `requireSection(Astro, ADMIN.x)`; admin endpoints check `canAccess(locals.staffRole, ADMIN.x)`. A new content area adds an entry there, reuses those roles, and gets a sidebar icon in `SECTION_ICONS` in `AdminLayout.astro`.
 - **API endpoints** are `APIRoute` handlers that accept form posts: check the user and role, reject cross-origin requests with `sameOrigin(request)` from `src/lib/forum.ts`, read fields through `cleanText`, validate ids with a regex, and answer with a `303` redirect back to the page. Return plain-text error responses with the right status (400, 403, 404).
 - **Admin changes to users, businesses, and ads** are recorded in `admin_audit_log`; keep new admin actions audited the same way.
 - **Ads** never appear on forms, account pages, dashboards, or the admin panel. Placements are defined in `PLACEMENTS` in `src/lib/ads.ts`.
 - **Styling** is plain CSS in the layouts and pages; there is no CSS framework.
+- **Icons** in the admin panel come from Lucide via `@lucide/astro` (`import { Plus } from '@lucide/astro'`), rendered as inline SVG on the server. Use current icon names, not the deprecated aliases (`Trash`, not `Trash2`). Icons sit before a button's or heading's text and are decorative; the text carries the meaning.
 - Match the surrounding code: comment density, naming, and idiom. Comments explain why, not what.
 - Keep `README.md` current when behavior an operator or editor would notice changes.
 

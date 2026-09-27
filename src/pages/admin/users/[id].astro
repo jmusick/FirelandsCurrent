@@ -1,4 +1,5 @@
 ---
+import { ArrowLeft, Ban, BuildingComplex, Check, EyeOff, KeyRound, LogOut, MessagesSquare, MonitorSmartphone, Plus, RotateCcwClock, Shield, ShieldCheck, Trash, TriangleAlert, UserMinus, UserRound } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { KIND_LABELS, MEMBER_ROLE_LABELS, businessOptions, membershipsFor } from '../../../lib/businesses';
@@ -55,7 +56,7 @@ const notice = NOTICES[Astro.url.searchParams.get('notice') ?? ''];
 const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
 ---
 <AdminLayout title={user.name}>
-  <a href="/admin/users">← All users</a>
+  <a class="back" href="/admin/users"><ArrowLeft />All users</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">User{self && ' · You'}</span>
   <h1>{user.name}</h1>
   <p class="headline-meta">
@@ -72,25 +73,25 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
       <p style="margin:.35rem 0 0">{suspension.reason}</p>
       <p class="meta" style="margin:.35rem 0 0">By {suspension.suspended_by_name ?? 'a former staff member'} on {fmtDateTime(suspension.created_at)}</p>
     </div>
-    <form method="post" action="/api/admin/users"><input type="hidden" name="userId" value={user.id} /><button class="button small" name="action" value="unsuspend" type="submit">Lift suspension</button></form>
+    <form method="post" action="/api/admin/users"><input type="hidden" name="userId" value={user.id} /><button class="button small" name="action" value="unsuspend" type="submit"><ShieldCheck />Lift suspension</button></form>
   </div>}
 
   <div class="grid">
     <div class="col">
       <section class="card">
-        <h2>Profile</h2>
+        <h2><UserRound />Profile</h2>
         <form class="form" method="post" action="/api/admin/users">
           <input type="hidden" name="userId" value={user.id} />
           <label>Display name <input name="name" value={user.name} required maxlength="80" /></label>
           <label>Email <input name="email" type="email" value={user.email} required maxlength="254" /></label>
           <label class="check"><input name="emailVerified" type="checkbox" checked={Boolean(user.emailVerified)} /> Email address verified</label>
-          <div><button class="button small" name="action" value="update-profile" type="submit">Save profile</button></div>
+          <div><button class="button small" name="action" value="update-profile" type="submit"><Check />Save profile</button></div>
         </form>
         <p class="meta" style="margin-bottom:0">Last updated {fmtDateTime(user.updatedAt)}</p>
       </section>
 
       <section class="card">
-        <h2>Staff role</h2>
+        <h2><Shield />Staff role</h2>
         {self ? <p class="muted" style="margin:0">You’re an {ROLE_LABELS[role!]}. Another administrator has to change your role.</p> :
         <form class="form" method="post" action="/api/admin/users">
           <input type="hidden" name="userId" value={user.id} />
@@ -101,12 +102,12 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
             </select>
           </label>
           <p class="meta" style="margin:0">Administrators: every section, including users. Editors: News. Moderators: Talk of the Town.</p>
-          <div><button class="button small" name="action" value="set-role" type="submit">Update role</button></div>
+          <div><button class="button small" name="action" value="set-role" type="submit"><Check />Update role</button></div>
         </form>}
       </section>
 
       <section class="card">
-        <h2>Businesses</h2>
+        <h2><BuildingComplex />Businesses</h2>
         {memberships.length === 0 ? <p class="muted" style="margin-top:0">Not part of any business.</p> : <ul class="memberships">
           {memberships.map((m) => <li>
             <div>
@@ -117,7 +118,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
             </div>
             <form method="post" action="/api/admin/businesses">
               <input type="hidden" name="businessId" value={m.business_id} /><input type="hidden" name="userId" value={user.id} /><input type="hidden" name="return" value="user" />
-              <button class="button secondary small" name="action" value="remove-member" type="submit">Remove</button>
+              <button class="button secondary small" name="action" value="remove-member" type="submit"><UserMinus />Remove</button>
             </form>
           </li>)}
         </ul>}
@@ -130,13 +131,13 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
               <label>Role <select name="role">{Object.entries(MEMBER_ROLE_LABELS).map(([key, label]) => <option value={key} selected={key === 'member'}>{label}</option>)}</select></label>
               <label>Title <input name="title" maxlength="80" placeholder="Optional" /></label>
             </div>
-            <div><button class="button small" name="action" value="add-member" type="submit">Add</button> <a class="meta" href="/admin/businesses/new">New business</a></div>
+            <div><button class="button small" name="action" value="add-member" type="submit"><Plus />Add</button> <a class="meta" href="/admin/businesses/new">New business</a></div>
           </form>
         </details> : <p class="meta" style="margin-bottom:0">{allBusinesses.length ? 'Already in every active business.' : 'No businesses yet.'} <a href="/admin/businesses/new">New business</a></p>}
       </section>
 
       <section class="card">
-        <h2>Talk of the Town</h2>
+        <h2><MessagesSquare />Talk of the Town</h2>
         <p class="counts"><span><strong>{counts.threads}</strong> discussions</span><span><strong>{counts.replies}</strong> replies</span><span><strong>{counts.hidden}</strong> hidden</span><span><strong>{counts.reports_against}</strong> reports about them</span><span><strong>{counts.reports_filed}</strong> reports filed</span></p>
         {posts.length === 0 ? <p class="muted" style="margin:0">No posts yet.</p> : <ul class="posts">
           {posts.map((p) => <li>
@@ -147,7 +148,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
       </section>
 
       <section class="card">
-        <h2>Admin activity</h2>
+        <h2><RotateCcwClock />Admin activity</h2>
         {audit.length === 0 ? <p class="muted" style="margin:0">No admin changes to this account.</p> : <ul class="log">
           {audit.map((a) => <li><strong>{AUDIT_LABELS[a.action] ?? a.action}</strong>{a.detail && <span> — {a.detail}</span>}<div class="meta">{a.actor_name} · {fmtDateTime(a.created_at)}</div></li>)}
         </ul>}
@@ -156,7 +157,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
 
     <div class="col">
       <section class="card">
-        <h2>Sign-in methods</h2>
+        <h2><KeyRound />Sign-in methods</h2>
         {providers.length === 0 ? <p class="muted">None. This account can’t sign in.</p> : <ul class="plain">
           {providers.map((p) => <li>{PROVIDER_LABELS[p.providerId] ?? p.providerId} <span class="meta">· added {fmtDate(p.createdAt)}</span></li>)}
         </ul>}
@@ -166,13 +167,13 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
             <input type="hidden" name="userId" value={user.id} />
             <label>New password <input name="password" type="text" required minlength={MIN_PASSWORD} maxlength="128" autocomplete="off" spellcheck="false" /></label>
             <p class="meta" style="margin:0">Signs them out everywhere. Give them the password privately and ask them to change it.</p>
-            <div><button class="button small" name="action" value="set-password" type="submit">Set password</button></div>
+            <div><button class="button small" name="action" value="set-password" type="submit"><KeyRound />Set password</button></div>
           </form>
         </details>}
       </section>
 
       <section class="card">
-        <h2>Sessions <span class="meta">({sessions.length})</span></h2>
+        <h2><MonitorSmartphone />Sessions <span class="meta">({sessions.length})</span></h2>
         {sessions.length === 0 ? <p class="muted" style="margin:0">Not signed in anywhere.</p> : <>
           <ul class="sessions">
             {sessions.map((s) => <li>
@@ -181,15 +182,15 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
                 <div class="meta">{s.ipAddress ?? 'Unknown IP'} · last used {fmtDateTime(s.updatedAt)}</div>
                 <div class="meta">Signed in {fmtDateTime(s.createdAt)}</div>
               </div>
-              {s.id !== currentSession && <form method="post" action="/api/admin/users"><input type="hidden" name="userId" value={user.id} /><input type="hidden" name="sessionId" value={s.id} /><button class="button secondary small" name="action" value="revoke-session" type="submit">Sign out</button></form>}
+              {s.id !== currentSession && <form method="post" action="/api/admin/users"><input type="hidden" name="userId" value={user.id} /><input type="hidden" name="sessionId" value={s.id} /><button class="button secondary small" name="action" value="revoke-session" type="submit"><LogOut />Sign out</button></form>}
             </li>)}
           </ul>
-          <form method="post" action="/api/admin/users" style="margin-top:.8rem"><input type="hidden" name="userId" value={user.id} /><button class="button secondary small" name="action" value="revoke-sessions" type="submit">{self ? 'Sign out other sessions' : 'Sign out everywhere'}</button></form>
+          <form method="post" action="/api/admin/users" style="margin-top:.8rem"><input type="hidden" name="userId" value={user.id} /><button class="button secondary small" name="action" value="revoke-sessions" type="submit"><LogOut />{self ? 'Sign out other sessions' : 'Sign out everywhere'}</button></form>
         </>}
       </section>
 
       {!suspension && <section class="card">
-        <h2>Suspend</h2>
+        <h2><Ban />Suspend</h2>
         {protectedAccount ? <p class="muted" style="margin:0">{self ? 'You can’t suspend your own account.' : 'Remove this account’s staff role before suspending it.'}</p> :
         <form class="form" method="post" action="/api/admin/users">
           <input type="hidden" name="userId" value={user.id} />
@@ -199,15 +200,15 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
           </label>
           <label class="check"><input name="hideContent" type="checkbox" /> Also hide all of their posts</label>
           <p class="meta" style="margin:0">They’re signed out immediately and can’t sign in until the suspension ends.</p>
-          <div><button class="button small warn" name="action" value="suspend" type="submit">Suspend account</button></div>
+          <div><button class="button small warn" name="action" value="suspend" type="submit"><Ban />Suspend account</button></div>
         </form>}
       </section>}
 
       {!protectedAccount && <section class="card danger">
-        <h2>Danger zone</h2>
+        <h2><TriangleAlert />Danger zone</h2>
         <form method="post" action="/api/admin/users" data-confirm="Hide every discussion and reply this person has posted?">
           <input type="hidden" name="userId" value={user.id} />
-          <button class="button secondary small" name="action" value="hide-content" type="submit" disabled={counts.threads + counts.replies === counts.hidden}>Hide all posts</button>
+          <button class="button secondary small" name="action" value="hide-content" type="submit" disabled={counts.threads + counts.replies === counts.hidden}><EyeOff />Hide all posts</button>
           <p class="meta">For spam. Hidden posts can be restored one at a time from Talk of the Town.</p>
         </form>
         <details>
@@ -216,7 +217,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
             <input type="hidden" name="userId" value={user.id} />
             <p class="meta" style="margin:0">Permanently deletes the account with all of its discussions, replies, reports and sign-in methods. This can’t be undone. The admin activity log keeps a record.</p>
             <label>Type <code>{user.email}</code> to confirm <input name="confirm" required autocomplete="off" spellcheck="false" /></label>
-            <div><button class="button small warn" name="action" value="delete" type="submit">Delete permanently</button></div>
+            <div><button class="button small warn" name="action" value="delete" type="submit"><Trash />Delete permanently</button></div>
           </form>
         </details>
       </section>}

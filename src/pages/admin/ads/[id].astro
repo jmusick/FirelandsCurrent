@@ -1,4 +1,5 @@
 ---
+import { ArrowLeft, ChartLine, Eye, Pause, Pencil, Play, RotateCcwClock, Trash } from '@lucide/astro';
 import { env } from 'cloudflare:workers';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import AdForm from '../../../components/AdForm.astro';
@@ -74,7 +75,7 @@ const STATE_NOTES: Partial<Record<typeof record.state, string>> = {
 };
 ---
 <AdminLayout title={record.name}>
-  <a href="/admin/ads">← All ads</a>
+  <a class="back" href="/admin/ads"><ArrowLeft />All ads</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Ad · <a href={`/admin/businesses/${record.business_id}`}>{record.business_name}</a></span>
   <div class="head">
     <h1>{record.name}</h1>
@@ -88,39 +89,39 @@ const STATE_NOTES: Partial<Record<typeof record.state, string>> = {
     <form method="post" action="/api/admin/ads">
       <input type="hidden" name="adId" value={record.id} />
       {record.status === 'active'
-        ? <button class="button secondary small" name="action" value="pause" type="submit">Pause</button>
-        : <button class="button small" name="action" value="activate" type="submit">{record.status === 'draft' ? 'Activate' : 'Resume'}</button>}
+        ? <button class="button secondary small" name="action" value="pause" type="submit"><Pause />Pause</button>
+        : <button class="button small" name="action" value="activate" type="submit"><Play />{record.status === 'draft' ? 'Activate' : 'Resume'}</button>}
     </form>
-    <a class="button secondary small" href="#edit">Edit</a>
-    <a class="button secondary small" href={`/business/${record.business_id}/ads/${record.id}`}>View as client</a>
+    <a class="button secondary small" href="#edit"><Pencil />Edit</a>
+    <a class="button secondary small" href={`/business/${record.business_id}/ads/${record.id}`}><Eye />View as client</a>
   </div>
 
   <section id="performance" class="block">
-    <h2>Performance</h2>
+    <h2><ChartLine />Performance</h2>
     <AdStats stats={stats} rangeHref={rangeHref} />
   </section>
 
   <section id="edit" class="block">
-    <h2>Edit ad</h2>
+    <h2><Pencil />Edit ad</h2>
     <AdForm values={values} errors={errors} businesses={businesses} images={images} submitLabel="Save ad" />
   </section>
 
   <div class="bottom">
     <section class="card">
-      <h2>Activity</h2>
+      <h2><RotateCcwClock />Activity</h2>
       {log.length === 0 ? <p class="muted" style="margin:0">No changes yet.</p> : <ul class="log">
         {log.map((a) => <li><strong>{AUDIT_LABELS[a.action] ?? a.action}</strong>{a.detail && <span> — {a.detail.replace(/^.*? — /, '')}</span>}<div class="meta">{a.actor_name} · {fmtDateTime(a.created_at)}</div></li>)}
       </ul>}
     </section>
     <section class="card danger">
-      <h2>Delete ad</h2>
+      <h2><Trash />Delete ad</h2>
       <p class="meta">Deleting removes the ad, its images and all of its stats, including from the client’s dashboard. To stop an ad but keep its record, pause it instead.</p>
       <details>
         <summary>Delete permanently</summary>
         <form class="form" method="post" action="/api/admin/ads" style="margin-top:.8rem">
           <input type="hidden" name="adId" value={record.id} />
           <label>Type <code>{record.name}</code> to confirm <input name="confirm" required autocomplete="off" spellcheck="false" /></label>
-          <div><button class="button small warn" name="action" value="delete" type="submit">Delete ad</button></div>
+          <div><button class="button small warn" name="action" value="delete" type="submit"><Trash />Delete ad</button></div>
         </form>
       </details>
     </section>
