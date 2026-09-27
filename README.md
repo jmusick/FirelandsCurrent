@@ -13,6 +13,7 @@ An Astro and Cloudflare Workers foundation for an independent local newspaper ce
 - News: section pages, story pages, and the latest stories on the homepage; story text is Markdown, with lead images and captioned photos from the media library
 - Media library for story and ad images, stored in R2, with credits, usage tracking and social-preview images
 - `/sitemap.xml` listing the main pages, news sections, published stories, and visible discussions, and a `/robots.txt` that points to it and keeps crawlers out of admin, account, business, and API routes
+- Google Analytics (GA4) on every page outside the admin panel, with the measurement ID set as `GA_MEASUREMENT_ID` in `wrangler.jsonc`; the tag loads only in production builds
 - Admin panel at `/admin` (dashboard, News editor, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
 - D1 migrations for auth, forum, news, staff, user-management, and business records
 

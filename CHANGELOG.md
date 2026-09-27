@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.4.0] - 2026-09-27
+
+### Added
+
+- Google Analytics (GA4) on every page outside the admin panel, using the measurement ID in `GA_MEASUREMENT_ID` in `wrangler.jsonc`; the tag loads only in production builds, so local development isn't counted
+
 ## [1.3.0] - 2026-09-27
 
 ### Added

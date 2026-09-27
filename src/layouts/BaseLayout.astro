@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 import AdSlot from '../components/AdSlot.astro';
 import { pageTakesAds } from '../lib/ads';
 
@@ -15,12 +16,24 @@ const pageUrl = new URL(Astro.url.pathname, Astro.url.origin).href;
 const user = Astro.locals.user;
 const staffRole = Astro.locals.staffRole;
 const showAds = pageTakesAds(Astro.url.pathname);
+// Only production builds report to Google Analytics, so local development doesn't count as traffic.
+const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID ?? '') ? env.GA_MEASUREMENT_ID : null;
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {gaId && <>
+      <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+      <script is:inline define:vars={{ gaId }}>
+        // define:vars wraps this script in a function, so gtag is set on window explicitly for later event calls.
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { dataLayer.push(arguments); };
+        gtag('js', new Date());
+        gtag('config', gaId);
+      </script>
+    </>}
     <meta name="description" content={description} />
     <meta property="og:site_name" content="Firelands Current" />
     <meta property="og:type" content={type} />

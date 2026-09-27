@@ -15,6 +15,7 @@ declare namespace Cloudflare {
   interface Env {
     BETTER_AUTH_SECRET: string;
     SITE_URL: string;
+    GA_MEASUREMENT_ID?: string;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
     FACEBOOK_CLIENT_ID?: string;

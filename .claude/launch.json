@@ -10,6 +10,16 @@
       ],
       "port": 4321,
       "url": "http://127.0.0.1:4321"
+    },
+    {
+      "name": "preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "preview"
+      ],
+      "port": 4321,
+      "url": "http://127.0.0.1:4321"
     }
   ]
 }

@@ -4,7 +4,7 @@
   "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-09-26",
   "compatibility_flags": ["nodejs_compat"],
-  "vars": { "SITE_URL": "https://firelandscurrent.com" },
+  "vars": { "SITE_URL": "https://firelandscurrent.com", "GA_MEASUREMENT_ID": "G-WCZR3LZNP7" },
   "routes": [
     { "pattern": "firelandscurrent.com", "custom_domain": true },
     { "pattern": "www.firelandscurrent.com", "custom_domain": true }
