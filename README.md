@@ -15,6 +15,8 @@ An Astro and Cloudflare Workers foundation for an independent local newspaper ce
 - News: section pages, story pages, and the latest stories on the homepage; story text is Markdown, with lead images and captioned photos from the media library
 - Local events calendar at `/events`, with an upcoming-events block on the front page, event pages with an add-to-calendar file, and search-engine event data
 - Media library for story, ad and event images, stored in R2, with credits, usage tracking and social-preview images
+- Share buttons (Facebook, X, LinkedIn, Reddit, email, copy link) above and below every story; they are plain links, so no third-party scripts load
+- RSS feed at `/rss.xml` (also `/feed`, `/rss`) and a JSON Feed at `/feed.json`, each with the 30 newest stories (summary, lead image, byline, section). Add `?section=local` (or any section key) for one section. Every page advertises the feed for auto-discovery, and the footer links it
 - `/sitemap.xml` listing the main pages, news sections, published stories, and visible discussions, and a `/robots.txt` that points to it and keeps crawlers out of admin, account, business, and API routes
 - Submit news (`/submit-news`) and Contact (`/contact`) forms, open to anyone and linked from the footer. Each posts to `/api/inbox`, which emails the message through the `EMAIL` Cloudflare Email Sending binding to `news@` or `contact@firelandscurrent.com`, with the sender in Reply-To. Nothing is stored in D1; Cloudflare Turnstile (`TURNSTILE_SITE_KEY` var, `TURNSTILE_SECRET_KEY` secret) and a hidden honeypot field filter bots
 - Google Analytics (GA4) on every page outside the admin panel, with the measurement ID set as `GA_MEASUREMENT_ID` in `wrangler.jsonc`; the tag loads only in production builds

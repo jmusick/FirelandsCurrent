@@ -1,5 +1,6 @@
 ---
 import AdSlot from '../../components/AdSlot.astro';
+import ShareButtons from '../../components/ShareButtons.astro';
 import Comments from '../../components/Comments.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor, inlineAdBreaks } from '../../lib/ads';
@@ -33,10 +34,12 @@ chunks.push(blocks.slice(start).join(''));
     <h1>{article.headline}</h1>
     <p class="lede" style="margin-top:0">{article.summary}</p>
     <p class="meta" style="border-top:1px solid #c9d1cd;border-bottom:1px solid #c9d1cd;padding:.7rem 0">By <strong>{article.byline}</strong> · {new Date(article.published_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</p>
+    <ShareButtons url={new URL(`/news/${article.slug}`, Astro.url.origin).href} title={article.headline} />
     {lead && <Fragment set:html={figureHtml(lead, { className: 'story-figure lead', eager: true })} />}
     <div class="story">
       {chunks.map((html, i) => <>{i > 0 && <AdSlot placement="article-inline" class="story-ad" />}<Fragment set:html={html} /></>)}
     </div>
+    <ShareButtons url={new URL(`/news/${article.slug}`, Astro.url.origin).href} title={article.headline} />
   </article>
   <div class="story-rail"><AdSlot placement="article-rail" /></div>
   </div>

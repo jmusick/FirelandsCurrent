@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.13.0] - 2026-09-28
+
+### Added
+
+- Share buttons (Facebook, X, LinkedIn, Reddit, email, copy link) above and below every story
+- RSS feed at `/rss.xml` (with `/feed` and `/rss` redirects) and JSON Feed at `/feed.json`, each optionally filtered with `?section=`; pages advertise them for feed-reader auto-discovery and the footer links the RSS feed. Opened in a browser, the RSS feed shows as a readable page
+
 ## [1.12.0] - 2026-09-28
 
 ### Added
