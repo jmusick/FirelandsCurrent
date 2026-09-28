@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.10.1] - 2026-09-28
+
+### Added
+
+- Sign-in and sign-up buttons for Google, Facebook, Apple, and Microsoft now show each provider's logo
+
+### Changed
+
+- A failed social sign-in returns to the sign-in page with a plain explanation instead of a raw error page. When the email address already belongs to an account, it says to sign in first and link the provider from the account page
+
 ## [1.10.0] - 2026-09-28
 
 ### Added

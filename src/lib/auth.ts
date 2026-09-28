@@ -99,6 +99,8 @@ export function createAuth() {
       ...(microsoftId && microsoftSecret ? { microsoft: { clientId: microsoftId, clientSecret: microsoftSecret, tenantId: 'common' } } : {}),
       ...(appleId && appleTeam && appleKeyId && appleKey ? { apple: async () => ({ clientId: appleId, clientSecret: await appleClientSecret(appleId, appleTeam, appleKeyId, appleKey) }) } : {}),
     },
+    // Failed social sign-ins land on our own sign-in page (as ?error=code) instead of Better Auth's stock error page.
+    onAPIError: { errorURL: '/sign-in' },
     databaseHooks: { session: { create: { before: refuseSuspended } } },
     trustedOrigins: providers.includes('apple') ? ['https://appleid.apple.com'] : [],
   });
