@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { cleanText } from './forum';
+import { cleanText, ensureArticleThread } from './forum';
 import { isMediaId } from './media';
 import { type AdminArticle, type ArticleStatus, type Section, isSection, sanitizeSlug } from './news';
 
@@ -78,5 +78,6 @@ export async function saveArticleFromForm(form: FormData, existing: AdminArticle
       status = excluded.status, published_at = excluded.published_at, updated_at = excluded.updated_at
   `).bind(id, values.slug, values.headline, values.summary, values.body, values.section, values.community,
     values.byline, values.status, publishedAt, now, values.lead_media_id || null).run();
+  if (publishedAt !== null && values.status === 'published') await ensureArticleThread({ id, headline: values.headline, summary: values.summary, published_at: publishedAt });
   return { ok: true, id };
 }

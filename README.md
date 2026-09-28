@@ -8,6 +8,8 @@ An Astro and Cloudflare Workers foundation for an independent local newspaper ce
 - A stable local `user.id`, with additional OAuth sign-in methods linked through the `account` table
 - Optional Google, Facebook, and Apple OAuth configuration; buttons appear only when credentials are configured
 - Publicly readable Talk of the Town discussions; signed-in readers can start threads and reply
+- Every published story and every published or cancelled event automatically gets a Talk of the Town discussion (created when it is first published, and for existing ones by migrations `0010` and `0012`). Talk of the Town can be filtered to Stories, Events, or Community (reader-started) discussions with `/talk?type=story|event|community`. Its comments appear at the bottom of the story and on the discussion's own page; they are the same comments. The discussion is started by a sign-in-less `newsroom` account, takes its title and summary from the story, and is hidden while the story is unpublished or the event is a draft or a moderator hides it. Deleting a story or event deletes its discussion
+- Upvotes and downvotes on discussions and comments (click again to take a vote back), and comments sorted by Top, Newest, or Oldest. Comments are nested: readers reply to any comment, up to five levels deep, and each page shows 50 top-level comments with all their replies. A comment a moderator hides stays as "[removed by a moderator]" while visible replies sit below it
 - Rate limits on threads, replies, and reports
 - Member reports, reviewed in the admin panel with hide/dismiss actions
 - News: section pages, story pages, and the latest stories on the homepage; story text is Markdown, with lead images and captioned photos from the media library

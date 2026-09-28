@@ -1,0 +1,37 @@
+---
+import { ArrowBigDown, ArrowBigUp } from '@lucide/astro';
+
+interface Props {
+  kind: 'thread' | 'reply';
+  id: string;
+  score: number;
+  /** The viewer's vote: 1, -1, or 0. */
+  myVote: number;
+  /** The page to come back to, with its query string. */
+  returnTo: string;
+  signedIn: boolean;
+}
+const { kind, id, score, myVote, returnTo, signedIn } = Astro.props;
+const what = kind === 'thread' ? 'discussion' : 'comment';
+---
+<form method="post" action={signedIn ? '/api/talk/votes' : `/sign-in?next=${encodeURIComponent(returnTo)}`} class="vote" data-kind={kind}>
+  <input type="hidden" name="kind" value={kind} />
+  <input type="hidden" name="id" value={id} />
+  <input type="hidden" name="returnTo" value={returnTo} />
+  <button type="submit" name="vote" value="up" class:list={{ active: myVote === 1 }} aria-pressed={myVote === 1} aria-label={`Upvote this ${what}`}><ArrowBigUp /></button>
+  <strong aria-label={`${score} points`}>{score}</strong>
+  <button type="submit" name="vote" value="down" class:list={{ active: myVote === -1 }} aria-pressed={myVote === -1} aria-label={`Downvote this ${what}`}><ArrowBigDown /></button>
+</form>
+
+<style>
+  .vote { display: inline-flex; flex-direction: column; align-items: center; gap: .1rem; min-width: 2.4rem; }
+  .vote[data-kind='thread'] { flex-direction: row; gap: .35rem; }
+  .vote strong { font-size: .95rem; color: #173d4a; }
+  .vote button { display: inline-flex; padding: .15rem; border: 0; background: transparent; color: #687a7d; border-radius: 3px; cursor: pointer; }
+  .vote button:hover { background: #e9eeea; color: #173d4a; }
+  .vote button :global(svg) { width: 1.35rem; height: 1.35rem; }
+  .vote button.active[value='up'] { color: #ad5835; }
+  .vote button.active[value='down'] { color: #245668; }
+  .vote button.active :global(svg) { fill: currentColor; }
+  .vote button:focus-visible { outline: 2px solid #61a9b6; outline-offset: 1px; }
+</style>

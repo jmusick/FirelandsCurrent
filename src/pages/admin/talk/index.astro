@@ -26,9 +26,11 @@ const [reports, threads] = await env.DB.batch([
     LIMIT 100
   `),
   env.DB.prepare(`
-    SELECT t.id, t.title, t.status, u.name AS author_name, t.created_at, COUNT(r.id) AS reply_count
+    SELECT t.id, COALESCE(a.headline, ev.title, t.title) AS title, t.status, u.name AS author_name, t.created_at, COUNT(r.id) AS reply_count
     FROM forum_threads t
     JOIN "user" u ON u.id = t.author_id
+    LEFT JOIN news_articles a ON a.id = t.article_id
+    LEFT JOIN events ev ON ev.id = t.event_id
     LEFT JOIN forum_replies r ON r.thread_id = t.id
     GROUP BY t.id
     ORDER BY t.last_activity_at DESC

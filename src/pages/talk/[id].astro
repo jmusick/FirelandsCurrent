@@ -1,33 +1,26 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getThread, listReplies } from '../../lib/forum';
+import Comments from '../../components/Comments.astro';
+import VoteButtons from '../../components/VoteButtons.astro';
+import { KIND_LABELS, getThread } from '../../lib/forum';
 
-const thread = await getThread(Astro.params.id ?? '');
-if (!thread) return new Response('Discussion not found', { status: 404 });
-const totalPages = Math.max(1, Math.ceil(thread.reply_count / 100));
-const requestedPage = Number(Astro.url.searchParams.get('repliesPage') ?? totalPages);
-const repliesPage = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= totalPages ? requestedPage : totalPages;
-const replies = await listReplies(thread.id, repliesPage - 1);
 const user = Astro.locals.user;
-const error = Astro.url.searchParams.get('error');
+const thread = await getThread(Astro.params.id ?? '', user?.id ?? '');
+if (!thread) return new Response('Discussion not found', { status: 404 });
+const path = `/talk/${thread.id}`;
 ---
 <BaseLayout title={thread.title} description={thread.body.slice(0, 155)}>
   <a href="/talk">← Talk of the Town</a>
-  <article class="card" style="margin-top:1.7rem">
-    <span class="eyebrow">Discussion</span>
+  <article id="discussion" class="card" style="margin-top:1.7rem">
+    <span class="eyebrow">{KIND_LABELS[thread.kind]}</span>
     <h1>{thread.title}</h1>
-    <p class="meta">Started by {thread.author_name} · {new Date(thread.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+    {thread.source_path
+      ? <p class="meta">Comments on {thread.kind === 'event' ? 'an event' : 'a story'} published {new Date(thread.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+      : <p class="meta">Started by {thread.author_name} · {new Date(thread.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
     <p style="white-space:pre-wrap;line-height:1.7;font-size:1.05rem">{thread.body}</p>
-    {Astro.url.searchParams.has('reported') && <p class="message">Thank you. Your report is in the moderation queue.</p>}
-    {user && user.id !== thread.author_id && <details><summary>Report this discussion</summary><form method="post" action="/api/talk/reports" class="form" style="margin-top:.8rem"><input type="hidden" name="kind" value="thread" /><input type="hidden" name="id" value={thread.id} /><label>Why are you reporting it? <textarea name="reason" required minlength="10" maxlength="500" style="min-height:90px"></textarea></label><button class="button secondary small" type="submit">Send report</button></form></details>}
+    {thread.source_path && <p><a class="button secondary small" href={thread.source_path}>{thread.kind === 'event' ? 'See the event' : 'Read the story'} →</a></p>}
+    <VoteButtons kind="thread" id={thread.id} score={thread.score} myVote={thread.my_vote} returnTo={path} signedIn={!!user} />
+    {user && user.id !== thread.author_id && <details><summary>Report this discussion</summary><form method="post" action="/api/talk/reports" class="form" style="margin-top:.8rem"><input type="hidden" name="kind" value="thread" /><input type="hidden" name="id" value={thread.id} /><input type="hidden" name="returnTo" value={path} /><label>Why are you reporting it? <textarea name="reason" required minlength="10" maxlength="500" style="min-height:90px"></textarea></label><button class="button secondary small" type="submit">Send report</button></form></details>}
   </article>
-  <section id="replies" style="margin-top:2.5rem">
-    <h2>{thread.reply_count} {thread.reply_count === 1 ? 'reply' : 'replies'}</h2>
-    {totalPages > 1 && <p class="meta">Page {repliesPage} of {totalPages}</p>}
-    {replies.map((reply) => <article class="card" style="margin-bottom:.8rem"><p class="meta"><strong>{reply.author_name}</strong> · {new Date(reply.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p><p style="white-space:pre-wrap;line-height:1.6">{reply.body}</p>{user && user.id !== reply.author_id && <details><summary>Report reply</summary><form method="post" action="/api/talk/reports" class="form" style="margin-top:.8rem"><input type="hidden" name="kind" value="reply" /><input type="hidden" name="id" value={reply.id} /><label>Why are you reporting it? <textarea name="reason" required minlength="10" maxlength="500" style="min-height:90px"></textarea></label><button class="button secondary small" type="submit">Send report</button></form></details>}</article>)}
-    {totalPages > 1 && <nav aria-label="Reply pages" style="display:flex;justify-content:space-between;margin:1.4rem 0"><span>{repliesPage > 1 && <a href={`/talk/${thread.id}?repliesPage=${repliesPage - 1}#replies`}>← Earlier replies</a>}</span><span>{repliesPage < totalPages && <a href={`/talk/${thread.id}?repliesPage=${repliesPage + 1}#replies`}>Later replies →</a>}</span></nav>}
-  </section>
-  <section style="margin-top:2rem">
-    {user ? <><h2>Join the conversation</h2>{error && <p class="message" role="alert">{error === 'rate' ? 'Please wait a moment before replying again.' : 'Your reply must be 2–5,000 characters.'}</p>}<form class="form" method="post" action="/api/talk/replies"><input type="hidden" name="threadId" value={thread.id} /><label>Your reply <textarea name="body" required minlength="2" maxlength="5000"></textarea></label><button class="button" type="submit">Post reply</button></form></> : <div class="card"><h2>Join the conversation</h2><p>Sign in or create a free account to reply.</p><a class="button" href={`/sign-in?next=${encodeURIComponent(`/talk/${thread.id}`)}`}>Sign in</a></div>}
-  </section>
+  <Comments thread={thread} path={path} />
 </BaseLayout>

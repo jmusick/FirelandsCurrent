@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
-import { cleanText, sameOrigin } from '../../../lib/forum';
+import { cleanText, getThread, returnPathFor, sameOrigin } from '../../../lib/forum';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!locals.user) return Response.redirect(new URL('/sign-in', request.url), 303);
@@ -28,5 +28,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     INSERT OR IGNORE INTO forum_reports (id, reporter_id, thread_id, reply_id, reason, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
   `).bind(crypto.randomUUID(), locals.user.id, kind === 'thread' ? id : null, kind === 'reply' ? id : null, reason, now).run();
-  return Response.redirect(new URL(`/talk/${item.thread_id}?reported=1`, request.url), 303);
+  const thread = await getThread(item.thread_id);
+  const url = new URL(thread ? returnPathFor(cleanText(form.get('returnTo')), thread) : `/talk/${item.thread_id}`, request.url);
+  url.searchParams.set('reported', '1');
+  url.hash = 'comments';
+  return Response.redirect(url, 303);
 };

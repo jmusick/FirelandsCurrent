@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { createAuth } from './auth';
+import { NEWSROOM_USER_ID } from './forum';
 import type { StaffRole } from './staff';
 
 export const PAGE_SIZE = 50;
@@ -99,6 +100,7 @@ export async function listUsers(filters: UserFilters): Promise<UserRow[]> {
   else if (filters.status === 'active') where.push('sus.user_id IS NULL');
   if (filters.business === 'none') where.push('NOT EXISTS (SELECT 1 FROM business_members m WHERE m.user_id = u.id)');
   else if (filters.business) { where.push('EXISTS (SELECT 1 FROM business_members m WHERE m.user_id = u.id AND m.business_id = ?)'); binds.push(filters.business); }
+  where.push(`u.id != '${NEWSROOM_USER_ID}'`);
   binds.push(PAGE_SIZE + 1, filters.page * PAGE_SIZE);
 
   const result = await env.DB.prepare(`
@@ -122,10 +124,10 @@ export async function listUsers(filters: UserFilters): Promise<UserRow[]> {
 export async function userCounts(): Promise<{ total: number; staff: number; suspended: number; new_week: number }> {
   const now = Date.now();
   const row = await env.DB.prepare(`
-    SELECT (SELECT COUNT(*) FROM "user") AS total,
+    SELECT (SELECT COUNT(*) FROM "user" WHERE id != '${NEWSROOM_USER_ID}') AS total,
            (SELECT COUNT(*) FROM staff_roles) AS staff,
            (SELECT COUNT(*) FROM user_suspensions WHERE expires_at IS NULL OR expires_at > ?1) AS suspended,
-           (SELECT COUNT(*) FROM "user" WHERE createdAt > ?2) AS new_week
+           (SELECT COUNT(*) FROM "user" WHERE id != '${NEWSROOM_USER_ID}' AND createdAt > ?2) AS new_week
   `).bind(now, new Date(now - 7 * 86400000).toISOString()).first<{ total: number; staff: number; suspended: number; new_week: number }>();
   return row ?? { total: 0, staff: 0, suspended: 0, new_week: 0 };
 }

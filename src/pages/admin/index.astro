@@ -15,7 +15,7 @@ const stats = await env.DB.prepare(`
     (SELECT COUNT(*) FROM events WHERE status = 'published' AND COALESCE(ends_on, starts_on) >= ?1) AS events,
     (SELECT COUNT(*) FROM forum_threads WHERE status = 'published') AS threads,
     (SELECT COUNT(*) FROM forum_reports WHERE status = 'open') AS reports,
-    (SELECT COUNT(*) FROM "user") AS users
+    (SELECT COUNT(*) FROM "user" WHERE id != 'newsroom') AS users
 `).bind(today()).first<{ published: number; drafts: number; events: number; threads: number; reports: number; users: number }>();
 const role = Astro.locals.staffRole;
 const news = canAccess(role, ADMIN.news);

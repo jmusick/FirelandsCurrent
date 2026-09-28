@@ -1,13 +1,16 @@
 ---
 import AdSlot from '../../components/AdSlot.astro';
+import Comments from '../../components/Comments.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor, inlineAdBreaks } from '../../lib/ads';
+import { getArticleThread } from '../../lib/forum';
 import { mediaByKeys, mediaKeysIn } from '../../lib/media';
 import { SECTIONS, figureHtml, getArticle, leadMedia, renderBodyBlocks } from '../../lib/news';
 
 const article = await getArticle(Astro.params.slug ?? '');
 if (!article) return new Response('Story not found', { status: 404 });
 await adPlanFor(Astro.request, Astro.locals, { section: article.section });
+const thread = await getArticleThread(article.id, Astro.locals.user?.id ?? '');
 
 // Split the story into chunks with an ad between each. A break never lands right under a subheading.
 const lead = leadMedia(article);
@@ -37,7 +40,7 @@ chunks.push(blocks.slice(start).join(''));
   </article>
   <div class="story-rail"><AdSlot placement="article-rail" /></div>
   </div>
-  <aside class="card" style="max-width:760px;margin-top:2.5rem"><h2 style="margin-top:0">Talk about it</h2><p class="muted">Have something to add? Start a conversation with your neighbors in Talk of the Town.</p><a href="/talk">Visit Talk of the Town →</a></aside>
+  {thread && <div style="max-width:760px"><Comments thread={thread} path={`/news/${article.slug}`} /><p><a href={`/talk/${thread.id}`}>Also in Talk of the Town →</a></p></div>}
 </BaseLayout>
 
 <style>

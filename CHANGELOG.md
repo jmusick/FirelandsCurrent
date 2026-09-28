@@ -2,6 +2,22 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.7.0] - 2026-09-28
+
+### Added
+
+- Every news story now has a Talk of the Town discussion, created automatically when the story is published (and for stories already published). Readers can comment at the bottom of the story, and the same comments appear on the discussion's page in Talk of the Town
+- Upvotes and downvotes on discussions and comments, with comments sortable by Top, Newest, or Oldest
+- Every event now has a Talk of the Town discussion too, created when it is published or cancelled (and for existing events), with comments at the bottom of the event page
+- Talk of the Town filters: All, Stories, Events, and Community discussions
+- Nested replies: readers can reply to any comment, up to five levels deep, and new replies land in place. A hidden comment shows as removed while replies to it remain
+- Story discussions are marked in the Talk of the Town list and show points and comment counts
+
+### Changed
+
+- Discussion pages now open on the first page of top comments instead of the last page of replies, and page through 50 top-level comments at a time
+- The privacy policy mentions comments on stories and votes
+
 ## [1.6.1] - 2026-09-28
 
 ### Fixed

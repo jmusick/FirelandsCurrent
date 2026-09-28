@@ -22,7 +22,7 @@ export async function sitemapEntries(): Promise<SitemapEntry[]> {
     `).bind(MAX_URLS),
     env.DB.prepare(`
       SELECT '/talk/' || id AS path, last_activity_at AS lastmod
-      FROM forum_threads WHERE status = 'published'
+      FROM forum_threads WHERE status = 'published' AND article_id IS NULL AND event_id IS NULL
       ORDER BY last_activity_at DESC LIMIT ?
     `).bind(MAX_URLS),
   ]);

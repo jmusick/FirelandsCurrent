@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { type AdminEvent, type Category, type EventStatus, STATUS_LABELS, isCategory } from './events';
-import { cleanText } from './forum';
+import { cleanText, ensureEventThread } from './forum';
 import { isMediaId } from './media';
 import { sanitizeSlug } from './news';
 
@@ -128,5 +128,6 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
     values.start_time || null, values.ends_on || null, (values.start_time && values.end_time) || null,
     values.venue, values.address, values.community, values.organizer, values.cost, values.link,
     values.image_media_id || null, values.status, now).run();
+  if (values.status !== 'draft') await ensureEventThread({ id, title: values.title, summary: values.summary });
   return { ok: true, id };
 }

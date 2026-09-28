@@ -1,0 +1,93 @@
+---
+import VoteButtons from './VoteButtons.astro';
+import { COMMENTS_PER_PAGE, MAX_REPLY_DEPTH, REPLY_SORTS, type Thread, listComments, replySort } from '../lib/forum';
+
+interface Props {
+  thread: Thread;
+  /** The page this is shown on: /talk/<id> or /news/<slug>. Votes, replies and reports send the reader back here. */
+  path: string;
+}
+const { thread, path } = Astro.props;
+const user = Astro.locals.user;
+const sort = replySort(Astro.url.searchParams.get('sort'));
+const requestedPage = Number(Astro.url.searchParams.get('repliesPage') ?? 1);
+const wanted = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+let { comments, rootCount } = await listComments(thread.id, wanted - 1, sort, user?.id ?? '');
+const totalPages = Math.max(1, Math.ceil(rootCount / COMMENTS_PER_PAGE));
+const page = Math.min(wanted, totalPages);
+if (page !== wanted) ({ comments } = await listComments(thread.id, page - 1, sort, user?.id ?? ''));
+const error = Astro.url.searchParams.get('error');
+
+// The address of this view: sort and page are kept when voting or replying so the reader stays where they were.
+const view = (over: { sort?: string; page?: number }) => {
+  const params = new URLSearchParams();
+  const s = over.sort ?? sort;
+  const p = over.page ?? page;
+  if (s !== 'top') params.set('sort', s);
+  if (p > 1) params.set('repliesPage', String(p));
+  return params.size ? `${path}?${params}` : path;
+};
+const here = view({});
+const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+---
+<section id="comments" class="comments">
+  <div class="head">
+    <h2>{thread.reply_count} {thread.reply_count === 1 ? 'comment' : 'comments'}</h2>
+    {thread.reply_count > 1 && <nav aria-label="Sort comments" class="sorts">{Object.entries(REPLY_SORTS).map(([key, label]) => key === sort ? <strong aria-current="true">{label}</strong> : <a href={`${view({ sort: key, page: 1 })}#comments`}>{label}</a>)}</nav>}
+  </div>
+  {Astro.url.searchParams.has('reported') && <p class="message">Thank you. Your report is in the moderation queue.</p>}
+
+  <div class="compose">
+    {user ? <>
+      <h3>Join the conversation</h3>
+      {error && <p class="message" role="alert">{error === 'rate' ? 'Please wait a moment before commenting again.' : 'Your comment must be 2–5,000 characters.'}</p>}
+      <form class="form" method="post" action="/api/talk/replies">
+        <input type="hidden" name="threadId" value={thread.id} />
+        <input type="hidden" name="returnTo" value={here} />
+        <label>Your comment <textarea name="body" required minlength="2" maxlength="5000" style="min-height:110px"></textarea></label>
+        <button class="button" type="submit">Post comment</button>
+      </form>
+    </> : <div class="card"><h3 style="margin-top:0">Join the conversation</h3><p>Sign in or create a free account to comment and vote.</p><a class="button" href={`/sign-in?next=${encodeURIComponent(here)}`}>Sign in</a></div>}
+  </div>
+
+  {comments.length === 0 && <p class="muted">No comments yet. Be the first to weigh in.</p>}
+  {comments.map((reply) => <article class="comment" id={`reply-${reply.id}`} style={`--depth:${reply.depth}`}>
+    {reply.removed ? <span class="vote-gap"></span> : <VoteButtons kind="reply" id={reply.id} score={reply.score} myVote={reply.my_vote} returnTo={here} signedIn={!!user} />}
+    <div class="content">
+      {reply.removed
+        ? <p class="meta" style="margin:.3rem 0">[removed by a moderator]</p>
+        : <>
+          <p class="meta"><strong>{reply.author_name}</strong> · {fmt(reply.created_at)}</p>
+          <p class="text">{reply.body}</p>
+          <div class="actions">
+            {reply.depth < MAX_REPLY_DEPTH && (user
+              ? <details><summary>Reply</summary><form method="post" action="/api/talk/replies" class="form" style="margin-top:.8rem"><input type="hidden" name="threadId" value={thread.id} /><input type="hidden" name="parentId" value={reply.id} /><input type="hidden" name="returnTo" value={here} /><label>Your reply to {reply.author_name} <textarea name="body" required minlength="2" maxlength="5000" style="min-height:90px"></textarea></label><button class="button small" type="submit">Post reply</button></form></details>
+              : <a href={`/sign-in?next=${encodeURIComponent(here)}`}>Reply</a>)}
+            {user && user.id !== reply.author_id && <details><summary>Report</summary><form method="post" action="/api/talk/reports" class="form" style="margin-top:.8rem"><input type="hidden" name="kind" value="reply" /><input type="hidden" name="id" value={reply.id} /><input type="hidden" name="returnTo" value={here} /><label>Why are you reporting it? <textarea name="reason" required minlength="10" maxlength="500" style="min-height:90px"></textarea></label><button class="button secondary small" type="submit">Send report</button></form></details>}
+          </div>
+        </>}
+    </div>
+  </article>)}
+  {totalPages > 1 && <nav aria-label="Comment pages" class="pages"><span>{page > 1 && <a href={`${view({ page: page - 1 })}#comments`}>← Previous comments</a>}</span><span class="meta">Page {page} of {totalPages}</span><span>{page < totalPages && <a href={`${view({ page: page + 1 })}#comments`}>More comments →</a>}</span></nav>}
+</section>
+
+<style>
+  .comments { margin-top: 2.5rem; scroll-margin-top: 1rem; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; border-top: 3px solid #173d4a; padding-top: 1rem; }
+  .head h2 { margin: 0; }
+  .sorts { display: flex; gap: 1rem; font-size: .9rem; }
+  .sorts strong { color: #173d4a; }
+  .compose { margin: 1.2rem 0 1.8rem; }
+  .comment { display: flex; gap: .8rem; padding: .8rem 0 .8rem calc(min(var(--depth), 5) * 1.4rem); border-top: 1px solid #d9dfda; scroll-margin-top: 1rem; }
+  .comment[style*='--depth:0'] { border-top-color: #b9c4bf; }
+  .vote-gap { min-width: 2.4rem; }
+  .actions { display: flex; gap: 1.2rem; align-items: flex-start; flex-wrap: wrap; font-size: .85rem; }
+  .actions > a { color: #687a7d; }
+  .comment:target { background: #f6f3ea; }
+  @media (max-width: 600px) { .comment { padding-left: calc(min(var(--depth), 5) * .7rem); gap: .4rem; } }
+  .content { min-width: 0; flex: 1; }
+  .content .meta { margin: .1rem 0 .4rem; }
+  .text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; margin: 0 0 .5rem; }
+  summary { cursor: pointer; font-size: .85rem; color: #687a7d; }
+  .pages { display: flex; justify-content: space-between; align-items: center; margin: 1.4rem 0; }
+</style>
