@@ -2,6 +2,19 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.10.0] - 2026-09-28
+
+### Added
+
+- Email verification: new email/password accounts get a confirmation link by email and cannot sign in until they use it. Signing in before confirming sends a fresh link
+- Password reset by email (`/forgot-password` and `/reset-password`)
+- Cloudflare Turnstile on sign-up, password-reset, and resend requests
+- Microsoft sign-in, and Google, Facebook, Apple, and Microsoft buttons on the registration page
+
+### Changed
+
+- Existing accounts and accounts created by administrators are marked verified (migration `0014`), so nobody is locked out
+
 ## [1.9.0] - 2026-09-28
 
 ### Added

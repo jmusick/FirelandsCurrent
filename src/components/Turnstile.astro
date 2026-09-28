@@ -1,0 +1,5 @@
+---
+import { env } from 'cloudflare:workers';
+---
+<div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY}></div>
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>

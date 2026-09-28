@@ -1,7 +1,9 @@
 import { env } from 'cloudflare:workers';
 import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
+import { captcha } from 'better-auth/plugins';
 import { importPKCS8, SignJWT } from 'jose';
+import { sendPasswordResetMail, sendVerificationMail } from './mail';
 
 async function appleClientSecret(clientId: string, teamId: string, keyId: string, privateKey: string): Promise<string> {
   const key = await importPKCS8(privateKey.replace(/\\n/g, '\n'), 'ES256');
@@ -16,11 +18,14 @@ async function appleClientSecret(clientId: string, teamId: string, keyId: string
     .sign(key);
 }
 
-export function enabledProviders(): Array<'google' | 'facebook' | 'apple'> {
-  const providers: Array<'google' | 'facebook' | 'apple'> = [];
+export type SocialProvider = 'google' | 'facebook' | 'apple' | 'microsoft';
+
+export function enabledProviders(): SocialProvider[] {
+  const providers: SocialProvider[] = [];
   if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) providers.push('google');
   if (env.FACEBOOK_CLIENT_ID && env.FACEBOOK_CLIENT_SECRET) providers.push('facebook');
   if (env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY) providers.push('apple');
+  if (env.MICROSOFT_CLIENT_ID && env.MICROSOFT_CLIENT_SECRET) providers.push('microsoft');
   return providers;
 }
 
@@ -49,12 +54,37 @@ export function createAuth() {
   const appleTeam = env.APPLE_TEAM_ID;
   const appleKeyId = env.APPLE_KEY_ID;
   const appleKey = env.APPLE_PRIVATE_KEY;
+  const microsoftId = env.MICROSOFT_CLIENT_ID;
+  const microsoftSecret = env.MICROSOFT_CLIENT_SECRET;
   return betterAuth({
     appName: 'Firelands Current',
     database: env.DB,
     baseURL: env.SITE_URL,
     secret: env.BETTER_AUTH_SECRET,
-    emailAndPassword: { enabled: true, minPasswordLength: 12 },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 12,
+      // Nobody gets a session until they prove they own the address.
+      requireEmailVerification: true,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      sendResetPassword: async ({ user, url }) => sendPasswordResetMail(user, url),
+    },
+    emailVerification: {
+      sendOnSignUp: true,
+      sendOnSignIn: true,
+      autoSignInAfterVerification: true,
+      expiresIn: 60 * 60,
+      sendVerificationEmail: async ({ user, url }) => sendVerificationMail(user, url),
+    },
+    plugins: [
+      // Sending email to arbitrary addresses is the abuse risk, so those endpoints need a Turnstile token
+      // in the x-captcha-response header. Sign-in is left alone: it only mails after a correct password.
+      captcha({
+        provider: 'cloudflare-turnstile',
+        secretKey: env.TURNSTILE_SECRET_KEY,
+        endpoints: ['/sign-up/email', '/request-password-reset', '/send-verification-email'],
+      }),
+    ],
     account: {
       accountLinking: {
         enabled: true,
@@ -66,6 +96,7 @@ export function createAuth() {
     socialProviders: {
       ...(googleId && googleSecret ? { google: { clientId: googleId, clientSecret: googleSecret } } : {}),
       ...(facebookId && facebookSecret ? { facebook: { clientId: facebookId, clientSecret: facebookSecret } } : {}),
+      ...(microsoftId && microsoftSecret ? { microsoft: { clientId: microsoftId, clientSecret: microsoftSecret, tenantId: 'common' } } : {}),
       ...(appleId && appleTeam && appleKeyId && appleKey ? { apple: async () => ({ clientId: appleId, clientSecret: await appleClientSecret(appleId, appleTeam, appleKeyId, appleKey) }) } : {}),
     },
     databaseHooks: { session: { create: { before: refuseSuspended } } },

@@ -214,10 +214,10 @@ export async function hashPassword(password: string): Promise<string> {
   return context.password.hash(password);
 }
 
-/** Creates an email/password account the same way sign-up does, without signing anyone in. */
+/** Creates an email/password account the same way sign-up does, without signing anyone in. Staff vouch for the address, so it starts verified. */
 export async function createPasswordUser(name: string, email: string, password: string): Promise<string> {
   const context = await createAuth().$context;
-  const user = await context.internalAdapter.createUser({ name, email, emailVerified: false }, { method: 'email-password' });
+  const user = await context.internalAdapter.createUser({ name, email, emailVerified: true }, { method: 'email-password' });
   await context.internalAdapter.linkAccount({
     userId: user.id,
     providerId: 'credential',
@@ -232,6 +232,7 @@ export const PROVIDER_LABELS: Record<string, string> = {
   google: 'Google',
   facebook: 'Facebook',
   apple: 'Apple',
+  microsoft: 'Microsoft',
 };
 
 export const AUDIT_LABELS: Record<string, string> = {

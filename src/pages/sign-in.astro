@@ -1,19 +1,21 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { enabledProviders } from '../lib/auth';
+import SocialButtons from '../components/SocialButtons.astro';
 if (Astro.locals.user) return Astro.redirect('/account');
-const providers = enabledProviders();
+const reset = Astro.url.searchParams.get('reset');
 ---
 <BaseLayout title="Sign in">
   <span class="eyebrow">Welcome back</span>
   <h1>Sign in</h1>
+  {reset && <p class="message" role="status">Your password was changed. Sign in with the new one.</p>}
   <form id="sign-in-form" class="form">
     <label>Email address <input name="email" type="email" required autocomplete="email" /></label>
     <label>Password <input name="password" type="password" required autocomplete="current-password" /></label>
     <div id="form-message" class="message" role="alert" hidden></div>
     <button class="button" type="submit">Sign in</button>
   </form>
-  {providers.length > 0 && <div style="margin-top:2rem"><p class="muted">Or continue with</p><div style="display:flex;gap:.6rem;flex-wrap:wrap">{providers.map((provider) => <button class="button secondary social-button" data-provider={provider} type="button">{provider[0].toUpperCase() + provider.slice(1)}</button>)}</div></div>}
+  <p><a href="/forgot-password">Forgot your password?</a></p>
+  <SocialButtons verb="Sign in" />
   <p>New here? <a href="/register">Create an account</a>.</p>
   <script>
     import { authClient } from '../lib/auth-client';
@@ -23,15 +25,17 @@ const providers = enabledProviders();
       event.preventDefault();
       message.hidden = true;
       const data = new FormData(form);
-      const result = await authClient.signIn.email({ email: String(data.get('email') ?? ''), password: String(data.get('password') ?? '') });
-      if (result.error) { message.textContent = result.error.message || 'Sign in failed.'; message.hidden = false; return; }
+      const result = await authClient.signIn.email({ email: String(data.get('email') ?? ''), password: String(data.get('password') ?? ''), callbackURL: '/account?verified=1' });
+      if (result.error) {
+        // Better Auth has already mailed a fresh link by the time it reports this.
+        message.textContent = result.error.code === 'EMAIL_NOT_VERIFIED'
+          ? 'Confirm your email address first. We just sent a new confirmation link to your inbox.'
+          : result.error.message || 'Sign in failed.';
+        message.hidden = false;
+        return;
+      }
       const next = new URLSearchParams(window.location.search).get('next');
       window.location.assign(next && next.startsWith('/') && !next.startsWith('//') ? next : '/account');
     });
-    document.querySelectorAll<HTMLButtonElement>('.social-button').forEach((button) => button.addEventListener('click', async () => {
-      const provider = button.dataset.provider as 'google' | 'facebook' | 'apple';
-      const result = await authClient.signIn.social({ provider, callbackURL: '/account' });
-      if (result.error) { message.textContent = result.error.message || 'Social sign in failed.'; message.hidden = false; }
-    }));
   </script>
 </BaseLayout>

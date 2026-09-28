@@ -4,9 +4,9 @@ An Astro and Cloudflare Workers foundation for an independent local newspaper ce
 
 ## What works now
 
-- Email/password registration, sign-in, sign-out, and password changes through Better Auth
+- Email/password registration, sign-in, sign-out, password changes, and password reset by email through Better Auth. New email/password accounts must confirm their address from a link we email before they can sign in; sign-up, reset, and resend requests are protected by Cloudflare Turnstile
 - A stable local `user.id`, with additional OAuth sign-in methods linked through the `account` table
-- Optional Google, Facebook, and Apple OAuth configuration; buttons appear only when credentials are configured
+- Optional Google, Facebook, Apple, and Microsoft sign-in and sign-up; buttons appear on `/sign-in` and `/register` only when credentials are configured
 - Publicly readable Talk of the Town discussions; signed-in readers can start threads and reply
 - Every published story and every published or cancelled event automatically gets a Talk of the Town discussion (created when it is first published, and for existing ones by migrations `0010` and `0012`). Talk of the Town can be filtered to Stories, Events, or Community (reader-started) discussions with `/talk?type=story|event|community`. Its comments appear at the bottom of the story and on the discussion's own page; they are the same comments. The discussion is started by a sign-in-less `newsroom` account, takes its title and summary from the story, and is hidden while the story is unpublished or the event is a draft or a moderator hides it. Deleting a story or event deletes its discussion
 - Upvotes and downvotes on discussions and comments (click again to take a vote back), and comments sorted by Top, Newest, or Oldest. Comments are nested: readers reply to any comment, up to five levels deep, and each page shows 50 top-level comments with all their replies. A comment a moderator hides stays as "[removed by a moderator]" while visible replies sit below it
@@ -114,6 +114,7 @@ Set `SITE_URL` to the exact public origin. Add provider credentials as Cloudflar
 | --- | --- | --- |
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `{SITE_URL}/api/auth/callback/google` |
 | Facebook | `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET` | `{SITE_URL}/api/auth/callback/facebook` |
+| Microsoft | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | `{SITE_URL}/api/auth/callback/microsoft` |
 | Apple | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | `{SITE_URL}/api/auth/callback/apple` |
 
 Apple requires a paid Apple Developer account and an HTTPS callback origin. The app creates its Apple client-secret JWT from the configured private key. OAuth methods can be linked to an existing account from `/account`; matching email addresses are **not** automatically merged.
@@ -124,7 +125,7 @@ Astro 7's Cloudflare adapter targets Workers. The `main` branch is connected to 
 
 ### Email sending
 
-The forms send from `noreply@firelandscurrent.com` through the `send_email` binding (`EMAIL`) in `wrangler.jsonc`; no API token is needed. Onboard the domain once with `npx wrangler email sending enable firelandscurrent.com`, and make sure `news@` and `contact@` exist as real mailboxes or Email Routing addresses that deliver to staff.
+The forms, verification links, and password-reset links send from `noreply@firelandscurrent.com` through the `send_email` binding (`EMAIL`) in `wrangler.jsonc`; no API token is needed. Onboard the domain once with `npx wrangler email sending enable firelandscurrent.com`, and make sure `news@` and `contact@` exist as real mailboxes or Email Routing addresses that deliver to staff.
 
 ## Versioning
 
@@ -132,7 +133,7 @@ The site follows [Semantic Versioning](https://semver.org/). The version in `pac
 
 ## Before a public launch
 
-Email/password signups do not yet verify email addresses, and password recovery by email is not wired up. Those require a transactional email sender and an approved sending domain. Social sign-in needs the provider credentials above. The forum is a functional local prototype; configure email verification and bot protection before opening registration to the public.
+Email verification and password reset need the sending domain onboarded (see Email sending); until then, new email/password accounts cannot confirm their address. In `npm run dev` the links are printed in the server console. Administrator-created accounts start verified. Social sign-in needs the provider credentials above. The forum is a functional local prototype; configure email verification and bot protection before opening registration to the public.
 
 Reader-submitted events, the newsletter, obituaries, jobs, and classifieds are separate later work.
 
