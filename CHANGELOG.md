@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.12.0] - 2026-09-28
+
+### Added
+
+- Facebook and X links in the site footer
+
 ## [1.11.0] - 2026-09-28
 
 ### Added
