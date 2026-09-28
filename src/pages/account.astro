@@ -24,7 +24,7 @@ const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
     <h2 style="margin-top:0">{user.name}</h2>
     <p><strong>Email:</strong> {user.email}</p>
     <p><strong>Firelands Current ID:</strong> <code style="overflow-wrap:anywhere">{user.id}</code></p>
-    <p><strong>Sign-in methods:</strong> {linked.results.map((entry) => entry.providerId === 'credential' ? 'Email and password' : entry.providerId).join(', ') || 'None'}</p>
+    <p><strong>Sign-in methods:</strong> {linked.results.map((entry) => PROVIDER_LABELS[entry.providerId] ?? entry.providerId).join(', ') || 'None'}</p>
     {available.length > 0 && <div><p class="muted">Link another sign-in method to this same account:</p><div style="display:flex;gap:.6rem;flex-wrap:wrap">{available.map((provider) => <button class="button secondary small link-button" data-provider={provider} type="button">Link {PROVIDER_LABELS[provider]}</button>)}</div></div>}
     <p id="account-message" class="message" role="alert" hidden></p>
     {linkedProviders.has('credential') && <details style="margin-top:1.3rem"><summary>Change password</summary><form id="password-form" class="form" style="margin-top:1rem"><label>Current password <input name="currentPassword" type="password" required autocomplete="current-password" /></label><label>New password <input name="newPassword" type="password" required minlength="12" autocomplete="new-password" /></label><button class="button small" type="submit">Update password</button></form></details>}

@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.10.3] - 2026-09-28
+
+### Added
+
+- The Privacy Policy has a "How to delete your data" section, including steps for people who signed in with Facebook, Google, Apple, or Microsoft
+
+### Fixed
+
+- The account page names sign-in methods properly ("Facebook") instead of showing the raw provider id
+
 ## [1.10.2] - 2026-09-28
 
 ### Fixed
