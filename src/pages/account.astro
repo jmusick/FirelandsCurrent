@@ -3,6 +3,7 @@ import { env } from 'cloudflare:workers';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { enabledProviders } from '../lib/auth';
 import { PROVIDER_LABELS } from '../lib/users';
+import { authErrorMessage } from '../lib/auth-errors';
 import { portalBusinesses } from '../lib/business-portal';
 
 const user = Astro.locals.user;
@@ -12,10 +13,12 @@ const linked = await env.DB.prepare('SELECT providerId FROM account WHERE userId
 const linkedProviders = new Set(linked.results.map((entry) => entry.providerId));
 const available = enabledProviders().filter((provider) => !linkedProviders.has(provider));
 const businesses = await portalBusinesses(user.id);
+const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
 ---
 <BaseLayout title="Your account">
   <span class="eyebrow">Reader account</span>
   <h1>Your account</h1>
+  {errorMessage && <p class="message" role="alert" style="max-width:650px">{errorMessage}</p>}
   {Astro.url.searchParams.get('verified') && <p class="message" role="status" style="max-width:650px">Your email address is confirmed. Welcome to Firelands Current.</p>}
   <div class="card" style="max-width:650px">
     <h2 style="margin-top:0">{user.name}</h2>

@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.10.2] - 2026-09-28
+
+### Fixed
+
+- Linking Facebook from the account page now works. Facebook never confirms email addresses, so the link was refused without any message
+- A failed sign-in method link now shows an explanation on the account page instead of disappearing
+
 ## [1.10.1] - 2026-09-28
 
 ### Added

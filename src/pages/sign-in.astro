@@ -1,14 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SocialButtons from '../components/SocialButtons.astro';
-if (Astro.locals.user) return Astro.redirect('/account');
-const reset = Astro.url.searchParams.get('reset');
+import { authErrorMessage } from '../lib/auth-errors';
 const errorCode = Astro.url.searchParams.get('error');
-const ERRORS: Record<string, string> = {
-  account_not_linked: 'An account with that email address already exists. Sign in with your email and password, then link the other sign-in method from your account page.',
-  access_denied: 'Sign-in was cancelled.',
-};
-const errorMessage = errorCode ? (ERRORS[errorCode.toLowerCase()] ?? 'That sign-in did not work. Please try again.') : null;
+// A failed link happens while signed in, so carry the error to the account page instead of dropping it.
+if (Astro.locals.user) return Astro.redirect(errorCode ? `/account?error=${encodeURIComponent(errorCode)}` : '/account');
+const reset = Astro.url.searchParams.get('reset');
+const errorMessage = authErrorMessage(errorCode);
 ---
 <BaseLayout title="Sign in">
   <span class="eyebrow">Welcome back</span>

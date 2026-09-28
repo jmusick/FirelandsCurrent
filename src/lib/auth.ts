@@ -91,6 +91,10 @@ export function createAuth() {
         // Linking providers from a signed-in account is supported. Avoid merging
         // unrelated accounts merely because their email strings match.
         disableImplicitLinking: true,
+        // Facebook never reports an email as verified, which makes Better Auth refuse even a deliberate
+        // link. Trusting it here only affects linking from a signed-in session with a matching email;
+        // sign-in still never merges accounts because of disableImplicitLinking above.
+        trustedProviders: ['facebook'],
       },
     },
     socialProviders: {
