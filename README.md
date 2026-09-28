@@ -16,6 +16,7 @@ An Astro and Cloudflare Workers foundation for an independent local newspaper ce
 - Local events calendar at `/events`, with an upcoming-events block on the front page, event pages with an add-to-calendar file, and search-engine event data
 - Media library for story, ad and event images, stored in R2, with credits, usage tracking and social-preview images
 - `/sitemap.xml` listing the main pages, news sections, published stories, and visible discussions, and a `/robots.txt` that points to it and keeps crawlers out of admin, account, business, and API routes
+- Submit news (`/submit-news`) and Contact (`/contact`) forms, open to anyone and linked from the footer. Each posts to `/api/inbox`, which emails the message through the `EMAIL` Cloudflare Email Sending binding to `news@` or `contact@firelandscurrent.com`, with the sender in Reply-To. Nothing is stored in D1; Cloudflare Turnstile (`TURNSTILE_SITE_KEY` var, `TURNSTILE_SECRET_KEY` secret) and a hidden honeypot field filter bots
 - Google Analytics (GA4) on every page outside the admin panel, with the measurement ID set as `GA_MEASUREMENT_ID` in `wrangler.jsonc`; the tag loads only in production builds
 - Privacy Policy at `/privacy`, linked from the footer and the registration page. It describes exactly what the site collects (accounts, sessions, posts, Google Analytics, Cloudflare Web Analytics, ad counts), so update it whenever that changes
 - Admin panel at `/admin` (dashboard, News editor, events calendar, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
@@ -118,6 +119,10 @@ Apple requires a paid Apple Developer account and an HTTPS callback origin. The 
 ## Cloudflare deployment
 
 Astro 7's Cloudflare adapter targets Workers. The `main` branch is connected to Cloudflare Workers Builds with `npm run build` and `npx wrangler deploy`; Cloudflare pulls and deploys each push. The production custom domains, D1 binding, and `SITE_URL=https://firelandscurrent.com` are in `wrangler.jsonc`; `BETTER_AUTH_SECRET` is a Cloudflare secret. Namecheap delegates `firelandscurrent.com` to Cloudflare nameservers. Apply migrations to the production database with `npx wrangler d1 migrations apply DB --remote` when schema changes are deployed.
+
+### Email sending
+
+The forms send from `noreply@firelandscurrent.com` through the `send_email` binding (`EMAIL`) in `wrangler.jsonc`; no API token is needed. Onboard the domain once with `npx wrangler email sending enable firelandscurrent.com`, and make sure `news@` and `contact@` exist as real mailboxes or Email Routing addresses that deliver to staff.
 
 ## Versioning
 

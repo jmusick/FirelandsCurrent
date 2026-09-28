@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import InboxForm from '../components/InboxForm.astro';
+---
+<BaseLayout title="Contact us" description="Get in touch with Firelands Current.">
+  <span class="eyebrow">Contact</span>
+  <h1>Contact us</h1>
+  <p class="lede">Questions, feedback, or corrections? Send us a message and we'll reply by email. Have a news tip? Please use <a href="/submit-news">Submit news</a> instead.</p>
+  <InboxForm kind="contact" subjectLabel="Subject" bodyLabel="Your message" submitLabel="Send message" />
+  <p>You can also write to <a href="mailto:contact@firelandscurrent.com">contact@firelandscurrent.com</a>.</p>
+</BaseLayout>

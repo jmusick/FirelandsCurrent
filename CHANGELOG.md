@@ -2,6 +2,18 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.8.0] - 2026-09-28
+
+### Added
+
+- A Submit news form at `/submit-news` for tips, story ideas, and announcements, emailed to the newsroom at news@firelandscurrent.com
+- A Contact form at `/contact` for general questions and feedback, emailed to contact@firelandscurrent.com
+- Both forms are open to everyone, protected by Cloudflare Turnstile, and linked from the footer and the sitemap. Replies go straight to the sender
+
+### Changed
+
+- The privacy policy describes the contact forms and Turnstile
+
 ## [1.7.0] - 2026-09-28
 
 ### Added

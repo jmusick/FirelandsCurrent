@@ -16,6 +16,8 @@ declare namespace Cloudflare {
     BETTER_AUTH_SECRET: string;
     SITE_URL: string;
     GA_MEASUREMENT_ID?: string;
+    TURNSTILE_SITE_KEY: string;
+    TURNSTILE_SECRET_KEY: string;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
     FACEBOOK_CLIENT_ID?: string;

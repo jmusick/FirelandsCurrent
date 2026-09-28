@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import InboxForm from '../components/InboxForm.astro';
+---
+<BaseLayout title="Submit news" description="Send a news tip, story idea, or press release to the Firelands Current newsroom.">
+  <span class="eyebrow">Newsroom</span>
+  <h1>Submit news</h1>
+  <p class="lede">Know something happening in Sandusky or the Firelands? Send us a tip, a story idea, or an announcement. It goes straight to our newsroom, and we'll email you if we have questions. Include dates, places, and names where you can.</p>
+  <InboxForm kind="news" subjectLabel="Headline or topic" bodyLabel="What should we know?" submitLabel="Send news tip" />
+  <p>You can also write to <a href="mailto:news@firelandscurrent.com">news@firelandscurrent.com</a>.</p>
+</BaseLayout>
