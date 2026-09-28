@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.11.0] - 2026-09-28
+
+### Added
+
+- Terms of Service at `/terms`, linked from the site footer and the registration page. It covers accounts, community posting and moderation, advertising, and the limits of our liability
+
 ## [1.10.3] - 2026-09-28
 
 ### Added
