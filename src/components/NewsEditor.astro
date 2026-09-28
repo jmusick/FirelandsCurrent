@@ -46,6 +46,7 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
       <button type="button" class="button secondary small" id="lead-remove" hidden={!lead}><X />Remove</button>
     </div>
   </div>
+  <label class="check"><input type="checkbox" name="featured" value="1" checked={values.featured} /><span>Feature on the front page <span class="hint">Shows this story as the large lead once it's published, replacing the current featured story. Leave unchecked and the newest story leads.</span></span></label>
   <label>Story <span class="hint">Markdown: blank line between paragraphs, ## for subheads, &gt; for pull quotes. Add images with the picture button, or drag or paste one in; an image on its own line shows with its caption and credit.</span><textarea id="body" name="body" style="min-height:420px">{values.body}</textarea></label>
   <div class="actions">
     <label class="status">Status
@@ -168,6 +169,8 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
   .hint { font-weight: 400; color: #687a7d; font-size: .82rem; }
   .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
   .form :global(select) { width: 100%; padding: .8rem .85rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; font: inherit; }
+  .check { display: flex; gap: .6rem; align-items: start; }
+  .check input { margin-top: .3rem; }
   .lead-field { display: grid; gap: .5rem; }
   .field-label { font-weight: 700; font-size: .9rem; }
   .lead-preview { display: flex; gap: .9rem; align-items: center; padding: .6rem; border: 1px solid #d9dfda; border-radius: 4px; background: #fffdfa; }

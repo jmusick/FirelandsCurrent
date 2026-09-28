@@ -41,6 +41,7 @@ export const leadMedia = (a: LeadImage) => a.lead_key
 
 export type AdminArticle = Omit<Article, 'published_at' | keyof LeadImage> & {
   lead_media_id: string | null;
+  featured: number;
   status: ArticleStatus;
   published_at: number | null;
   updated_at: number;
@@ -61,6 +62,20 @@ export async function listArticles(page = 0, section?: Section, pageSize = 20): 
   return result.results;
 }
 
+/** The front page: the featured story if one is published, otherwise the newest, then the next newest after it. */
+export async function frontPageArticles(others = 4): Promise<{ lead: Article | null; more: Article[] }> {
+  const result = await env.DB.prepare(`
+    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS}
+    FROM news_articles a LEFT JOIN media m ON m.id = a.lead_media_id
+    WHERE a.status = 'published'
+    ORDER BY a.featured DESC, a.published_at DESC
+    LIMIT ?
+  `).bind(others + 1).all<Article>();
+  const [lead = null, ...rest] = result.results;
+  // A featured story can be older than the rest, so put the remaining stories back in date order.
+  return { lead, more: rest.sort((a, b) => b.published_at - a.published_at) };
+}
+
 export async function getArticle(slug: string): Promise<Article | null> {
   return env.DB.prepare(`
     SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS}
@@ -71,7 +86,7 @@ export async function getArticle(slug: string): Promise<Article | null> {
 
 export async function listAdminArticles(): Promise<AdminArticle[]> {
   const result = await env.DB.prepare(`
-    SELECT id, slug, headline, summary, body, section, community, byline, lead_media_id, status, published_at, updated_at
+    SELECT id, slug, headline, summary, body, section, community, byline, lead_media_id, featured, status, published_at, updated_at
     FROM news_articles
     ORDER BY COALESCE(published_at, updated_at) DESC
   `).all<AdminArticle>();
@@ -80,7 +95,7 @@ export async function listAdminArticles(): Promise<AdminArticle[]> {
 
 export async function getAdminArticle(id: string): Promise<AdminArticle | null> {
   return env.DB.prepare(`
-    SELECT id, slug, headline, summary, body, section, community, byline, lead_media_id, status, published_at, updated_at
+    SELECT id, slug, headline, summary, body, section, community, byline, lead_media_id, featured, status, published_at, updated_at
     FROM news_articles
     WHERE id = ?
   `).bind(id).first<AdminArticle>();

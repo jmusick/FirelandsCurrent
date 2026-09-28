@@ -2,6 +2,21 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.9.0] - 2026-09-28
+
+### Added
+
+- Editors can feature a story on the front page with a **Feature on the front page** checkbox in the story editor. The featured story is the large lead until another story is featured, and only one story is featured at a time. With none featured, the newest story still leads. The admin story list marks the featured story
+- Five new Sandusky stories from City of Sandusky announcements, each linking to its source
+
+### Changed
+
+- The large front-page story has a **Read the full story** link under its byline
+
+### Database
+
+- Migration `0013_featured_story.sql` adds a `featured` flag to `news_articles`. Apply it before deploying
+
 ## [1.8.0] - 2026-09-28
 
 ### Added

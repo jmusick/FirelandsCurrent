@@ -88,6 +88,8 @@ Images are uploaded from the library page or straight from the story editor: the
 
 In a story, an image on a line of its own shows as a figure with its caption and credit. Stories can only show library images: an image linked from another site shows as its alt text instead. Each story can also have a **lead image**, shown above the story, with it on the front page and in the news list, and as the preview image when the story is shared on social media.
 
+The front page leads with the newest published story unless an editor ticks **Feature on the front page** in the story editor. The featured story stays the large lead until another story is featured (which un-features it) or it is unticked or unpublished; the four newest other stories fill the list beside it. Only one story is featured at a time.
+
 An image’s page lists every story, ad and event that uses it, its details and its history. Images in use can’t be deleted; deleting a story, ad or event leaves its images in the library. Uploads, edits and deletions are recorded in the audit log.
 
 Files are stored in the `MEDIA` R2 bucket under `library/` and served from `/media/…` with long-lived caching, so a replaced image gets a new address rather than changing in place.

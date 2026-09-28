@@ -2,10 +2,9 @@
 import AdSlot from '../components/AdSlot.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { CATEGORIES, fmtDay, fmtHours, listEvents, today } from '../lib/events';
-import { SECTIONS, leadMedia, listArticles } from '../lib/news';
+import { SECTIONS, frontPageArticles, leadMedia } from '../lib/news';
 
-const [lead, ...rest] = await listArticles(0, undefined, 5);
-const more = rest.slice(0, 4);
+const { lead, more } = await frontPageArticles();
 const leadImage = lead ? leadMedia(lead) : null;
 const events = (await listEvents({}, 0, 4)).slice(0, 4);
 const now = today();
@@ -18,6 +17,7 @@ const now = today();
       <h1 style="margin-top:.4rem"><a href={`/news/${lead.slug}`} style="text-decoration:none;color:inherit">{lead.headline}</a></h1>
       <p class="lede" style="margin-top:0">{lead.summary}</p>
       <p class="meta">By {lead.byline} · {new Date(lead.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>
+      <p class="read-more"><a href={`/news/${lead.slug}`}>Read the full story →</a></p>
     </article>
     <div style="border-top:3px solid #173d4a;min-width:0">
       {more.map((article) => <article style="padding:1rem 0;border-bottom:1px solid #c9d1cd"><span class="eyebrow">{SECTIONS[article.section]}</span><h3 style="margin:.3rem 0;font-size:1.1rem"><a href={`/news/${article.slug}`} style="text-decoration:none;color:inherit">{article.headline}</a></h3><p class="meta" style="margin:0">{article.community} · {new Date(article.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p></article>)}
@@ -50,6 +50,7 @@ const now = today();
 
 <style>
   .front { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 2.5rem; padding-bottom: 2.5rem; border-bottom: 1px solid #c9d1cd; }
+  .read-more { margin: .9rem 0 0; font-weight: 700; }
   .front-image img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; background: #ecf0ec; margin-bottom: 1.1rem; }
   .home-billboard { padding: 2rem 0 0; }
   .coming-up { padding-top: 2.5rem; }
