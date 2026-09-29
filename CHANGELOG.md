@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.14.1] - 2026-09-28
+
+### Changed
+
+- Standardized admin inputs, selects, textareas, and buttons with consistent sizing and focus styling
+
 ## [1.14.0] - 2026-09-28
 
 ### Added
