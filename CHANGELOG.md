@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.14.0] - 2026-09-28
+
+### Added
+
+- The homepage has a block for each news section (Local News, Government, Business, Schools, Community, Outdoors) showing its three newest headlines, with a link to the full section. Sections with no stories are hidden
+
+### Changed
+
+- The homepage rail ad now sits under the lead story, so the lead and the newest-stories list end at about the same height
+
 ## [1.13.0] - 2026-09-28
 
 ### Added

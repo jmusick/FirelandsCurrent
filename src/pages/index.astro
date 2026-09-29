@@ -2,9 +2,11 @@
 import AdSlot from '../components/AdSlot.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { CATEGORIES, fmtDay, fmtHours, listEvents, today } from '../lib/events';
-import { SECTIONS, frontPageArticles, leadMedia } from '../lib/news';
+import { SECTIONS, articlesBySection, frontPageArticles, leadMedia } from '../lib/news';
 
 const { lead, more } = await frontPageArticles();
+// Only the lead is left out: the rail is a newest-first list, and skipping it would leave sections short.
+const sections = await articlesBySection(3, lead ? [lead.id] : []);
 const leadImage = lead ? leadMedia(lead) : null;
 const events = (await listEvents({}, 0, 4)).slice(0, 4);
 const now = today();
@@ -18,11 +20,11 @@ const now = today();
       <p class="lede" style="margin-top:0">{lead.summary}</p>
       <p class="meta">By {lead.byline} · {new Date(lead.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>
       <p class="read-more"><a href={`/news/${lead.slug}`}>Read the full story →</a></p>
+      <AdSlot placement="home-rail" class="home-rail" />
     </article>
     <div style="border-top:3px solid #173d4a;min-width:0">
       {more.map((article) => <article style="padding:1rem 0;border-bottom:1px solid #c9d1cd"><span class="eyebrow">{SECTIONS[article.section]}</span><h3 style="margin:.3rem 0;font-size:1.1rem"><a href={`/news/${article.slug}`} style="text-decoration:none;color:inherit">{article.headline}</a></h3><p class="meta" style="margin:0">{article.community} · {new Date(article.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p></article>)}
       <p><a href="/news">All the latest news →</a></p>
-      <AdSlot placement="home-rail" class="home-rail" />
     </div>
   </section> : <section style="max-width:850px;padding:2.5rem 0 3rem;border-bottom:1px solid #c9d1cd">
     <span class="eyebrow">A new local newspaper</span>
@@ -41,6 +43,15 @@ const now = today();
       </article>)}
     </div>
   </section>}
+  {sections.length > 0 && <div class="sections">
+    {sections.map(({ section, articles }) => <section class="news-section" aria-labelledby={`sec-${section}`}>
+      <div class="news-section-head"><h2 id={`sec-${section}`}>{SECTIONS[section]}</h2><a href={`/news?section=${section}`}>More {SECTIONS[section]} →</a></div>
+      {articles.map((a) => <article>
+        <h3><a href={`/news/${a.slug}`}>{a.headline}</a></h3>
+        <p class="meta">{a.community} · {new Date(a.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p>
+      </article>)}
+    </section>)}
+  </div>}
   <section style="padding-top:2.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem">
     <div class="card"><span class="eyebrow">Local reporting</span><h2>News with a local address</h2><p class="muted">Coverage begins with Sandusky and extends across roughly 50 miles of the Firelands region.</p><a href="/news">Read the news →</a></div>
     <div class="card"><span class="eyebrow">Calendar</span><h2>Local events</h2><p class="muted">Concerts, festivals, markets and public meetings around Sandusky and the Firelands.</p><a href="/events">See what’s happening →</a></div>
@@ -62,6 +73,15 @@ const now = today();
   .coming-up h3 { margin: .35rem 0; font-size: 1.1rem; }
   .coming-up h3 a { text-decoration: none; color: inherit; }
   .coming-up .meta { margin: 0; }
+  .sections { padding-top: 2.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem 2.5rem; }
+  .news-section { min-width: 0; }
+  .news-section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; border-bottom: 3px solid #173d4a; }
+  .news-section-head h2 { margin: 0 0 .5rem; }
+  .news-section-head a { font-size: .9rem; }
+  .news-section article { padding: .9rem 0; border-bottom: 1px solid #c9d1cd; }
+  .news-section h3 { margin: 0 0 .3rem; font-size: 1.1rem; }
+  .news-section h3 a { text-decoration: none; color: inherit; }
+  .news-section .meta { margin: 0; }
   :global(.home-rail) { margin-top: 1.5rem; }
   @media (max-width: 800px) { .front { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; } }
 </style>

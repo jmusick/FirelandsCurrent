@@ -76,6 +76,22 @@ export async function frontPageArticles(others = 4): Promise<{ lead: Article | n
   return { lead, more: rest.sort((a, b) => b.published_at - a.published_at) };
 }
 
+/** The newest `perSection` stories in each section, skipping `excludeIds` (stories already on the page). Sections with no stories are left out. */
+export async function articlesBySection(perSection = 3, excludeIds: string[] = []): Promise<{ section: Section; articles: Article[] }[]> {
+  const skip = excludeIds.map(() => '?').join(',');
+  const result = await env.DB.prepare(`
+    SELECT * FROM (
+      SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS},
+        ROW_NUMBER() OVER (PARTITION BY a.section ORDER BY a.published_at DESC) AS rank
+      FROM news_articles a LEFT JOIN media m ON m.id = a.lead_media_id
+      WHERE a.status = 'published'${skip ? ` AND a.id NOT IN (${skip})` : ''}
+    ) WHERE rank <= ? ORDER BY published_at DESC
+  `).bind(...excludeIds, perSection).all<Article>();
+  return (Object.keys(SECTIONS) as Section[])
+    .map((section) => ({ section, articles: result.results.filter((a) => a.section === section) }))
+    .filter((group) => group.articles.length > 0);
+}
+
 export async function getArticle(slug: string): Promise<Article | null> {
   return env.DB.prepare(`
     SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS}
