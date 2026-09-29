@@ -12,15 +12,17 @@ interface Props {
   articleId?: string;
   liveUrl?: string | null;
   canDelete?: boolean;
+  submissionId?: string;
 }
 
-const { values, errors, saved = false, articleId, liveUrl, canDelete = false } = Astro.props;
+const { values, errors, saved = false, articleId, liveUrl, canDelete = false, submissionId = '' } = Astro.props;
 const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
 ---
 {errors.length > 0 && <div class="message" role="alert"><strong>Couldn’t save the story.</strong><ul>{errors.map((e) => <li>{e}</li>)}</ul></div>}
 {saved && <p class="message saved" role="status">Story saved.{liveUrl && <> <a href={liveUrl}>View it on the site →</a></>}</p>}
 
 <form method="post" id="story-form" class="form editor">
+  {submissionId && <input type="hidden" name="submission_id" value={submissionId} />}
   <label>Headline <input id="headline" name="headline" value={values.headline} required minlength="8" maxlength="160" /></label>
   <label>URL slug <span class="hint">/news/<span id="slug-preview">{values.slug || '…'}</span></span><input id="slug" name="slug" value={values.slug} maxlength="120" pattern="[a-z0-9-]*" placeholder="Filled in from the headline" /></label>
   <label>Summary <span class="hint">Shown under the headline and in story lists.</span><textarea name="summary" required minlength="20" maxlength="400" style="min-height:90px">{values.summary}</textarea></label>

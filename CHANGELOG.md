@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.15.0] - 2026-09-28
+
+### Added
+
+- News tips are saved for editors to review, mark reviewed, decline, or turn into a story; submitters can request a byline, and signed-in tips link to the submitter's account
+- Submit news is now a main navigation item
+
 ## [1.14.1] - 2026-09-28
 
 ### Changed

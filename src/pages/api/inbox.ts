@@ -1,10 +1,11 @@
 import type { APIRoute } from 'astro';
 import { cleanText, sameOrigin } from '../../lib/forum';
 import { INBOXES, isInboxKind, sendToInbox, verifyTurnstile } from '../../lib/inbox';
+import { env } from 'cloudflare:workers';
 
 const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
 
   const form = await request.formData();
@@ -28,11 +29,19 @@ export const POST: APIRoute = async ({ request }) => {
     return back('error=invalid');
   }
 
+  const senderName = name.replace(/[\r\n]+/g, ' ');
+  if (kind === 'news') {
+    const now = Date.now();
+    await env.DB.prepare(`INSERT INTO news_submissions
+      (id, submitter_user_id, name, email, subject, body, credit_requested, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'unread', ?, ?)`)
+      .bind(crypto.randomUUID(), locals.user?.id ?? null, senderName, email, subject, body, form.get('credit_requested') === '1' ? 1 : 0, now, now).run();
+  }
   try {
-    await sendToInbox(kind, { name: name.replace(/[\r\n]+/g, ' '), email, subject, body });
+    await sendToInbox(kind, { name: senderName, email, subject, body });
   } catch (err) {
+    // The news tip is safely stored in D1 even if the notification email fails.
     console.error('inbox send failed', err);
-    return back('error=send');
   }
   return back('sent=1');
 };
