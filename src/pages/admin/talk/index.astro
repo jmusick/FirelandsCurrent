@@ -69,13 +69,13 @@ const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'm
 </AdminLayout>
 
 <style>
-  .table-wrap { overflow-x: auto; border-top: 3px solid #173d4a; }
+  .table-wrap { overflow-x: auto; border-top: 3px solid var(--deep); }
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: #687a7d; padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; }
-  td { padding: .8rem .6rem; border-bottom: 1px solid #c9d1cd; vertical-align: top; }
-  .title { font-weight: 700; color: #173d4a; text-decoration: none; }
-  a.title:hover { color: #ad5835; text-decoration: underline; }
+  th { text-align: left; font-size: .88rem; color: var(--slate); padding: .8rem .6rem; border-bottom: 1px solid var(--line); }
+  td { padding: .8rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .title { font-weight: 700; color: var(--deep); text-decoration: none; }
+  a.title:hover { color: var(--channel); text-decoration: underline; }
   .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; }
-  .pill.published { background: #e3f1e8; color: #1f5a41; }
-  .pill.hidden { background: #fbeee2; color: #853d26; }
+  .pill.published { background: var(--ok-bg); color: var(--ok); }
+  .pill.hidden { background: var(--alert-bg); color: var(--alert); }
 </style>

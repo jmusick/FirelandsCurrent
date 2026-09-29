@@ -22,9 +22,8 @@ const over = isPast(event);
 ---
 <BaseLayout title={event.title} description={event.summary.slice(0, 155)} image={image && { url: `/media/${image.object_key}`, width: image.width, height: image.height, alt: image.alt }}>
   <script slot="head" type="application/ld+json" set:html={eventJsonLd(event, pageUrl, imageUrl)} />
-  <a href={`/events?category=${event.category}`}>← {CATEGORIES[event.category]} events</a>
   <article class="event">
-    <span class="eyebrow">{CATEGORIES[event.category]} · {event.community}</span>
+    <span class="eyebrow">{event.community}<a class="section" href={`/events?category=${event.category}`}>{CATEGORIES[event.category]}</a></span>
     <h1 class:list={{ struck: cancelled }}>{event.title}</h1>
     {cancelled && <p class="message" role="status"><strong>This event has been cancelled.</strong></p>}
     {!cancelled && over && <p class="notice">This event has already taken place.</p>}
@@ -44,26 +43,29 @@ const over = isPast(event);
     {image && <Fragment set:html={figureHtml(image, { className: 'story-figure', eager: true })} />}
     {details && <div class="story"><Fragment set:html={details} /></div>}
   </article>
-  {thread && <div style="max-width:760px"><Comments thread={thread} path={`/events/${event.slug}`} /><p><a href={`/talk/${thread.id}`}>Also in Talk of the Town →</a></p></div>}
-  <p style="margin-top:2.5rem"><a href="/events">See everything on the calendar →</a></p>
+  {thread && <div style="max-width:760px"><Comments thread={thread} path={`/events/${event.slug}`} /><p><a href={`/talk/${thread.id}`}>Also in Talk of the Town</a></p></div>}
+  <p style="margin-top:2.5rem"><a href="/events">See everything on the calendar</a></p>
 </BaseLayout>
 
 <style>
-  .event { max-width: 760px; margin-top: 1.7rem; }
-  .struck { text-decoration: line-through; text-decoration-thickness: 2px; color: #62767a; }
-  .notice { padding: .6rem .9rem; background: #ecf0ec; border-left: 3px solid #9eb0ae; color: #4d6367; }
-  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem 2rem; margin: 1.5rem 0; padding: 1.1rem 0; border-top: 1px solid #c9d1cd; border-bottom: 1px solid #c9d1cd; }
-  .facts dt { display: flex; align-items: center; gap: .4rem; font-size: .76rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #ad5835; }
-  .facts dt :global(.lucide) { width: 1rem; height: 1rem; }
-  .facts dd { margin: .35rem 0 0; line-height: 1.55; }
+  .event { max-width: 760px; }
+  .event h1 { font-stretch: 66%; line-height: 1; margin-top: .35rem; }
+  .eyebrow a.section { text-decoration: none; }
+  .eyebrow a.section:hover { color: var(--channel); text-decoration: underline; }
+  .struck { text-decoration: line-through; text-decoration-thickness: 2px; color: var(--slate); }
+  .notice { padding: .7rem 1rem; background: var(--shoal); border-left: 4px solid var(--slate); color: #33474c; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.1rem 2rem; margin: 1.5rem 0; padding: 1.2rem 1.3rem; background: var(--shoal); border-top: 3px solid var(--deep); }
+  .facts dt { display: flex; align-items: center; gap: .4rem; font-size: .95rem; font-weight: 700; color: var(--deep); }
+  .facts dt :global(.lucide) { width: 1.05rem; height: 1.05rem; color: var(--channel); }
+  .facts dd { margin: .3rem 0 0; line-height: 1.5; }
   .actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
   .actions .button { display: inline-flex; align-items: center; gap: .45rem; }
   .actions :global(.lucide) { width: 1.1em; height: 1.1em; }
-  .story { line-height: 1.8; font-size: 1.08rem; }
-  .story :global(img) { max-width: 100%; height: auto; border-radius: 4px; }
+  .story { font-family: var(--read); font-size: 1.2rem; line-height: 1.65; max-width: 36em; }
+  .story :global(img) { max-width: 100%; height: auto; }
   .story :global(ul), .story :global(ol) { padding-left: 1.4rem; }
   :global(.story-figure) { margin: 0 0 2rem; }
-  :global(.story-figure img) { display: block; width: 100%; height: auto; border-radius: 4px; background: #ecf0ec; }
-  :global(.story-figure figcaption) { margin-top: .55rem; font-size: .88rem; line-height: 1.5; color: #4d6367; }
-  :global(.story-figure .credit) { color: #687a7d; font-size: .8rem; letter-spacing: .02em; }
+  :global(.story-figure img) { display: block; width: 100%; height: auto; background: var(--shoal); }
+  :global(.story-figure figcaption) { margin-top: .6rem; font-size: .92rem; line-height: 1.45; color: #33474c; }
+  :global(.story-figure .credit) { color: var(--slate); font-size: .85rem; }
 </style>

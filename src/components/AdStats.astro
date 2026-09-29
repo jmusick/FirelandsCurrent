@@ -44,8 +44,8 @@ function chart(key: 'impressions' | 'clicks') {
   return { bars, ticks, xLabels };
 }
 const charts = [
-  { key: 'impressions' as const, title: 'Impressions per day', color: '#007a99', ...chart('impressions') },
-  { key: 'clicks' as const, title: 'Clicks per day', color: '#ad5835', ...chart('clicks') },
+  { key: 'impressions' as const, title: 'Impressions per day', color: '#1c6880', ...chart('impressions') },
+  { key: 'clicks' as const, title: 'Clicks per day', color: '#c77d14', ...chart('clicks') },
 ];
 const busiest = daily.reduce((best, d) => (d.impressions > best.impressions ? d : best), daily[0]);
 ---
@@ -118,24 +118,24 @@ const busiest = daily.reduce((best, d) => (d.impressions > best.impressions ? d 
   .ranges { display: flex; flex-wrap: wrap; gap: .4rem; }
   .stat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
   .stat { display: grid; gap: .3rem; }
-  .stat strong { font: 700 1.9rem 'Libre Baskerville', Georgia, serif; color: #173d4a; letter-spacing: -.03em; }
+  .stat strong { font: 700 1.9rem var(--scan); font-stretch: 72%; color: var(--deep); letter-spacing: -.03em; }
   .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
   .chart { margin: 0; min-width: 0; }
   .chart figcaption { margin-bottom: .6rem; font-size: .92rem; }
   .plot { position: relative; }
   .plot svg { display: block; width: 100%; height: auto; overflow: visible; }
-  .grid { stroke: #e1e6e2; stroke-width: 1; }
-  .grid.base { stroke: #9eb0ae; }
-  .tick { fill: #687a7d; font-size: 11px; font-family: 'DM Sans', sans-serif; }
+  .grid { stroke: var(--line-soft); stroke-width: 1; }
+  .grid.base { stroke: var(--field); }
+  .tick { fill: var(--slate); font-size: 11px; font-family: var(--scan); }
   .hit { fill: transparent; cursor: default; }
   .hit.on { fill: rgba(23, 61, 74, .06); }
-  .tip { position: absolute; top: -.4rem; transform: translate(-50%, -100%); background: #173d4a; color: #fff; font-size: .8rem; padding: .3rem .55rem; border-radius: 3px; white-space: nowrap; pointer-events: none; }
+  .tip { position: absolute; top: -.4rem; transform: translate(-50%, -100%); background: var(--deep); color: #fff; font-size: .8rem; padding: .3rem .55rem; border-radius: 3px; white-space: nowrap; pointer-events: none; }
   .tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; align-items: start; }
   .tables h3 { margin: 0 0 .6rem; font-size: 1rem; }
-  .tables summary { cursor: pointer; font-weight: 700; color: #15596b; }
+  .tables summary { cursor: pointer; font-weight: 700; color: var(--channel); }
   .tables details[open] summary { margin-bottom: .6rem; }
   .stats-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
-  .stats-table th { text-align: left; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: #687a7d; padding: .4rem .3rem; border-bottom: 1px solid #c9d1cd; }
-  .stats-table td { padding: .45rem .3rem; border-bottom: 1px solid #e1e6e2; }
+  .stats-table th { text-align: left; font-size: .88rem; color: var(--slate); padding: .4rem .3rem; border-bottom: 1px solid var(--line); }
+  .stats-table td { padding: .45rem .3rem; border-bottom: 1px solid var(--line-soft); }
   .stats-table th:not(:first-child), .stats-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
 </style>

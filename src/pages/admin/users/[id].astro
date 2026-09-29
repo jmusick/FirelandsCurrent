@@ -234,38 +234,38 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
 <style>
   .headline-meta { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: -.4rem; }
   .headline-meta code { overflow-wrap: anywhere; }
-  .message.ok { border-color: #8fbfa2; color: #1f5a41; background: #eef7f1; }
-  .banner { display: flex; justify-content: space-between; align-items: start; gap: 1rem; flex-wrap: wrap; border-color: #d69f80; background: #fff4ec; margin: 1rem 0; }
+  .message.ok { border-color: var(--ok-line); color: var(--ok); background: var(--ok-bg); }
+  .banner { display: flex; justify-content: space-between; align-items: start; gap: 1rem; flex-wrap: wrap; border-color: var(--alert-line); background: var(--alert-bg); margin: 1rem 0; }
   .grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1.25rem; margin-top: 1.25rem; align-items: start; }
   .col { display: grid; gap: 1.25rem; min-width: 0; }
   .card h2 { margin: 0 0 1rem; font-size: 1.15rem; }
   .form label.check { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
   .form label.check input { width: auto; }
   .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
-  .pill.active { background: #e3f1e8; color: #1f5a41; }
-  .pill.suspended { background: #fbeee2; color: #853d26; }
-  .pill.member { background: #ecf0ec; color: #62767a; }
-  .pill.owner { background: #fbeee2; color: #853d26; margin-left: .35rem; }
+  .pill.active { background: var(--ok-bg); color: var(--ok); }
+  .pill.suspended { background: var(--alert-bg); color: var(--alert); }
+  .pill.member { background: var(--shoal-2); color: var(--slate); }
+  .pill.owner { background: var(--alert-bg); color: var(--alert); margin-left: .35rem; }
   ul.memberships { list-style: none; margin: 0; padding: 0; }
-  ul.memberships li { display: flex; justify-content: space-between; align-items: start; gap: .75rem; padding: .6rem 0; border-top: 1px solid #e1e6e2; }
+  ul.memberships li { display: flex; justify-content: space-between; align-items: start; gap: .75rem; padding: .6rem 0; border-top: 1px solid var(--line-soft); }
   ul.memberships li:first-child { border-top: 0; padding-top: 0; }
-  .biz { font-weight: 700; color: #173d4a; }
+  .biz { font-weight: 700; color: var(--deep); }
   .biz-row { display: grid; grid-template-columns: 1fr 1.5fr; gap: .75rem; }
-  .pill.role-admin { background: #173d4a; color: #fff; }
-  .pill.role-editor, .pill.role-moderator { background: #e2ecef; color: #173d4a; }
-  .counts { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; margin: 0 0 1rem; font-size: .9rem; color: #62767a; }
-  .counts strong { color: #173d4a; }
+  .pill.role-admin { background: var(--deep); color: #fff; }
+  .pill.role-editor, .pill.role-moderator { background: var(--shoal); color: var(--deep); }
+  .counts { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; margin: 0 0 1rem; font-size: .9rem; color: var(--slate); }
+  .counts strong { color: var(--deep); }
   ul.posts, ul.log, ul.sessions, ul.plain { list-style: none; margin: 0; padding: 0; }
-  ul.posts li, ul.log li, ul.sessions li { padding: .7rem 0; border-top: 1px solid #e1e6e2; }
+  ul.posts li, ul.log li, ul.sessions li { padding: .7rem 0; border-top: 1px solid var(--line-soft); }
   ul.posts li:first-child, ul.log li:first-child, ul.sessions li:first-child { border-top: 0; padding-top: 0; }
   ul.posts p { margin: .3rem 0 0; font-size: .92rem; }
   ul.plain li { padding: .25rem 0; }
   ul.sessions li { display: flex; justify-content: space-between; align-items: start; gap: .75rem; }
-  details summary { cursor: pointer; font-weight: 700; color: #15596b; margin-top: .8rem; }
-  .button.warn { background: #ad5835; border-color: #ad5835; }
-  .button.warn:hover { background: #8f4629; }
+  details summary { cursor: pointer; font-weight: 700; color: var(--channel); margin-top: .8rem; }
+  .button.warn { background: var(--warn); border-color: var(--warn); }
+  .button.warn:hover { background: var(--warn-2); border-color: var(--warn-2); }
   .button:disabled { opacity: .5; cursor: not-allowed; }
-  .danger { border-color: #e2b9a3; }
-  .danger h2 { color: #853d26; }
+  .danger { border-color: var(--alert-line); }
+  .danger h2 { color: var(--alert); }
   @media (max-width: 1000px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 </style>

@@ -54,7 +54,7 @@ const sections = list(record.sections).filter(isSection).map((s) => SECTIONS[s])
   .overview { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1.5rem; align-items: start; }
   .preview { display: grid; gap: .4rem; }
   dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .6rem 1.2rem; margin: 0; }
-  dt { font-weight: 700; color: #173d4a; font-size: .9rem; }
+  dt { font-weight: 700; color: var(--deep); font-size: .9rem; }
   dd { margin: 0; overflow-wrap: anywhere; }
   @media (max-width: 800px) { .overview { grid-template-columns: minmax(0, 1fr); } dl { grid-template-columns: minmax(0, 1fr); gap: .2rem; } dd { margin-bottom: .6rem; } }
 </style>

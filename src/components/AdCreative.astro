@@ -43,8 +43,8 @@ const alt = `${ad.advertiser}: ${ad.headline}`;
   .ad-text { display: grid; align-content: center; gap: .25rem; height: 100%; padding: 1rem 1.2rem; }
   .has-desktop .ad-text { display: none; }
   .ad-creative:hover .ad-cta { filter: brightness(1.08); text-decoration: underline; }
-  .ad-advertiser { font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ad-accent); }
-  .ad-headline { font: 700 1.25rem/1.2 'Libre Baskerville', Georgia, serif; letter-spacing: -.03em; }
+  .ad-advertiser { font-size: .8rem; font-weight: 700; color: var(--ad-accent); }
+  .ad-headline { font: 700 1.25rem/1.1 var(--scan); font-stretch: 78%; }
   .ad-body { font-size: .88rem; line-height: 1.4; opacity: .88; }
   .ad-cta { justify-self: start; margin-top: .35rem; background: var(--ad-accent); color: var(--ad-bg); font-weight: 700; font-size: .82rem; padding: .4rem .75rem; border-radius: 3px; }
 
@@ -92,6 +92,6 @@ const alt = `${ad.advertiser}: ${ad.headline}`;
 
   .ad-native-body h2 { margin: .35rem 0; }
   .ad-native-body h2 a { text-decoration: none; color: inherit; }
-  .ad-native-body h2 a:hover { color: #ad5835; }
+  .ad-native-body h2 a:hover { color: var(--channel, #ad5835); }
   .ad-native-body p { max-width: 790px; margin: .4rem 0 0; }
 </style>

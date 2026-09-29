@@ -154,30 +154,30 @@ const archived = business.status === 'archived';
 </AdminLayout>
 
 <style>
-  .message.ok { border-color: #8fbfa2; color: #1f5a41; background: #eef7f1; }
+  .message.ok { border-color: var(--ok-line); color: var(--ok); background: var(--ok-bg); }
   .grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1.25rem; margin-top: 1.25rem; align-items: start; }
   .col { display: grid; gap: 1.25rem; min-width: 0; }
   .card h2 { margin: 0 0 1rem; font-size: 1.15rem; }
   .card h3 { margin: 0; font-size: 1rem; }
   .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap; margin-left: .35rem; }
-  .pill.owner { background: #fbeee2; color: #853d26; }
-  .pill.staff { background: #e2ecef; color: #173d4a; }
-  .name { font-weight: 700; color: #173d4a; text-decoration: none; }
-  .name:hover { color: #ad5835; text-decoration: underline; }
+  .pill.owner { background: var(--alert-bg); color: var(--alert); }
+  .pill.staff { background: var(--shoal); color: var(--deep); }
+  .name { font-weight: 700; color: var(--deep); text-decoration: none; }
+  .name:hover { color: var(--channel); text-decoration: underline; }
   ul.members, ul.log { list-style: none; margin: 0; padding: 0; }
-  ul.members li, ul.log li { padding: .75rem 0; border-top: 1px solid #e1e6e2; }
+  ul.members li, ul.log li { padding: .75rem 0; border-top: 1px solid var(--line-soft); }
   ul.members li:first-child, ul.log li:first-child { border-top: 0; padding-top: 0; }
   ul.members li { display: flex; justify-content: space-between; align-items: start; gap: .75rem; flex-wrap: wrap; }
   .who { min-width: 0; overflow-wrap: anywhere; }
-  details summary { cursor: pointer; font-weight: 700; color: #15596b; }
+  details summary { cursor: pointer; font-weight: 700; color: var(--channel); }
   .danger details summary { margin-top: .8rem; }
   form.inline { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
-  form.inline select, form.inline input { padding: .45rem .6rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; font: inherit; font-size: .9rem; }
-  .add { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #c9d1cd; }
+  form.inline select, form.inline input { padding: .45rem .6rem; border: 1px solid var(--field); border-radius: 3px; background: #fff; font: inherit; font-size: .9rem; }
+  .add { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
   .add-row { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: .75rem; }
-  .button.warn { background: #ad5835; border-color: #ad5835; }
-  .button.warn:hover { background: #8f4629; }
-  .danger { border-color: #e2b9a3; }
+  .button.warn { background: var(--warn); border-color: var(--warn); }
+  .button.warn:hover { background: var(--warn-2); border-color: var(--warn-2); }
+  .danger { border-color: var(--alert-line); }
   @media (max-width: 1000px) { .grid { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 600px) { .add-row { grid-template-columns: minmax(0, 1fr); } }
 </style>

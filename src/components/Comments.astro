@@ -57,7 +57,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'm
       {reply.removed
         ? <p class="meta" style="margin:.3rem 0">[removed by a moderator]</p>
         : <>
-          <p class="meta"><strong>{reply.author_name}</strong> · {fmt(reply.created_at)}</p>
+          <p class="meta"><strong>{reply.author_name}</strong>, {fmt(reply.created_at)}</p>
           <p class="text">{reply.body}</p>
           <div class="actions">
             {reply.depth < MAX_REPLY_DEPTH && (user
@@ -73,21 +73,24 @@ const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'm
 
 <style>
   .comments { margin-top: 2.5rem; scroll-margin-top: 1rem; }
-  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; border-top: 3px solid #173d4a; padding-top: 1rem; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; border-top: 3px solid var(--deep); padding-top: .8rem; }
   .head h2 { margin: 0; }
-  .sorts { display: flex; gap: 1rem; font-size: .9rem; }
-  .sorts strong { color: #173d4a; }
+  .sorts { display: flex; gap: 1rem; font-size: .95rem; }
+  .sorts strong { color: var(--deep); }
   .compose { margin: 1.2rem 0 1.8rem; }
-  .comment { display: flex; gap: .8rem; padding: .8rem 0 .8rem calc(min(var(--depth), 5) * 1.4rem); border-top: 1px solid #d9dfda; scroll-margin-top: 1rem; }
-  .comment[style*='--depth:0'] { border-top-color: #b9c4bf; }
+  .compose .card { background: var(--shoal); border: 0; }
+  /* Replies step in from their parent; the left rule shows which conversation they belong to. */
+  .comment { display: flex; gap: .8rem; padding: .9rem 0 .9rem calc(min(var(--depth), 5) * 1.4rem); border-top: 1px solid var(--line-soft); scroll-margin-top: 1rem; }
+  .comment[style*='--depth:0'] { border-top-color: var(--line); }
   .vote-gap { min-width: 2.4rem; }
-  .actions { display: flex; gap: 1.2rem; align-items: flex-start; flex-wrap: wrap; font-size: .85rem; }
-  .actions > a { color: #687a7d; }
-  .comment:target { background: #f6f3ea; }
+  .actions { display: flex; gap: 1.2rem; align-items: flex-start; flex-wrap: wrap; font-size: .9rem; }
+  .actions > a { color: var(--slate); }
+  .comment:target { background: var(--shoal-2); box-shadow: -4px 0 0 var(--sunset); }
   @media (max-width: 600px) { .comment { padding-left: calc(min(var(--depth), 5) * .7rem); gap: .4rem; } }
   .content { min-width: 0; flex: 1; }
-  .content .meta { margin: .1rem 0 .4rem; }
-  .text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; margin: 0 0 .5rem; }
-  summary { cursor: pointer; font-size: .85rem; color: #687a7d; }
+  .content .meta { margin: .1rem 0 .35rem; }
+  .content .meta strong { color: var(--ink); font-weight: 650; }
+  .text { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--read); font-size: 1.1rem; line-height: 1.55; margin: 0 0 .5rem; }
+  summary { cursor: pointer; font-size: .9rem; color: var(--slate); }
   .pages { display: flex; justify-content: space-between; align-items: center; margin: 1.4rem 0; }
 </style>

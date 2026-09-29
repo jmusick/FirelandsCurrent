@@ -16,7 +16,6 @@ const businesses = await portalBusinesses(user.id);
 const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
 ---
 <BaseLayout title="Your account">
-  <span class="eyebrow">Reader account</span>
   <h1>Your account</h1>
   {errorMessage && <p class="message" role="alert" style="max-width:650px">{errorMessage}</p>}
   {Astro.url.searchParams.get('verified') && <p class="message" role="status" style="max-width:650px">Your email address is confirmed. Welcome to Firelands Current.</p>}

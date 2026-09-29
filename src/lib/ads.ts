@@ -111,7 +111,7 @@ const SAMPLE_ADS: Ad[] = [
 const HOUSE_AD: Ad = {
   id: 'house-advertise', businessId: null, advertiser: 'Firelands Current', kind: 'house', images: {},
   headline: 'Reach your neighbors here', body: 'Put your business in front of readers across Sandusky and the Firelands.', cta: 'Advertise with us',
-  href: '/advertise', theme: { bg: '#f7f5ef', fg: '#173d4a', accent: '#ad5835' }, placements: [], sections: [], weight: 1,
+  href: '/advertise', theme: { bg: '#dceaec', fg: '#173d4a', accent: '#1c6880' }, placements: [], sections: [], weight: 1,
 };
 
 export type AdRow = {

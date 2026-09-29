@@ -10,17 +10,24 @@ if (!thread) return new Response('Discussion not found', { status: 404 });
 const path = `/talk/${thread.id}`;
 ---
 <BaseLayout title={thread.title} description={thread.body.slice(0, 155)}>
-  <a href="/talk">← Talk of the Town</a>
-  <article id="discussion" class="card" style="margin-top:1.7rem">
-    <span class="eyebrow">{KIND_LABELS[thread.kind]}</span>
+  <article id="discussion" class="discussion">
+    <span class="eyebrow"><a href="/talk">Talk of the Town</a><span class="section">{KIND_LABELS[thread.kind]}</span></span>
     <h1>{thread.title}</h1>
     {thread.source_path
       ? <p class="meta">Comments on {thread.kind === 'event' ? 'an event' : 'a story'} published {new Date(thread.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
-      : <p class="meta">Started by {thread.author_name} · {new Date(thread.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
-    <p style="white-space:pre-wrap;line-height:1.7;font-size:1.05rem">{thread.body}</p>
-    {thread.source_path && <p><a class="button secondary small" href={thread.source_path}>{thread.kind === 'event' ? 'See the event' : 'Read the story'} →</a></p>}
+      : <p class="meta">Started by {thread.author_name}, {new Date(thread.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
+    <p class="body">{thread.body}</p>
+    {thread.source_path && <p><a class="button secondary small" href={thread.source_path}>{thread.kind === 'event' ? 'See the event' : 'Read the story'}</a></p>}
     <VoteButtons kind="thread" id={thread.id} score={thread.score} myVote={thread.my_vote} returnTo={path} signedIn={!!user} />
     {user && user.id !== thread.author_id && <details><summary>Report this discussion</summary><form method="post" action="/api/talk/reports" class="form" style="margin-top:.8rem"><input type="hidden" name="kind" value="thread" /><input type="hidden" name="id" value={thread.id} /><input type="hidden" name="returnTo" value={path} /><label>Why are you reporting it? <textarea name="reason" required minlength="10" maxlength="500" style="min-height:90px"></textarea></label><button class="button secondary small" type="submit">Send report</button></form></details>}
   </article>
   <Comments thread={thread} path={path} />
 </BaseLayout>
+
+<style>
+  .discussion, :global(#comments) { max-width: 760px; }
+  .eyebrow a { text-decoration: none; }
+  .eyebrow a:hover { text-decoration: underline; }
+  .body { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--read); font-size: 1.2rem; line-height: 1.6; max-width: 36em; }
+  summary { cursor: pointer; font-size: .9rem; color: var(--slate); margin-top: .8rem; }
+</style>

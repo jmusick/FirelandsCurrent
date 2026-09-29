@@ -2,6 +2,7 @@
 import { BuildingComplex, CalendarDays, ExternalLink, Images, LayoutDashboard, Megaphone, MessagesSquare, Newspaper, Users } from '@lucide/astro';
 import { ADMIN, sectionsFor, type AdminSectionKey } from '../lib/admin';
 import { ROLE_LABELS } from '../lib/staff';
+import '../styles/tokens.css';
 
 // One icon per admin section; a section added to ADMIN won't type-check until it has one here.
 const SECTION_ICONS = {
@@ -37,61 +38,66 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <slot name="head" />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap" rel="stylesheet" />
     <style is:global>
-      :root { font-family: 'DM Sans', sans-serif; color: #172f36; background: #f7f5ef; }
+      /* The newsroom's tools use the public site's palette and type, set tighter: this is a place for scanning and acting. */
+      :root { font-family: var(--scan); color: var(--ink); background: var(--fog); }
       * { box-sizing: border-box; }
-      body { margin: 0; }
-      a { color: #15596b; }
+      body { margin: 0; background: var(--fog); }
+      a { color: var(--channel); text-underline-offset: .15em; }
+      :focus-visible { outline: 3px solid var(--sunset); outline-offset: 2px; }
       button, input, textarea, select { font: inherit; }
       button { cursor: pointer; }
-      input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']), select, textarea { min-height: 2.25rem; padding: .5rem .75rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; line-height: 1.2; }
-      input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']):focus, select:focus, textarea:focus { outline: 2px solid #61a9b6; outline-offset: 1px; }
-      h1, h2, h3 { font-family: 'Libre Baskerville', Georgia, serif; color: #173d4a; line-height: 1.2; }
-      h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -.045em; margin: .2rem 0 1rem; }
-      h2 { font-size: 1.35rem; letter-spacing: -.03em; }
-      .eyebrow { color: #ad5835; font-weight: 700; font-size: .76rem; letter-spacing: .15em; text-transform: uppercase; }
+      input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']), select, textarea { min-height: 2.25rem; padding: .5rem .75rem; border: 1px solid var(--field); border-radius: 2px; background: var(--paper); color: var(--ink); line-height: 1.2; }
+      input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']):focus, select:focus, textarea:focus { outline: 3px solid var(--sunset); outline-offset: 0; border-color: var(--deep); }
+      input[type='checkbox'], input[type='radio'] { accent-color: var(--deep); }
+      h1, h2, h3 { font-family: var(--scan); color: var(--deep); font-weight: 700; font-stretch: 75%; line-height: 1.1; letter-spacing: -.005em; }
+      h1 { font-size: clamp(2rem, 4vw, 2.75rem); margin: .2rem 0 1rem; }
+      h2 { font-size: 1.45rem; }
+      .eyebrow { display: inline-block; color: var(--channel); font-weight: 650; font-size: .95rem; font-stretch: 92%; }
       .lucide { flex-shrink: 0; }
-      .button { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.25rem; background: #173d4a; color: white; border: 1px solid #173d4a; border-radius: 3px; padding: .5rem .85rem; line-height: 1.2; text-decoration: none; font-weight: 700; }
-      .button:hover { background: #245668; }
-      .button.secondary { background: transparent; color: #173d4a; }
-      .button.secondary:hover { background: #e9eeea; }
-      .button.small { min-height: 2.25rem; padding: .5rem .7rem; font-size: .85rem; gap: .35rem; }
+      .button { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.25rem; background: var(--deep); color: #fff; border: 1px solid var(--deep); border-radius: 2px; padding: .5rem .85rem; line-height: 1.2; text-decoration: none; font-weight: 650; font-stretch: 92%; }
+      .button:hover { background: var(--deep-2); border-color: var(--deep-2); }
+      .button.secondary { background: var(--paper); color: var(--deep); border-color: var(--line); }
+      .button.secondary:hover { background: var(--shoal); border-color: var(--shoal); }
+      .button.small { min-height: 2.25rem; padding: .5rem .7rem; font-size: .9rem; gap: .35rem; }
       .button .lucide { width: 1.1em; height: 1.1em; }
       .back { display: inline-flex; align-items: center; gap: .3rem; }
       .back .lucide { width: 1em; height: 1em; }
-      h2 .lucide { width: .85em; height: .85em; margin-right: .45rem; color: #ad5835; vertical-align: -.05em; }
-      .card { background: #fffdfa; border: 1px solid #d9dfda; border-radius: 4px; padding: 1.3rem; }
-      .muted { color: #62767a; }
-      .meta { color: #687a7d; font-size: .84rem; }
+      h2 .lucide { width: .85em; height: .85em; margin-right: .45rem; color: var(--channel); vertical-align: -.05em; }
+      .card { background: var(--paper); border: 1px solid var(--line-soft); border-radius: 2px; padding: 1.3rem; }
+      .muted { color: var(--slate); }
+      .meta { color: var(--slate); font-size: .88rem; }
       .form { display: grid; gap: 1rem; }
-      .form label { display: grid; gap: .4rem; font-weight: 700; font-size: .9rem; }
+      .form label { display: grid; gap: .4rem; font-weight: 600; font-size: .95rem; }
       .form input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']), .form textarea, .form select { width: 100%; }
       .form textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
-      .form input:focus, .form textarea:focus, .form select:focus { outline: 2px solid #61a9b6; outline-offset: 1px; }
       .filters input, .filters select { min-height: 2.25rem; }
       .filters input { flex: 1; min-width: 220px; }
       .filters .button { min-height: 2.25rem; padding: .5rem .75rem; font-size: inherit; }
-      .message { padding: .75rem 1rem; border: 1px solid #d69f80; color: #853d26; background: #fff4ec; }
-      .admin-top { background: #173d4a; color: #edf2ed; }
+      .message { padding: .75rem 1rem; border-left: 4px solid var(--alert); color: var(--alert); background: var(--alert-bg); }
+      /* Table headers name their columns in sentence case; the rule under them separates them from the rows. */
+      th { font-stretch: 90%; }
+      .admin-top { background: var(--deep); color: #e6eff0; }
       .admin-top-inner { display: flex; align-items: center; gap: 1rem; padding: .7rem 1.25rem; }
-      .admin-brand { display: inline-flex; align-items: center; gap: .6rem; color: #fff; text-decoration: none; font: 700 1.1rem 'Libre Baskerville', Georgia, serif; letter-spacing: -.04em; }
+      .admin-brand { display: inline-flex; align-items: center; gap: .6rem; color: #fff; text-decoration: none; font: 800 1.45rem/1 var(--scan); font-stretch: 68%; }
       .admin-brand img { width: 1.8rem; height: auto; }
-      .admin-brand small { font: 700 .7rem 'DM Sans', sans-serif; letter-spacing: .15em; text-transform: uppercase; color: #e7a98d; }
-      .admin-top a.plain { display: inline-flex; align-items: center; gap: .35rem; color: #edf2ed; font-size: .85rem; white-space: nowrap; }
+      .admin-brand small { margin-left: .3rem; font-size: .95rem; font-weight: 600; font-stretch: 90%; color: var(--sunset); }
+      .admin-top a.plain { display: inline-flex; align-items: center; gap: .35rem; color: #e6eff0; font-size: .9rem; white-space: nowrap; }
       .admin-top a.plain .lucide { width: .95rem; height: .95rem; }
-      .admin-top .who { margin-left: auto; display: flex; gap: 1rem; align-items: center; font-size: .85rem; }
+      .admin-top .who { margin-left: auto; display: flex; gap: 1.2rem; align-items: center; font-size: .9rem; }
+      .admin-top .role { color: #a9c3c8; }
       .admin-shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 52px); }
-      .admin-side { background: #ecf0ec; border-right: 1px solid #c9d1cd; padding: 1.25rem .75rem; }
-      .admin-side a { display: flex; align-items: center; gap: .65rem; padding: .55rem .75rem; border-radius: 3px; color: #173d4a; text-decoration: none; font-weight: 600; font-size: .92rem; }
-      .admin-side a .lucide { width: 1.1rem; height: 1.1rem; color: #4d6a70; }
-      .admin-side a:hover { background: #dfe6e1; }
-      .admin-side a[aria-current='page'] .lucide { color: #e7a98d; }
-      .admin-side a[aria-current='page'] { background: #173d4a; color: #fff; }
+      .admin-side { background: var(--shoal-2); border-right: 1px solid var(--line-soft); padding: 1.25rem .75rem; }
+      .admin-side a { display: flex; align-items: center; gap: .65rem; padding: .55rem .75rem; border-radius: 2px; color: var(--deep); text-decoration: none; font-weight: 600; font-size: .98rem; font-stretch: 92%; }
+      .admin-side a .lucide { width: 1.1rem; height: 1.1rem; color: var(--slate); }
+      .admin-side a:hover { background: var(--shoal); }
+      .admin-side a[aria-current='page'] { background: var(--deep); color: #fff; }
+      .admin-side a[aria-current='page'] .lucide { color: var(--sunset); }
       .admin-main { padding: 1.75rem clamp(1rem, 3vw, 2.5rem) 4rem; min-width: 0; }
       @media (max-width: 800px) {
         .admin-shell { grid-template-columns: minmax(0, 1fr); }
-        .admin-side { display: flex; gap: .25rem; overflow-x: auto; padding: .5rem; border-right: 0; border-bottom: 1px solid #c9d1cd; }
+        .admin-side { display: flex; gap: .25rem; overflow-x: auto; padding: .5rem; border-right: 0; border-bottom: 1px solid var(--line-soft); }
         .admin-side a { white-space: nowrap; }
         .admin-top .role { display: none; }
       }
@@ -100,7 +106,7 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
   <body>
     <header class="admin-top"><div class="admin-top-inner">
       <a class="admin-brand" href="/admin"><img src="/logo-mark.svg" alt="" width="29" height="29" /><span>Firelands Current <small>Admin</small></span></a>
-      <div class="who"><a class="plain" href="/"><ExternalLink />View site</a><span class="role">{user.name} · {ROLE_LABELS[role]}</span></div>
+      <div class="who"><a class="plain" href="/"><ExternalLink />View site</a><span class="role">{user.name}, {ROLE_LABELS[role]}</span></div>
     </div></header>
     <div class="admin-shell">
       <nav class="admin-side" aria-label="Admin sections">

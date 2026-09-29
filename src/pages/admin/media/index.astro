@@ -63,12 +63,12 @@ const pageUrl = (p: number) => `/admin/media?${new URLSearchParams({ ...(q && { 
 <style>
   .filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.25rem 0 1rem; }
   .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
-  .grid a { display: grid; gap: .25rem; padding: .5rem; border: 1px solid #d9dfda; border-radius: 4px; background: #fffdfa; color: inherit; text-decoration: none; min-width: 0; }
-  .grid a:hover { border-color: #9eb0ae; }
-  .grid img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #ecf0ec; border-radius: 2px; margin-bottom: .2rem; }
-  .name { font-weight: 700; color: #173d4a; font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grid a { display: grid; gap: .25rem; padding: .5rem; border: 1px solid var(--line-soft); border-radius: 4px; background: var(--paper); color: inherit; text-decoration: none; min-width: 0; }
+  .grid a:hover { border-color: var(--field); }
+  .grid img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--shoal-2); border-radius: 2px; margin-bottom: .2rem; }
+  .name { font-weight: 700; color: var(--deep); font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .grid .meta { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .credit { color: #ad5835; }
+  .credit { color: var(--channel); }
   .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; }
   .upload { max-width: 760px; margin-top: 2.5rem; }
   .upload h2 { margin-top: 0; font-size: 1.2rem; }

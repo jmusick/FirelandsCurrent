@@ -2,6 +2,23 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.16.0] - 2026-09-29
+
+### Changed
+
+- New visual design across the site: a dark masthead with a narrow wordmark and today's date, a cool light page, narrow Archivo headlines, and Newsreader for story text, summaries and comments
+- Story and event labels lead with the community, followed by the section or category, in sentence case
+- The homepage's Coming up block shows each event under a large date number in a full-width tinted band; the events calendar marks each day the same way, with today highlighted
+- Talk of the Town lists each discussion with its comment count first
+- News, events and Talk of the Town filters are tabs that scroll sideways on phones; the current section is underlined in the main navigation
+- The footer is reorganized into a link grid; the Home navigation link is gone (the wordmark goes home)
+- The admin panel and business dashboards use the same colors and type as the public site, with sentence-case labels
+- The built-in "Advertise with us" ad uses the new colors
+
+### Fixed
+
+- Banner upload fields on the ad form no longer overlap when library image names are long
+
 ## [1.15.0] - 2026-09-28
 
 ### Added

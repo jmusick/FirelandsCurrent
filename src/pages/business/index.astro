@@ -17,6 +17,6 @@ if (businesses.length === 1) return Astro.redirect(`/business/${businesses[0].id
 
 <style>
   .picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-  .picker a { display: grid; gap: .4rem; text-decoration: none; color: #173d4a; }
-  .picker a:hover { border-color: #9eb0ae; }
+  .picker a { display: grid; gap: .4rem; text-decoration: none; color: var(--deep); }
+  .picker a:hover { border-color: var(--field); }
 </style>

@@ -2,6 +2,7 @@
 import { env } from 'cloudflare:workers';
 import AdSlot from '../components/AdSlot.astro';
 import { pageTakesAds } from '../lib/ads';
+import '../styles/tokens.css';
 
 interface Props {
   title: string;
@@ -16,6 +17,9 @@ const pageUrl = new URL(Astro.url.pathname, Astro.url.origin).href;
 const user = Astro.locals.user;
 const staffRole = Astro.locals.staffRole;
 const showAds = pageTakesAds(Astro.url.pathname);
+// The masthead carries the day's date, as a printed paper does, in the region's own time zone.
+const dateline = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' });
+const current = (prefix: string) => Astro.url.pathname === prefix || Astro.url.pathname.startsWith(`${prefix}/`) ? 'page' : undefined;
 // Only production builds report to Google Analytics, so local development doesn't count as traffic.
 const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID ?? '') ? env.GA_MEASUREMENT_ID : null;
 ---
@@ -54,68 +58,103 @@ const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <slot name="head" />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap" rel="stylesheet" />
     <style is:global>
-      :root { font-family: 'DM Sans', sans-serif; color: #172f36; background: #f7f5ef; }
+      :root { font-family: var(--scan); color: var(--ink); background: var(--fog); }
       * { box-sizing: border-box; }
-      body { margin: 0; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
-      a { color: #15596b; }
-      button, input, textarea { font: inherit; }
+      body { margin: 0; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--fog); }
+      a { color: var(--channel); text-underline-offset: .15em; text-decoration-thickness: 1px; }
+      a:hover { text-decoration-thickness: 2px; }
+      :focus-visible { outline: 3px solid var(--sunset); outline-offset: 2px; }
+      button, input, textarea, select { font: inherit; }
       button { cursor: pointer; }
-      .site-header { background: #f7f5ef; border-bottom: 1px solid #c9d1cd; }
-      .topline { background: #173d4a; color: #edf2ed; font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; }
-      .topline-inner { max-width: 1180px; margin: auto; padding: .55rem 1.25rem; display: flex; justify-content: space-between; gap: 1rem; }
-      .masthead { max-width: 1180px; margin: auto; padding: 1.55rem 1.25rem 1.2rem; display: flex; justify-content: space-between; align-items: end; gap: 1rem; }
-      .brand { display: inline-flex; align-items: center; gap: .85rem; color: #173d4a; text-decoration: none; font: 700 clamp(1.8rem, 5vw, 3.35rem)/1 'Libre Baskerville', Georgia, serif; letter-spacing: -.06em; }
-      .brand-mark { display: block; width: clamp(2.7rem, 5vw, 4rem); height: auto; flex: none; }
-      .brand-text { display: block; }
-      .brand-text span { color: #bc633e; }
-      .masthead p { margin: 0; color: #617277; font-size: .82rem; text-align: right; }
-      .nav { border-top: 1px solid #c9d1cd; }
-      .nav-inner { max-width: 1180px; margin: auto; padding: .75rem 1.25rem; display: flex; flex-wrap: wrap; gap: 1.4rem; align-items: center; }
-      .nav a { text-decoration: none; color: #173d4a; font-weight: 700; font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; }
+
+      .site-header { background: var(--deep); color: #e6eff0; }
+      .masthead { max-width: var(--wrap); margin: auto; padding: 1.6rem 1.25rem 1.2rem; display: flex; justify-content: space-between; align-items: end; gap: 1.5rem; }
+      .brand { display: inline-flex; align-items: center; gap: .9rem; color: #f4f7f7; text-decoration: none; font: 800 clamp(2rem, 6.4vw, 4.4rem)/.9 var(--scan); font-stretch: 68%; letter-spacing: -.015em; }
+      .brand:hover { color: #fff; }
+      .brand-mark { display: block; width: clamp(2.6rem, 5.6vw, 4.2rem); height: auto; flex: none; }
+      .dateline { margin: 0; text-align: right; font-size: .9rem; line-height: 1.4; color: #a9c3c8; }
+      .dateline strong { display: block; color: #f4f7f7; font-weight: 600; font-size: 1rem; }
+      .nav { border-top: 1px solid var(--deep-2); }
+      .nav-inner { max-width: var(--wrap); margin: auto; padding: 0 1.25rem; display: flex; flex-wrap: wrap; gap: 0 1.6rem; align-items: center; }
+      .nav a { display: block; padding: .8rem 0 .65rem; border-bottom: 3px solid transparent; text-decoration: none; color: #d4e4e7; font-weight: 600; font-size: 1rem; font-stretch: 88%; }
+      .nav a:hover { color: #fff; border-bottom-color: #4f8290; }
+      .nav a[aria-current] { color: #fff; border-bottom-color: var(--sunset); }
       .nav .right { margin-left: auto; }
-      .nav a:hover { color: #ad5835; }
-      main { width: 100%; max-width: 1180px; margin: 0 auto; padding: 2rem 1.25rem 5rem; flex: 1 0 auto; }
-      h1, h2, h3 { font-family: 'Libre Baskerville', Georgia, serif; color: #173d4a; line-height: 1.2; }
-      h1 { font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -.055em; margin: .2rem 0 1rem; }
-      h2 { font-size: 1.55rem; letter-spacing: -.03em; }
-      .eyebrow { color: #ad5835; font-weight: 700; font-size: .76rem; letter-spacing: .15em; text-transform: uppercase; }
-      .lede { font-size: 1.15rem; line-height: 1.7; color: #4d6367; max-width: 740px; }
-      .button { display: inline-block; background: #173d4a; color: white; border: 1px solid #173d4a; border-radius: 3px; padding: .8rem 1.1rem; text-decoration: none; font-weight: 700; }
-      .button:hover { background: #245668; }
-      .button.secondary { background: transparent; color: #173d4a; }
-      .button.secondary:hover { background: #e9eeea; }
-      .button.small { padding: .5rem .75rem; font-size: .85rem; }
-      .card { background: #fffdfa; border: 1px solid #d9dfda; border-radius: 4px; padding: 1.4rem; }
-      .muted { color: #62767a; }
-      .meta { color: #687a7d; font-size: .84rem; }
-      .form { max-width: 580px; display: grid; gap: 1rem; }
-      .form label { display: grid; gap: .4rem; font-weight: 700; font-size: .9rem; }
-      .form input, .form textarea { width: 100%; padding: .8rem .85rem; border: 1px solid #9eb0ae; border-radius: 3px; background: #fff; color: #172f36; }
-      .form textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
-      .form input:focus, .form textarea:focus { outline: 2px solid #61a9b6; outline-offset: 1px; }
-      .message { padding: .75rem 1rem; border: 1px solid #d69f80; color: #853d26; background: #fff4ec; }
-      .ad-band { border-bottom: 1px solid #e0e4df; padding: .9rem 1.25rem; background: #f2f1ea; }
-      .ad-band + main { padding-top: 1.6rem; }
-      .site-footer { border-top: 1px solid #c9d1cd; background: #ecf0ec; color: #53696b; padding: 2rem 1.25rem; }
-      .site-footer-inner { max-width: 1180px; margin: auto; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .85rem; }
-      @media(max-width: 700px) { .masthead { display: block; } .masthead p { text-align: left; margin-top: .65rem; } .topline-inner span:last-child { display: none; } .nav .right { margin-left: 0; } }
-      @media(max-width: 440px) { .brand { gap: .55rem; font-size: 1.4rem; } .brand-mark { width: 2.5rem; } }
+
+      main { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 2.25rem 1.25rem 5rem; flex: 1 0 auto; }
+      h1, h2, h3 { font-family: var(--scan); color: var(--deep); font-stretch: 72%; font-weight: 700; line-height: 1.05; letter-spacing: -.01em; text-wrap: balance; }
+      h1 { font-size: clamp(2.4rem, 6vw, 4rem); margin: .25rem 0 1rem; }
+      h2 { font-size: 1.75rem; }
+      h3 { font-size: 1.3rem; line-height: 1.12; }
+      /* A kicker says where a story happened or what kind of thing it is; it is not decoration above a page title. */
+      .eyebrow { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0 .55rem; color: var(--channel); font-weight: 650; font-size: .95rem; font-stretch: 92%; }
+      .eyebrow .section { color: var(--slate); font-weight: 500; padding-left: .55rem; border-left: 1px solid var(--line); }
+      .lede { font-family: var(--read); font-size: clamp(1.15rem, 2.2vw, 1.3rem); line-height: 1.5; color: #33474c; max-width: 36em; }
+      .button { display: inline-block; background: var(--deep); color: #fff; border: 1px solid var(--deep); border-radius: 2px; padding: .75rem 1.15rem; text-decoration: none; font-weight: 650; font-stretch: 92%; line-height: 1.2; }
+      .button:hover { background: var(--deep-2); border-color: var(--deep-2); }
+      .button.secondary { background: transparent; color: var(--deep); border-color: var(--line); }
+      .button.secondary:hover { background: var(--shoal); border-color: var(--shoal); }
+      .button.small { padding: .45rem .8rem; font-size: .92rem; }
+      /* Filters over a list (sections, categories, kinds of discussion). On phones they scroll sideways instead of stacking. */
+      .filter-tabs { display: flex; flex-wrap: wrap; gap: 0 1.4rem; margin: 1.2rem 0 0; border-bottom: 1px solid var(--line); }
+      .filter-tabs a { padding: .55rem 0 .5rem; margin-bottom: -1px; border-bottom: 3px solid transparent; color: var(--slate); font-weight: 600; font-stretch: 90%; text-decoration: none; white-space: nowrap; }
+      .filter-tabs a:hover { color: var(--deep); border-bottom-color: var(--line); }
+      .filter-tabs a[aria-current] { color: var(--deep); border-bottom-color: var(--deep); }
+      @media (max-width: 700px) { .filter-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -1.25rem; padding-inline: 1.25rem; } }
+      .card { background: var(--paper); border: 1px solid var(--line-soft); border-radius: 2px; padding: 1.4rem; }
+      .muted { color: var(--slate); }
+      .meta { color: var(--slate); font-size: .9rem; font-stretch: 95%; }
+      .form { max-width: 580px; display: grid; gap: 1.1rem; }
+      .form label { display: grid; gap: .4rem; font-weight: 600; font-size: .95rem; }
+      .form input, .form textarea, .form select { width: 100%; padding: .75rem .85rem; border: 1px solid #9fb3b6; border-radius: 2px; background: var(--paper); color: var(--ink); }
+      .form textarea { min-height: 180px; resize: vertical; line-height: 1.5; font-family: var(--read); font-size: 1.05rem; }
+      .form input:focus, .form textarea:focus, .form select:focus { outline: 3px solid var(--sunset); outline-offset: 0; border-color: var(--deep); }
+      .message { padding: .8rem 1rem; border-left: 4px solid var(--alert); color: var(--alert); background: var(--alert-bg); }
+      .ad-band { padding: .9rem 1.25rem; background: var(--shoal-2); border-bottom: 1px solid var(--line-soft); }
+      .site-footer { background: var(--shoal); color: #3d5357; padding: 2.5rem 0 3rem; }
+      .site-footer-inner { max-width: var(--wrap); margin: auto; padding: 0 1.25rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.5rem 3rem; font-size: .92rem; }
+      .site-footer p { margin: 0; }
+      .site-footer .foot-brand { margin: 0 0 .35rem; font: 800 1.6rem/1 var(--scan); font-stretch: 68%; color: var(--deep); }
+      .site-footer nav { display: grid; grid-template-columns: repeat(3, auto); gap: .45rem 2.2rem; align-content: start; }
+      .site-footer nav a { color: var(--deep); text-decoration: none; font-weight: 600; }
+      .site-footer nav a:hover { text-decoration: underline; }
+      .site-footer .fine { grid-column: 1 / -1; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--slate); font-size: .85rem; }
+      @media (max-width: 700px) {
+        .masthead { padding-top: 1.2rem; align-items: center; }
+        .dateline span { display: none; }
+        .nav-inner { gap: 0 1.1rem; }
+        .nav a { font-size: .95rem; padding: .65rem 0 .5rem; }
+        .nav .right { margin-left: 0; }
+        .site-footer-inner { grid-template-columns: minmax(0, 1fr); }
+        .site-footer nav { grid-template-columns: repeat(2, auto); justify-content: start; }
+      }
+      @media (max-width: 460px) { .brand { gap: .6rem; } .dateline { display: none; } }
     </style>
   </head>
   <body>
     <header class="site-header">
-      <div class="topline"><div class="topline-inner"><span>Independent news for Ohio's Firelands</span><span>Sandusky and the surrounding region</span></div></div>
-      <div class="masthead"><a class="brand" href="/" aria-label="Firelands Current home"><img class="brand-mark" src="/logo-mark.svg" alt="" width="64" height="64" /><span class="brand-text">Firelands <span>Current</span></span></a><p>Local stories. Common ground.</p></div>
+      <div class="masthead">
+        <a class="brand" href="/" aria-label="Firelands Current home"><img class="brand-mark" src="/logo-mark.svg" alt="" width="64" height="64" /><span>Firelands Current</span></a>
+        <p class="dateline"><strong>{dateline}</strong><span>News from Sandusky and the Firelands</span></p>
+      </div>
       <nav class="nav" aria-label="Main navigation"><div class="nav-inner">
-        <a href="/">Home</a><a href="/news">News</a><a href="/events">Events</a><a href="/talk">Talk of the Town</a><a href="/submit-news">Submit news</a>
+        <a href="/news" aria-current={current('/news')}>News</a><a href="/events" aria-current={current('/events')}>Events</a><a href="/talk" aria-current={current('/talk')}>Talk of the Town</a><a href="/submit-news" aria-current={current('/submit-news')}>Submit news</a>
         {staffRole && <a class="right" href="/admin/news">Newsroom</a>}
-        {user ? <a class={staffRole ? undefined : "right"} href="/account">{user.name}</a> : <a class="right" href="/sign-in">Sign in</a>}
+        {user ? <a class={staffRole ? undefined : "right"} href="/account" aria-current={current('/account')}>{user.name}</a> : <a class="right" href="/sign-in" aria-current={current('/sign-in')}>Sign in</a>}
       </div></nav>
     </header>
     {showAds && <div class="ad-band"><AdSlot placement="site-leaderboard" /></div>}
     <main><slot /></main>
-    <footer class="site-footer"><div class="site-footer-inner"><span>© {new Date().getFullYear()} Firelands Current · Owned and operated by <a href="https://stonedragonmedia.com/">Stone Dragon Media, LLC</a> · v{__APP_VERSION__}</span><span>Independent local reporting and conversation · <a href="/submit-news">Submit news</a> · <a href="/contact">Contact</a> · <a href="/advertise">Advertise</a> · <a href="https://www.facebook.com/people/Firelands-Current/61594659460586/" rel="me noopener" target="_blank">Facebook</a> · <a href="https://x.com/FirelandCurrent" rel="me noopener" target="_blank">X</a> · <a href="/rss.xml">RSS</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></div></footer>
+    <footer class="site-footer"><div class="site-footer-inner">
+      <div><p class="foot-brand">Firelands Current</p><p>Independent local reporting and conversation for Sandusky and the Firelands.</p></div>
+      <nav aria-label="Site">
+        <a href="/submit-news">Submit news</a><a href="/contact">Contact</a><a href="/advertise">Advertise</a>
+        <a href="https://www.facebook.com/people/Firelands-Current/61594659460586/" rel="me noopener" target="_blank">Facebook</a><a href="https://x.com/FirelandCurrent" rel="me noopener" target="_blank">X</a><a href="/rss.xml">RSS feed</a>
+        <a href="/privacy">Privacy</a><a href="/terms">Terms</a>
+      </nav>
+      <p class="fine">© {new Date().getFullYear()} Firelands Current, owned and operated by <a href="https://stonedragonmedia.com/">Stone Dragon Media, LLC</a>. Version {__APP_VERSION__}.</p>
+    </div></footer>
   </body>
 </html>

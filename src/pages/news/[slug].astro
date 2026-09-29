@@ -27,13 +27,12 @@ for (let at of inlineAdBreaks(blocks.length)) {
 chunks.push(blocks.slice(start).join(''));
 ---
 <BaseLayout title={article.headline} description={article.summary.slice(0, 155)} type="article" image={lead && { url: `/media/${lead.object_key}`, width: lead.width, height: lead.height, alt: lead.alt }}>
-  <a href={`/news?section=${article.section}`}>← {SECTIONS[article.section]}</a>
   <div class="story-layout">
   <article style="max-width:760px;min-width:0">
-    <span class="eyebrow">{SECTIONS[article.section]} · {article.community}</span>
-    <h1>{article.headline}</h1>
+    <span class="eyebrow">{article.community}<a class="section" href={`/news?section=${article.section}`}>{SECTIONS[article.section]}</a></span>
+    <h1 class="headline">{article.headline}</h1>
     <p class="lede" style="margin-top:0">{article.summary}</p>
-    <p class="meta" style="border-top:1px solid #c9d1cd;border-bottom:1px solid #c9d1cd;padding:.7rem 0">By <strong>{article.byline}</strong> · {new Date(article.published_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</p>
+    <p class="meta byline">By <strong>{article.byline}</strong><br />{new Date(article.published_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</p>
     <ShareButtons url={new URL(`/news/${article.slug}`, Astro.url.origin).href} title={article.headline} />
     {lead && <Fragment set:html={figureHtml(lead, { className: 'story-figure lead', eager: true })} />}
     <div class="story">
@@ -43,24 +42,31 @@ chunks.push(blocks.slice(start).join(''));
   </article>
   <div class="story-rail"><AdSlot placement="article-rail" /></div>
   </div>
-  {thread && <div style="max-width:760px"><Comments thread={thread} path={`/news/${article.slug}`} /><p><a href={`/talk/${thread.id}`}>Also in Talk of the Town →</a></p></div>}
+  {thread && <div style="max-width:760px"><Comments thread={thread} path={`/news/${article.slug}`} /><p><a href={`/talk/${thread.id}`}>Also in Talk of the Town</a></p></div>}
 </BaseLayout>
 
 <style>
-  .story-layout { display: grid; grid-template-columns: minmax(0, 760px) 300px; justify-content: space-between; gap: 3rem; margin-top: 1.7rem; }
+  .story-layout { display: grid; grid-template-columns: minmax(0, 760px) 300px; justify-content: space-between; gap: 3rem; }
+  .eyebrow a.section { text-decoration: none; }
+  .eyebrow a.section:hover { color: var(--channel); text-decoration: underline; }
+  .headline { font-size: clamp(2.4rem, 5.6vw, 3.9rem); font-stretch: 66%; line-height: 1; margin: .35rem 0 1rem; }
+  .byline { margin: 1.4rem 0 0; padding-top: .8rem; border-top: 3px solid var(--deep); line-height: 1.45; }
+  .byline strong { color: var(--ink); font-weight: 650; }
   .story-rail { padding-top: .5rem; }
   .story-rail :global(.ad-slot) { position: sticky; top: 1.5rem; }
-  .story :global(.story-ad) { margin: 2rem auto; padding: 1rem 0; border-top: 1px solid #e0e4df; border-bottom: 1px solid #e0e4df; width: 100%; max-width: none; line-height: normal; }
+  .story :global(.story-ad) { margin: 2rem auto; padding: 1rem 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); width: 100%; max-width: none; line-height: normal; font-family: var(--scan); font-size: 1rem; }
   .story :global(.story-ad .ad-creative) { width: 300px; max-width: 100%; }
   @media (max-width: 1100px) { .story-layout { grid-template-columns: minmax(0, 1fr); } .story-rail { display: none; } }
-  .story { line-height: 1.8; font-size: 1.08rem; }
-  .story :global(h2), .story :global(h3) { margin-top: 2rem; }
-  .story :global(blockquote) { margin: 1.5rem 0; padding: .2rem 0 .2rem 1.2rem; border-left: 3px solid #bc633e; color: #4d6367; font-style: italic; }
-  .story :global(img) { max-width: 100%; height: auto; border-radius: 4px; vertical-align: middle; }
+  /* About 70 characters a line at this size; serif text gets a little more leading than the sans would. */
+  .story { font-family: var(--read); font-size: 1.22rem; line-height: 1.65; max-width: 36em; }
+  .story :global(p) { margin: 0 0 1.1em; }
+  .story :global(h2), .story :global(h3) { margin: 2.2rem 0 .6rem; }
+  .story :global(blockquote) { margin: 1.8rem 0; padding: .1rem 0 .1rem 1.3rem; border-left: 3px solid var(--channel); color: #33474c; font-style: italic; font-size: 1.1em; }
+  .story :global(img) { max-width: 100%; height: auto; vertical-align: middle; }
   :global(.story-figure) { margin: 2rem 0; }
   :global(.story-figure.lead) { margin: 0 0 1.8rem; }
-  :global(.story-figure img) { display: block; width: 100%; height: auto; border-radius: 4px; background: #ecf0ec; }
-  :global(.story-figure figcaption) { margin-top: .55rem; font-size: .88rem; line-height: 1.5; color: #4d6367; }
-  :global(.story-figure .credit) { color: #687a7d; font-size: .8rem; letter-spacing: .02em; }
+  :global(.story-figure img) { display: block; width: 100%; height: auto; background: var(--shoal); }
+  :global(.story-figure figcaption) { margin-top: .6rem; font-family: var(--scan); font-size: .92rem; line-height: 1.45; color: #33474c; }
+  :global(.story-figure .credit) { color: var(--slate); font-size: .85rem; }
   .story :global(ul), .story :global(ol) { padding-left: 1.4rem; }
 </style>

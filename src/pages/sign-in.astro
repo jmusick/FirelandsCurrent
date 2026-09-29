@@ -9,7 +9,6 @@ const reset = Astro.url.searchParams.get('reset');
 const errorMessage = authErrorMessage(errorCode);
 ---
 <BaseLayout title="Sign in">
-  <span class="eyebrow">Welcome back</span>
   <h1>Sign in</h1>
   {reset && <p class="message" role="status">Your password was changed. Sign in with the new one.</p>}
   {errorMessage && <p class="message" role="alert">{errorMessage}</p>}

@@ -49,9 +49,9 @@ const users = canAccess(role, ADMIN.users);
 <style>
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
   .tile { display: grid; gap: .4rem; text-decoration: none; color: inherit; }
-  a.tile:hover { border-color: #9eb0ae; }
+  a.tile:hover { border-color: var(--field); }
   .tile .meta { display: flex; align-items: center; gap: .4rem; }
-  .tile .meta .lucide { width: 1rem; height: 1rem; color: #ad5835; }
-  .tile strong { font: 700 2rem 'Libre Baskerville', Georgia, serif; color: #173d4a; }
-  .tile strong.alert { color: #ad5835; }
+  .tile .meta .lucide { width: 1rem; height: 1rem; color: var(--channel); }
+  .tile strong { font: 700 2rem var(--scan); font-stretch: 72%; color: var(--deep); }
+  .tile strong.alert { color: var(--alert); }
 </style>

@@ -1,0 +1,15 @@
+/* Shared by the public site and the admin panel, so components that appear in both look the same.
+   Lake Erie palette: deep water for the masthead and headlines, channel blue for anything you can follow,
+   shoal for tinted bands. Sunset only marks what is current: today's events, the page you're on, focus.
+   Archivo, narrowed, is for what readers scan; Newsreader is for what they read. */
+:root {
+  --deep: #173d4a; --deep-2: #21525f; --channel: #1c6880; --shoal: #dceaec; --shoal-2: #eaf2f3;
+  --fog: #f4f7f7; --paper: #fff; --ink: #1b2a2f; --slate: #56696e; --line: #c5d3d5; --line-soft: #dde6e7; --field: #9fb3b6;
+  --sunset: #e9a53a;
+  /* Status colors: alert for problems and destructive actions, warn for reversible ones, ok for success. */
+  --alert: #8a3a1d; --alert-bg: #fdf1e8; --alert-line: #e6c2b0;
+  --warn: #9a5212; --warn-2: #7c410e;
+  --ok: #1f5a41; --ok-bg: #e6f2ea; --ok-line: #8fbfa2;
+  --scan: 'Archivo', 'Arial Narrow', sans-serif; --read: 'Newsreader', Georgia, serif;
+  --wrap: 1180px;
+}
