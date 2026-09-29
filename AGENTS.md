@@ -51,6 +51,7 @@ scripts/             Demo seed SQL; auth-schema.ts only generated the initial au
 - **Ads** never appear on forms, account pages, dashboards, or the admin panel. Placements are defined in `PLACEMENTS` in `src/lib/ads.ts`.
 - **Styling** is plain CSS in the layouts and pages; there is no CSS framework.
 - **Icons** in the admin panel come from Lucide via `@lucide/astro` (`import { Plus } from '@lucide/astro'`), rendered as inline SVG on the server. Use current icon names, not the deprecated aliases (`Trash`, not `Trash2`). Icons sit before a button's or heading's text and are decorative; the text carries the meaning.
+- Writing or sourcing news stories: read [docs/news-sources.md](docs/news-sources.md) first. It covers the editorial rules, which sources to trust, and how stories get into the database.
 - Match the surrounding code: comment density, naming, and idiom. Comments explain why, not what.
 - Keep `README.md` current when behavior an operator or editor would notice changes.
 - Keep the Privacy Policy (`src/pages/privacy.astro`) accurate: update it in the same change when you add or change what data is collected, stored, shown publicly, or sent to a third party (a new analytics tag, cookie, form field, or sign-in provider).
