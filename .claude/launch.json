@@ -9,6 +9,7 @@
         "dev"
       ],
       "port": 4321,
+      "autoPort": false,
       "url": "http://127.0.0.1:4321"
     },
     {
