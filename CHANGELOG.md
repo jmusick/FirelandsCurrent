@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.16.1] - 2026-10-01
+
+### Changed
+
+- The news sources guide adds the Erie County Health Department, City of Huron, Erie County Board of Elections, and the city and police Facebook pages, with notes on reading each one, plus guidance on confirming events found through Facebook
+
 ## [1.16.0] - 2026-09-29
 
 ### Changed

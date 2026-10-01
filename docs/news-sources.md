@@ -26,6 +26,10 @@ How Firelands Current finds, checks and publishes local news. Read this before w
 | [Bureau of Labor Statistics regional releases](https://www.bls.gov/regions/midwest/) | Wage and employment data | The Sandusky area means Erie and Ottawa counties. |
 | [Greater Sandusky Partnership](https://greatersandusky.com/) | Business and economic announcements | `curl` gets a 403; the page reads fine through a web fetch. Announcements are short, so check them for missing figures. |
 | [Ohio Lake Erie Commission](https://lakeerie.ohio.gov/) | Lake Erie restoration, grants | Some deep links move; search by title. |
+| [Erie County Health Department](https://eriehealthohio.com/news-page/) | Public health grants, clinics, lead and housing programs, overdose response | Posts several dated items a week. Many put the details in an image of the press release, so open the image (or the page in a browser) before writing. Program pages and posts don't always agree on figures; report the difference. The old `eriecohealthohio.com` address redirects here. |
+| [City of Huron](https://www.cityofhuron.org/) | Leaf pickup, hydrant flushing, city services and events | Same site platform as Sandusky; news pages are `news_detail_T3_R##.php`. |
+| [Erie County Board of Elections](https://www.boe.ohio.gov/erie/) | Candidate and issue filings, voting dates | The filing PDFs block scripted downloads and sometimes return a maintenance page; try again later or ask the board for a copy. |
+| [City of Sandusky on Facebook](https://www.facebook.com/cityofsandusky) and [Sandusky Police](https://www.facebook.com/sanduskypolice) | Commission meeting notices, events, groundbreakings, new officers | Official accounts, so usable as a source, but link the city website or document when one exists. Posts often carry details the city website never gets. |
 | [Huron County](https://www.huroncounty-oh.gov/) and Erie MetroParks ([eriemetroparks.org](https://eriemetroparks.org/)) | County departments, parks | Thin on news; useful for facts and contact details. |
 
 ### Handle with care
@@ -34,6 +38,7 @@ How Firelands Current finds, checks and publishes local news. Read this before w
 | --- | --- |
 | Sandusky Register, Norwalk Reflector | Paywalled or script-rendered. Headlines and subheads are public and fine as leads. Don't get around the paywall and don't reuse their reporting. |
 | Norwalk Ohio News | Requires a login. |
+| Facebook event search | Good for finding community events. Confirm the date, time and place on the organizer's own page before listing, since anyone can create an event. |
 | Facebook groups (The Real Talk of Sandusky) | Mostly anonymous chatter and sales posts. Use only as leads, confirm with an official source, and never quote private individuals. |
 | Reddit (r/Sandusky) | Shows what residents are asking about, not news. |
 | Web search summaries | Often wrong on dates and details. Open the linked page before using a fact. |
