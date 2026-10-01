@@ -4,7 +4,7 @@ import Comments from '../../components/Comments.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor } from '../../lib/ads';
 import { getEventThread } from '../../lib/forum';
-import { CATEGORIES, eventJsonLd, fmtDates, fmtHours, getEvent, isPast, mapsUrl } from '../../lib/events';
+import { CATEGORIES, eventJsonLd, fmtDates, fullHours, getEvent, isPast, mapsUrl } from '../../lib/events';
 import { mediaByKeys, mediaKeysIn } from '../../lib/media';
 import { figureHtml, leadMedia, renderBodyBlocks } from '../../lib/news';
 
@@ -30,7 +30,7 @@ const over = isPast(event);
     <p class="lede" style="margin-top:0">{event.summary}</p>
 
     <dl class="facts">
-      <div><dt><Clock />When</dt><dd>{fmtDates(event, { year: true })}<br />{fmtHours(event)}{event.ends_on && event.start_time && <span class="meta"> each day</span>}</dd></div>
+      <div><dt><Clock />When</dt><dd>{fmtDates(event, { year: true })}<br />{fullHours(event)}{event.ends_on && event.start_time && !event.hours_note && <span class="meta"> each day</span>}</dd></div>
       <div><dt><MapPin />Where</dt><dd>{event.venue}<br />{event.address ? `${event.address}, ${event.community}` : event.community}<br /><a href={mapsUrl(event)} rel="noopener">Map</a></dd></div>
       {event.cost && <div><dt><Ticket />Cost</dt><dd>{event.cost}</dd></div>}
       {event.organizer && <div><dt><Users />Organizer</dt><dd>{event.organizer}</dd></div>}

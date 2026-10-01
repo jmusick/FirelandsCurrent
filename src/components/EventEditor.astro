@@ -48,6 +48,7 @@ const communities = (await env.DB.prepare('SELECT community FROM events UNION SE
       <label>End time <input type="time" name="end_time" value={values.end_time} /></label>
       <label>Last day <span class="hint">If it runs several days</span><input type="date" name="ends_on" value={values.ends_on} /></label>
     </div>
+    <label>Hours <span class="hint">Optional. Use when the hours differ by day. Shown on the event page; listings say “Hours vary.”</span><input name="hours_note" value={values.hours_note} maxlength="80" placeholder="Fridays 4–9 p.m., Saturdays noon–9 p.m." /></label>
   </fieldset>
 
   <fieldset>

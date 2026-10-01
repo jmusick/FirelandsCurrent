@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.16.2] - 2026-10-01
+
+### Added
+
+- Events have an optional Hours field for events whose hours differ by day; the event page shows it in full and listings say "Hours vary" instead of "All day"
+
 ## [1.16.1] - 2026-10-01
 
 ### Changed

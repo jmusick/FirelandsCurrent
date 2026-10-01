@@ -22,8 +22,11 @@ export function isCategory(value: string | null | undefined): value is Category 
   return typeof value === 'string' && Object.hasOwn(CATEGORIES, value);
 }
 
-/** Dates are YYYY-MM-DD and times HH:MM (24-hour), both Eastern wall-clock values. */
-export type EventTiming = { starts_on: string; start_time: string | null; ends_on: string | null; end_time: string | null };
+/**
+ * Dates are YYYY-MM-DD and times HH:MM (24-hour), both Eastern wall-clock values. hours_note, when set, stands in for the
+ * times on events whose hours differ by day.
+ */
+export type EventTiming = { starts_on: string; start_time: string | null; ends_on: string | null; end_time: string | null; hours_note: string };
 
 export type CalendarEvent = EventTiming & {
   id: string; slug: string; title: string; summary: string; description: string; category: Category;
@@ -38,7 +41,7 @@ export type AdminEvent = Omit<CalendarEvent, 'status' | keyof LeadImage> & {
 /** Today in Eastern time, as YYYY-MM-DD. An event is upcoming until its last day has passed. */
 export const today = () => statDay();
 
-const PUBLIC_COLUMNS = `e.id, e.slug, e.title, e.summary, e.description, e.category, e.starts_on, e.start_time, e.ends_on, e.end_time,
+const PUBLIC_COLUMNS = `e.id, e.slug, e.title, e.summary, e.description, e.category, e.starts_on, e.start_time, e.ends_on, e.end_time, e.hours_note,
   e.venue, e.address, e.community, e.organizer, e.cost, e.link, e.status, e.updated_at, ${LEAD_COLUMNS}`;
 
 export type EventFilters = { category?: Category; community?: string; past?: boolean };
@@ -71,7 +74,7 @@ export async function getEvent(slug: string): Promise<CalendarEvent | null> {
   `).bind(slug).first<CalendarEvent>();
 }
 
-const ADMIN_COLUMNS = `id, slug, title, summary, description, category, starts_on, start_time, ends_on, end_time,
+const ADMIN_COLUMNS = `id, slug, title, summary, description, category, starts_on, start_time, ends_on, end_time, hours_note,
   venue, address, community, organizer, cost, link, image_media_id, status, created_at, updated_at`;
 
 export async function listAdminEvents(): Promise<AdminEvent[]> {
@@ -101,8 +104,12 @@ export function fmtTime(time: string): string {
   return `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'a.m.' : 'p.m.'}`;
 }
 
-/** "7–9 p.m.", "10 a.m.–2 p.m.", "7 p.m." or "All day". On multi-day events these are the daily hours. */
+/**
+ * "7–9 p.m.", "10 a.m.–2 p.m.", "7 p.m." or "All day"; on multi-day events these are the daily hours. Events with an
+ * hours note read "Hours vary" here, since listings have no room for it; fullHours gives the note itself.
+ */
 export function fmtHours(e: EventTiming): string {
+  if (e.hours_note) return 'Hours vary';
   if (!e.start_time) return 'All day';
   if (!e.end_time) return fmtTime(e.start_time);
   const start = fmtTime(e.start_time);
@@ -110,6 +117,8 @@ export function fmtHours(e: EventTiming): string {
   const sameHalf = / [ap]\.m\.$/.test(start) && start.slice(-4) === end.slice(-4);
   return `${sameHalf ? start.slice(0, -5) : start}–${end}`;
 }
+
+export const fullHours = (e: EventTiming) => e.hours_note || fmtHours(e);
 
 /** "Saturday, October 3" or "October 3–5" / "October 30 – November 2" for multi-day events. */
 export function fmtDates(e: EventTiming, opts: { year?: boolean } = {}): string {

@@ -77,7 +77,7 @@ Business membership is separate from staff roles. Membership records who someone
 
 ## Events calendar
 
-Administrators and editors manage the calendar at `/admin/events`. Each event has a title, summary, category, date, optional start and end times (blank start time means all day), an optional last day for events that run several days, a venue, community and address, and optional organizer, cost, link, image from the media library, and Markdown details. On multi-day events the times are the daily hours. Dates and times are Eastern wall-clock values.
+Administrators and editors manage the calendar at `/admin/events`. Each event has a title, summary, category, date, optional start and end times (blank start time means all day), an optional hours note for events whose hours differ by day (shown on the event page, with "Hours vary" in listings), an optional last day for events that run several days, a venue, community and address, and optional organizer, cost, link, image from the media library, and Markdown details. On multi-day events the times are the daily hours. Dates and times are Eastern wall-clock values.
 
 Events are *Draft* (staff only), *Published*, or *Cancelled*. Cancelled events stay on the calendar, marked as cancelled, so readers who planned to go can see it; delete (administrators only) is for events entered by mistake. For events that repeat, **Duplicate for another date** on an event's page starts a new draft with the same details. An event's URL comes from its title; a second event with the same title gets its date added.
 

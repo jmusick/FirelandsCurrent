@@ -7,6 +7,8 @@ import { sanitizeSlug } from './news';
 export type EventFormValues = {
   title: string; slug: string; summary: string; description: string; category: Category | '';
   starts_on: string; start_time: string; ends_on: string; end_time: string;
+  /** Shown instead of the times when the hours differ by day; empty to show the times. */
+  hours_note: string;
   venue: string; address: string; community: string; organizer: string; cost: string; link: string;
   /** Media library item shown with the event; empty for none. */
   image_media_id: string;
@@ -18,14 +20,14 @@ export type EventFormResult =
   | { ok: false; values: EventFormValues; errors: string[] };
 
 export const emptyEvent: EventFormValues = {
-  title: '', slug: '', summary: '', description: '', category: '', starts_on: '', start_time: '', ends_on: '', end_time: '',
+  title: '', slug: '', summary: '', description: '', category: '', starts_on: '', start_time: '', ends_on: '', end_time: '', hours_note: '',
   venue: '', address: '', community: '', organizer: '', cost: '', link: '', image_media_id: '', status: 'draft',
 };
 
 export function valuesFromEvent(e: AdminEvent): EventFormValues {
-  const { title, slug, summary, description, category, starts_on, venue, address, community, organizer, cost, link, status } = e;
+  const { title, slug, summary, description, category, starts_on, hours_note, venue, address, community, organizer, cost, link, status } = e;
   return {
-    title, slug, summary, description, category, starts_on, venue, address, community, organizer, cost, link, status,
+    title, slug, summary, description, category, starts_on, hours_note, venue, address, community, organizer, cost, link, status,
     start_time: e.start_time ?? '', ends_on: e.ends_on ?? '', end_time: e.end_time ?? '', image_media_id: e.image_media_id ?? '',
   };
 }
@@ -56,6 +58,7 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
     start_time: cleanText(form.get('start_time')),
     ends_on: cleanText(form.get('ends_on')),
     end_time: cleanText(form.get('end_time')),
+    hours_note: cleanText(form.get('hours_note')),
     venue: cleanText(form.get('venue')),
     address: cleanText(form.get('address')),
     community: cleanText(form.get('community')),
@@ -83,6 +86,7 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   if (values.end_time && !TIME.test(values.end_time)) errors.push('End time must be a valid time.');
   if (values.end_time && !values.start_time) errors.push('Add a start time, or clear the end time for an all-day event.');
   if (!values.ends_on && values.start_time && values.end_time && values.end_time <= values.start_time) errors.push('End time must be after the start time.');
+  if (values.hours_note.length > 80) errors.push('Hours must be under 80 characters.');
   if (values.venue.length < 2 || values.venue.length > 120) errors.push('Venue is required (up to 120 characters).');
   if (values.address.length > 200) errors.push('Address must be under 200 characters.');
   if (!values.community || values.community.length > 60) errors.push('Community is required (up to 60 characters).');
@@ -116,18 +120,18 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   const now = Date.now();
   await env.DB.prepare(`
     INSERT INTO events (id, slug, title, summary, description, category, starts_on, start_time, ends_on, end_time,
-      venue, address, community, organizer, cost, link, image_media_id, status, created_at, updated_at)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?19)
+      venue, address, community, organizer, cost, link, image_media_id, status, created_at, updated_at, hours_note)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?19, ?20)
     ON CONFLICT(id) DO UPDATE SET
       slug = excluded.slug, title = excluded.title, summary = excluded.summary, description = excluded.description,
       category = excluded.category, starts_on = excluded.starts_on, start_time = excluded.start_time, ends_on = excluded.ends_on,
       end_time = excluded.end_time, venue = excluded.venue, address = excluded.address, community = excluded.community,
       organizer = excluded.organizer, cost = excluded.cost, link = excluded.link, image_media_id = excluded.image_media_id,
-      status = excluded.status, updated_at = excluded.updated_at
+      status = excluded.status, updated_at = excluded.updated_at, hours_note = excluded.hours_note
   `).bind(id, values.slug, values.title, values.summary, values.description, values.category, values.starts_on,
     values.start_time || null, values.ends_on || null, (values.start_time && values.end_time) || null,
     values.venue, values.address, values.community, values.organizer, values.cost, values.link,
-    values.image_media_id || null, values.status, now).run();
+    values.image_media_id || null, values.status, now, values.hours_note).run();
   if (values.status !== 'draft') await ensureEventThread({ id, title: values.title, summary: values.summary });
   return { ok: true, id };
 }

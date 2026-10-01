@@ -2,7 +2,7 @@
 import { Plus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
-import { CATEGORIES, STATUS_LABELS, fmtDates, fmtHours, isPast, listAdminEvents } from '../../../lib/events';
+import { CATEGORIES, STATUS_LABELS, fmtDates, fullHours, isPast, listAdminEvents } from '../../../lib/events';
 
 const denied = requireSection(Astro, ADMIN.events);
 if (denied) return denied;
@@ -33,7 +33,7 @@ const events = [...upcoming, ...all.filter(isPast)];
     <tbody id="rows">
       {events.map((e) => <tr data-search={`${e.title} ${e.venue} ${e.community} ${e.organizer} ${e.slug}`.toLowerCase()} data-when={isPast(e) ? 'past' : 'upcoming'} data-status={e.status} data-category={e.category}>
         <td><a class="headline" href={`/admin/events/${e.id}`}>{e.title}</a><div class="meta">{e.venue} · {e.community}</div></td>
-        <td>{fmtDates(e, { year: true })}<div class="meta">{fmtHours(e)}</div></td>
+        <td>{fmtDates(e, { year: true })}<div class="meta">{fullHours(e)}</div></td>
         <td>{CATEGORIES[e.category]}</td>
         <td><span class={`pill ${e.status}`}>{STATUS_LABELS[e.status]}</span></td>
       </tr>)}
