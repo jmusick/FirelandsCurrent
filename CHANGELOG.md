@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.17.1] - 2026-10-02
+
+### Changed
+
+- The news sources guide defines the coverage area: Sandusky and the rest of Erie County in full; Port Clinton, Oak Harbor, Fremont, Clyde, Bellevue, Norwalk, Amherst and Oberlin for significant news; Lorain and Elyria only when a story affects the Sandusky area
+- The guide lists promising city, township, county, school, health and Lake Erie sources across that area, noting which post regularly, which are stale or hard to read, and which have RSS feeds, plus the official Facebook Pages for local governments, police, fire, health departments and schools
+
 ## [1.17.0] - 2026-10-02
 
 ### Added
