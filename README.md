@@ -1,6 +1,6 @@
 # Firelands Current
 
-An Astro and Cloudflare Workers foundation for an independent local newspaper centered on Sandusky, Ohio. This first slice implements reader accounts and **Talk of the Town** discussions.
+An independent local newspaper for Sandusky, Ohio and the Firelands, built with Astro on Cloudflare Workers and live at [firelandscurrent.com](https://firelandscurrent.com). It publishes news and a local events calendar, hosts reader discussions in **Talk of the Town**, and sells display ads to local businesses.
 
 ## What works now
 
@@ -12,18 +12,18 @@ An Astro and Cloudflare Workers foundation for an independent local newspaper ce
 - Upvotes and downvotes on discussions and comments (click again to take a vote back), and comments sorted by Top, Newest, or Oldest. Comments are nested: readers reply to any comment, up to five levels deep, and each page shows 50 top-level comments with all their replies. A comment a moderator hides stays as "[removed by a moderator]" while visible replies sit below it
 - Rate limits on threads, replies, and reports
 - Member reports, reviewed in the admin panel with hide/dismiss actions
-- News: section pages, story pages, and the latest stories on the homepage; story text is Markdown, with lead images and captioned photos from the media library
+- News: section pages, story pages, and the latest stories on the homepage; story text is Markdown, with lead images and captioned photos from the media library. The coverage area, trusted sources, and editorial rules are in [docs/news-sources.md](docs/news-sources.md)
 - Local events calendar at `/events`, with an upcoming-events block on the front page, event pages with an add-to-calendar file, and search-engine event data
 - Media library for story, ad and event images, stored in R2, with credits, usage tracking and social-preview images
-- Share buttons (Facebook, X, LinkedIn, Reddit, email, copy link) above and below every story; they are plain links, so no third-party scripts load
+- Share buttons (Facebook, X, LinkedIn, Reddit, email, copy link) above and below every story; they are plain links, so no third-party scripts load. The footer links the paper's Facebook and X accounts
 - RSS feed at `/rss.xml` (also `/feed`, `/rss`) and a JSON Feed at `/feed.json`, each with the 30 newest stories (summary, lead image, byline, section). Add `?section=local` (or any section key) for one section. Every page advertises the feed for auto-discovery, and the footer links it
-- `/sitemap.xml` listing the main pages, news sections, published stories, and visible discussions, and a `/robots.txt` that points to it and keeps crawlers out of admin, account, business, and API routes
-- Submit news (`/submit-news`) and Contact (`/contact`) forms, open to anyone and linked in the main navigation and footer. News tips are stored in D1 and emailed to `news@firelandscurrent.com`; signed-in submitters are linked to their account, and submitters can request a byline if their tip becomes a story. Editors review tips at `/admin/submissions` and can mark them reviewed, decline them, or convert them into a story. Contact messages are emailed to `contact@firelandscurrent.com` and are not stored in D1. Both forms use the `EMAIL` Cloudflare Email Sending binding, with the sender in Reply-To. Cloudflare Turnstile (`TURNSTILE_SITE_KEY` var, `TURNSTILE_SECRET_KEY` secret) and a hidden honeypot field filter bots
+- `/sitemap.xml` listing the main pages, news sections, published stories, published and cancelled events, and visible discussions, and a `/robots.txt` that points to it and keeps crawlers out of admin, account, business, ad-click, and API routes
+- Submit news (`/submit-news`) and Contact (`/contact`) forms, open to anyone. Submit news is linked in the main navigation and footer, Contact in the footer. News tips are stored in D1 and emailed to `news@firelandscurrent.com`; signed-in submitters are linked to their account, and submitters can request a byline if their tip becomes a story. Editors review tips at `/admin/submissions` and can mark them reviewed, decline them, or convert them into a story. Contact messages are emailed to `contact@firelandscurrent.com` and are not stored in D1. Both forms use the `EMAIL` Cloudflare Email Sending binding, with the sender in Reply-To. Cloudflare Turnstile (`TURNSTILE_SITE_KEY` var, `TURNSTILE_SECRET_KEY` secret) and a hidden honeypot field filter bots
 - Google Analytics (GA4) on every page outside the admin panel, with the measurement ID set as `GA_MEASUREMENT_ID` in `wrangler.jsonc`; the tag loads only in production builds
 - Terms of Service at `/terms`, linked from the footer and the registration page. It covers accounts, community posting and moderation, and advertising, and names Ohio law; have counsel review it before relying on it
 - Privacy Policy at `/privacy`, linked from the footer and the registration page. It describes exactly what the site collects (accounts, sessions, posts, Google Analytics, Cloudflare Web Analytics, ad counts), so update it whenever that changes
-- Admin panel at `/admin` (dashboard, News editor, events calendar, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
-- D1 migrations for auth, forum, news, staff, user-management, business, ad, media, and event records
+- Admin panel at `/admin` (dashboard, News editor, news tips, events calendar, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
+- On phones the main navigation folds into a Menu button in the masthead
 
 ## Local setup
 
@@ -32,10 +32,9 @@ Requires Node.js 24 or later.
 1. Run `npm install`.
 2. Copy `.dev.vars.example` to `.dev.vars` and replace `BETTER_AUTH_SECRET` with a unique, long random value. `.dev.vars` is ignored by Git.
 3. Run `npm run db:migrate:local`.
-4. Optionally run `npm run db:seed:demo` to load fictional demo stories and discussions (local only; re-runnable).
-5. Run `npm run dev` and open `http://127.0.0.1:4321`.
+4. Run `npm run dev` and open `http://127.0.0.1:4321`.
 
-The local D1 database persists under `.wrangler/` and is separate from any future production database. `npm run check` and `npm run build` verify the code.
+The local D1 database persists under `.wrangler/` and is separate from production. The working local database is kept matching production content, so don't load the demo seeds into it; `npm run db:seed:demo` (fictional stories and discussions) and `scripts/seed-ads-demo.sql` are only for a throwaway database. `npm run check` and `npm run build` verify the code.
 
 ## Staff roles
 
@@ -43,8 +42,8 @@ The admin panel at `/admin` is available to users with a row in `staff_roles`:
 
 | Role | Access |
 | --- | --- |
-| `admin` | Every admin section, including Users and Businesses; can delete stories |
-| `editor` | News, Events, and Media |
+| `admin` | Every admin section, including Users, Businesses, and Ads; can delete stories and events |
+| `editor` | News, News tips, Events, and Media |
 | `moderator` | Talk of the Town |
 
 Sections and the roles allowed in each are listed in `src/lib/admin.ts`; a new content area (classifieds, jobs, …) adds an entry there. Once one administrator exists, roles are managed at `/admin/users`. To create the first administrator, register the account, then:
@@ -61,8 +60,8 @@ Administrators manage accounts at `/admin/users`: search and filter by role or s
 
 - **Suspend** for 1, 7, or 30 days or until lifted, optionally hiding all of the person's posts. Sessions are revoked immediately and sign-in is refused by every method while the suspension lasts.
 - **Sign out** one session or all of them.
-- **Set a password**, which is the recovery path until password-reset email exists. It signs the person out everywhere.
-- **Add users** with a temporary password, for example new staff.
+- **Set a password**, for someone who can't use password reset by email. It signs the person out everywhere.
+- **Add users** with a temporary password, for example new staff. These accounts start with their email marked verified.
 - **Delete** an account and everything it posted, after typing its email address to confirm.
 
 Staff accounts and your own account can't be suspended or deleted; remove the role first. Nobody can change their own role, so there's always at least one administrator. Every change is recorded in `admin_audit_log` and shown at `/admin/users/log` and on each user's page.
@@ -107,7 +106,7 @@ An impression counts when at least half of an ad has been on screen for one seco
 
 Members of a business see its ads at `/business` (linked from `/account`): totals, daily charts, per-placement numbers and each ad's preview. The dashboard is read-only and hides drafts and terms. Administrators can open any business's dashboard with **View as client**.
 
-Banner images come from the media library: each size can take a new upload, which joins the library credited to the advertiser, or an existing library image of the right size. Before the first deploy with ads, create the `MEDIA` bucket with `npx wrangler r2 bucket create firelands-current-media`. Local development uses a local bucket automatically. `npx wrangler d1 execute DB --local --file scripts/seed-ads-demo.sql` loads fictional advertisers, ads and 45 days of stats.
+Banner images come from the media library: each size can take a new upload, which joins the library credited to the advertiser, or an existing library image of the right size. Before the first deploy with ads, create the `MEDIA` bucket with `npx wrangler r2 bucket create firelands-current-media`. Local development uses a local bucket automatically. `scripts/seed-ads-demo.sql` loads fictional advertisers, ads and 45 days of stats into a throwaway database (see Local setup).
 
 ## OAuth setup
 
@@ -128,17 +127,15 @@ Astro 7's Cloudflare adapter targets Workers. The `main` branch is connected to 
 
 ### Email sending
 
-The forms, verification links, and password-reset links send from `noreply@firelandscurrent.com` through the `send_email` binding (`EMAIL`) in `wrangler.jsonc`; no API token is needed. Onboard the domain once with `npx wrangler email sending enable firelandscurrent.com`, and make sure `news@` and `contact@` exist as real mailboxes or Email Routing addresses that deliver to staff.
+The forms, verification links, and password-reset links send from `noreply@firelandscurrent.com` through the `send_email` binding (`EMAIL`) in `wrangler.jsonc`; no API token is needed. Onboard the domain once with `npx wrangler email sending enable firelandscurrent.com`, and make sure `news@` and `contact@` exist as real mailboxes or Email Routing addresses that deliver to staff. In `npm run dev`, verification and password-reset links are printed in the server console instead of sent.
 
 ## Versioning
 
 The site follows [Semantic Versioning](https://semver.org/). The version in `package.json` is shown in the site footer, releases are tagged `vX.Y.Z`, and changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
-## Before a public launch
+## Later work
 
-Email verification and password reset need the sending domain onboarded (see Email sending); until then, new email/password accounts cannot confirm their address. In `npm run dev` the links are printed in the server console. Administrator-created accounts start verified. Social sign-in needs the provider credentials above. The forum is a functional local prototype; configure email verification and bot protection before opening registration to the public.
-
-Reader-submitted events, the newsletter, obituaries, jobs, and classifieds are separate later work.
+Reader-submitted events, the newsletter, obituaries, jobs, and classifieds are not built yet.
 
 ## License
 

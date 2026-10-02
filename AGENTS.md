@@ -1,11 +1,11 @@
 # AGENTS.md
 
-Guidance for AI coding agents working on Firelands Current, an independent local newspaper for Sandusky, Ohio. [README.md](README.md) describes the features in depth; this file covers what an agent needs to work safely and consistently.
+Guidance for AI coding agents working on Firelands Current, an independent local newspaper for Sandusky, Ohio, live at `https://firelandscurrent.com`. [README.md](README.md) describes the features in depth; this file covers what an agent needs to work safely and consistently.
 
 ## Stack
 
 - **Astro 7** in server output mode (`astro.config.mjs`), deployed with the `@astrojs/cloudflare` adapter to **Cloudflare Workers**
-- **D1** (SQLite) database bound as `DB`; **R2** bucket bound as `MEDIA` for ad banner images; both configured in `wrangler.jsonc`
+- **D1** (SQLite) database bound as `DB`; **R2** bucket bound as `MEDIA` for media library images; both configured in `wrangler.jsonc`
 - **Better Auth** for accounts and sessions (`src/lib/auth.ts`, served at `/api/auth/*`)
 - **TypeScript** in strict mode; **marked** renders story Markdown
 - Node.js 24 or later
@@ -18,12 +18,14 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run check` | Type-check with `astro check` |
 | `npm run build` | Production build into `dist/` |
 | `npm run db:migrate:local` | Apply D1 migrations to the local database under `.wrangler/` |
-| `npm run db:seed:demo` | Load fictional demo stories and discussions (local only) |
+| `npm run db:seed:demo` | Load fictional demo stories and discussions; only for a throwaway database (see below) |
 | `npm run cf:types` | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
 
 Run `npm run check` and `npm run build` before considering a change done. **Running `npm run check` while the dev server is up breaks the dev server** (client scripts start returning 404); restart `npm run dev` afterwards.
 
 Local setup needs `.dev.vars` copied from `.dev.vars.example` with a real `BETTER_AUTH_SECRET`. `.dev.vars` is ignored by Git; never commit secrets.
+
+The local D1 database is kept matching production content. Don't load `scripts/seed-demo.sql` or `scripts/seed-ads-demo.sql` into it, and delete any rows you create while testing.
 
 ## Layout
 
@@ -32,11 +34,12 @@ src/
   middleware.ts      www → apex redirect, session lookup, suspension check, security headers
   env.d.ts           App.Locals (user, session, staffRole), Cloudflare.Env, __APP_VERSION__
   layouts/           BaseLayout (public site), AdminLayout (/admin)
-  components/        Shared Astro components (ads, forms, news editor)
+  components/        Shared Astro components (ads, forms, news and event editors, media picker, comments)
   lib/               Data access and domain logic, one module per area
   pages/             Routes; pages/api/** are form-post endpoints
 migrations/          Numbered D1 migrations (0001_auth.sql …)
 scripts/             Demo seed SQL; auth-schema.ts only generated the initial auth migration
+docs/                Newsroom guides (news-sources.md)
 ```
 
 ## Conventions
@@ -46,8 +49,8 @@ scripts/             Demo seed SQL; auth-schema.ts only generated the initial au
 - **Auth state** comes from `Astro.locals` / `locals` (`user`, `session`, `staffRole`), set by `src/middleware.ts`. Suspended users are treated as signed out.
 - **Admin sections** are declared in `ADMIN` in `src/lib/admin.ts`. Admin pages call `requireSection(Astro, ADMIN.x)`; admin endpoints check `canAccess(locals.staffRole, ADMIN.x)`. A new content area adds an entry there, reuses those roles, and gets a sidebar icon in `SECTION_ICONS` in `AdminLayout.astro`.
 - **API endpoints** are `APIRoute` handlers that accept form posts: check the user and role, reject cross-origin requests with `sameOrigin(request)` from `src/lib/forum.ts`, read fields through `cleanText`, validate ids with a regex, and answer with a `303` redirect back to the page. Return plain-text error responses with the right status (400, 403, 404).
-- **Admin changes to users, businesses, and ads** are recorded in `admin_audit_log`; keep new admin actions audited the same way.
-- **Images** go through the media library (`src/lib/media.ts`): every file in R2 has a `media` row with a required credit, and stories and ads refer to library items. Never delete an R2 object that a story or ad might use; use `mediaUsage` first. Story Markdown only renders `/media/…` images that exist in the library.
+- **Admin changes to users, businesses, ads, and media** are recorded in `admin_audit_log` (see `auditStatement` in `src/lib/users.ts`, `adAudit`, `mediaAudit`); keep new admin actions audited the same way.
+- **Images** go through the media library (`src/lib/media.ts`): every file in R2 has a `media` row with a required credit, and stories, events, and ads refer to library items. Never delete an R2 object that a story, event, or ad might use; use `mediaUsage` first. Story Markdown only renders `/media/…` images that exist in the library.
 - **Ads** never appear on forms, account pages, dashboards, or the admin panel. Placements are defined in `PLACEMENTS` in `src/lib/ads.ts`.
 - **Styling** is plain CSS in the layouts and pages; there is no CSS framework.
 - **Icons** in the admin panel come from Lucide via `@lucide/astro` (`import { Plus } from '@lucide/astro'`), rendered as inline SVG on the server. Use current icon names, not the deprecated aliases (`Trash`, not `Trash2`). Icons sit before a button's or heading's text and are decorative; the text carries the meaning.
@@ -74,11 +77,11 @@ To release a version:
 
 1. Bump the version with `npm version <major|minor|patch> --no-git-tag-version` (updates `package.json` and `package-lock.json`).
 2. Add a section to `CHANGELOG.md` under the new version and date.
-3. Commit, then tag the commit `vX.Y.Z` and push the tag with the branch.
+3. Commit with the subject `vX.Y.Z - <summary>` (for example, `v1.17.1 - Define the coverage area and document regional sources`), then tag the commit `vX.Y.Z` (lightweight) and push the tag with the branch.
 
 Use **patch** for fixes, **minor** for new features or sections, and **major** for changes that break existing URLs, accounts, or data.
 
 ## Git
 
-- Commit messages are short imperative summaries (for example, "Redirect www to canonical domain").
+- Commit messages are short imperative summaries (for example, "Redirect www to canonical domain"). Release commits use the `vX.Y.Z - <summary>` form above.
 - Do not add `Co-Authored-By` or other AI attribution trailers to commits.
