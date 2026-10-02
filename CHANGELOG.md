@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.18.0] - 2026-10-02
+
+### Added
+
+- A dedicated Google News sitemap at `/news-sitemap.xml` lists up to 1,000 published stories from the last 48 hours with the publication name, language, original publication date, and headline. Older stories remain in the ordinary sitemap
+- `robots.txt` advertises both sitemaps so crawlers can discover recent news alongside the rest of the site
+
 ## [1.17.1] - 2026-10-02
 
 ### Changed

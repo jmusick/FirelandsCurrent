@@ -2,9 +2,12 @@ import { env } from 'cloudflare:workers';
 import { SECTIONS } from './news';
 
 type SitemapEntry = { path: string; lastmod?: number };
+type NewsSitemapEntry = { slug: string; headline: string; published_at: number };
 
 // A single sitemap file holds at most 50,000 URLs; split into a sitemap index before content nears that.
 const MAX_URLS = 50000;
+const MAX_NEWS_URLS = 1000;
+const NEWS_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 
 const STATIC_PATHS = ['/', '/news', ...Object.keys(SECTIONS).map((s) => `/news?section=${s}`), '/events', '/talk', '/submit-news', '/contact', '/advertise', '/privacy', '/terms'];
 
@@ -30,6 +33,24 @@ export async function sitemapEntries(): Promise<SitemapEntry[]> {
 }
 
 const escapeXml = (value: string) => value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+export async function newsSitemapEntries(now = Date.now()): Promise<NewsSitemapEntry[]> {
+  const result = await env.DB.prepare(`
+    SELECT slug, headline, published_at
+    FROM news_articles
+    WHERE status = 'published' AND published_at >= ? AND published_at <= ?
+    ORDER BY published_at DESC, slug ASC LIMIT ?
+  `).bind(now - NEWS_WINDOW_MS, now, MAX_NEWS_URLS).all<NewsSitemapEntry>();
+  return result.results;
+}
+
+export function newsSitemapXml(origin: string, entries: NewsSitemapEntry[]): string {
+  const urls = entries.map(({ slug, headline, published_at }) => {
+    const loc = escapeXml(new URL(`/news/${slug}`, origin).href);
+    return `<url><loc>${loc}</loc><news:news><news:publication><news:name>Firelands Current</news:name><news:language>en</news:language></news:publication><news:publication_date>${new Date(published_at).toISOString()}</news:publication_date><news:title>${escapeXml(headline)}</news:title></news:news></url>`;
+  });
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n${urls.join('\n')}\n</urlset>\n`;
+}
 
 export function sitemapXml(origin: string, entries: SitemapEntry[]): string {
   const urls = entries.map(({ path, lastmod }) => {

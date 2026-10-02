@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 
-// Served dynamically so the Sitemap line names whichever host is answering, as the sitemap's own URLs do.
+// Served dynamically so the Sitemap lines name whichever host is answering, as the sitemaps' own URLs do.
 export const GET: APIRoute = ({ url }) => {
   const body = [
     'User-agent: *',
@@ -11,6 +11,7 @@ export const GET: APIRoute = ({ url }) => {
     'Disallow: /ads/',
     '',
     `Sitemap: ${new URL('/sitemap.xml', url.origin).href}`,
+    `Sitemap: ${new URL('/news-sitemap.xml', url.origin).href}`,
     '',
   ].join('\n');
   return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' } });
