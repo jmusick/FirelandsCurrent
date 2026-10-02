@@ -1,5 +1,6 @@
 ---
 import { env } from 'cloudflare:workers';
+import { Menu, X } from '@lucide/astro';
 import AdSlot from '../components/AdSlot.astro';
 import { pageTakesAds } from '../lib/ads';
 import '../styles/tokens.css';
@@ -28,6 +29,8 @@ const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID 
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Without JavaScript the phone menu can't open, so the nav stays expanded unless this runs. -->
+    <script is:inline>document.documentElement.classList.add('js');</script>
     {gaId && <>
       <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
       <script is:inline define:vars={{ gaId }}>
@@ -76,6 +79,10 @@ const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID 
       .brand-mark { display: block; width: clamp(2.6rem, 5.6vw, 4.2rem); height: auto; flex: none; }
       .dateline { margin: 0; text-align: right; font-size: .9rem; line-height: 1.4; color: #a9c3c8; }
       .dateline strong { display: block; color: #f4f7f7; font-weight: 600; font-size: 1rem; }
+      .menu-toggle { display: none; align-items: center; gap: .45rem; padding: .55rem .8rem; background: transparent; color: #f4f7f7; border: 1px solid #4f8290; border-radius: 2px; font-weight: 600; font-stretch: 88%; line-height: 1; }
+      .menu-toggle:hover { border-color: #d4e4e7; }
+      .menu-toggle .icon-close, .menu-toggle[aria-expanded="true"] .icon-open { display: none; }
+      .menu-toggle[aria-expanded="true"] .icon-close { display: block; }
       .nav { border-top: 1px solid var(--deep-2); }
       .nav-inner { max-width: var(--wrap); margin: auto; padding: 0 1.25rem; display: flex; flex-wrap: wrap; gap: 0 1.6rem; align-items: center; }
       .nav a { display: block; padding: .8rem 0 .65rem; border-bottom: 3px solid transparent; text-decoration: none; color: #d4e4e7; font-weight: 600; font-size: 1rem; font-stretch: 88%; }
@@ -122,15 +129,22 @@ const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID 
       .site-footer nav a:hover { text-decoration: underline; }
       .site-footer .fine { grid-column: 1 / -1; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--slate); font-size: .85rem; }
       @media (max-width: 700px) {
-        .masthead { padding-top: 1.2rem; align-items: center; }
-        .dateline span { display: none; }
+        .masthead { padding: 1rem 1.25rem; align-items: center; }
+        .js .dateline { display: none; }
+        .js .menu-toggle { display: inline-flex; }
+        .js .nav:not(.open) { display: none; }
         .nav-inner { gap: 0 1.1rem; }
+        .js .nav-inner { flex-direction: column; align-items: stretch; padding-bottom: .5rem; }
         .nav a { font-size: .95rem; padding: .65rem 0 .5rem; }
+        .js .nav a { padding: .85rem 0 .8rem .9rem; font-size: 1.05rem; border-bottom: 0; border-left: 3px solid transparent; }
+        .js .nav a + a { border-top: 1px solid var(--deep-2); }
+        .js .nav a[aria-current] { border-left-color: var(--sunset); }
         .nav .right { margin-left: 0; }
         .site-footer-inner { grid-template-columns: minmax(0, 1fr); }
         .site-footer nav { grid-template-columns: repeat(2, auto); justify-content: start; }
       }
-      @media (max-width: 460px) { .brand { gap: .6rem; } .dateline { display: none; } }
+      @media (max-width: 460px) { .masthead { gap: 1rem; } .brand { gap: .6rem; font-size: clamp(1.5rem, 7vw, 2rem); white-space: nowrap; } .brand-mark { width: clamp(2.1rem, 11vw, 2.6rem); } .dateline { display: none; } }
+      @media (max-width: 360px) { .menu-toggle .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
     </style>
   </head>
   <body>
@@ -138,13 +152,23 @@ const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID 
       <div class="masthead">
         <a class="brand" href="/" aria-label="Firelands Current home"><img class="brand-mark" src="/logo-mark.svg" alt="" width="64" height="64" /><span>Firelands Current</span></a>
         <p class="dateline"><strong>{dateline}</strong><span>News from Sandusky and the Firelands</span></p>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><Menu class="icon-open" size={20} aria-hidden="true" /><X class="icon-close" size={20} aria-hidden="true" /><span class="label">Menu</span></button>
       </div>
-      <nav class="nav" aria-label="Main navigation"><div class="nav-inner">
+      <nav class="nav" id="site-nav" aria-label="Main navigation"><div class="nav-inner">
         <a href="/news" aria-current={current('/news')}>News</a><a href="/events" aria-current={current('/events')}>Events</a><a href="/talk" aria-current={current('/talk')}>Talk of the Town</a><a href="/submit-news" aria-current={current('/submit-news')}>Submit news</a>
         {staffRole && <a class="right" href="/admin/news">Newsroom</a>}
         {user ? <a class={staffRole ? undefined : "right"} href="/account" aria-current={current('/account')}>{user.name}</a> : <a class="right" href="/sign-in" aria-current={current('/sign-in')}>Sign in</a>}
       </div></nav>
     </header>
+    <script>
+      const toggle = document.querySelector<HTMLButtonElement>('.menu-toggle');
+      const nav = document.getElementById('site-nav');
+      const setOpen = (open: boolean) => { toggle?.setAttribute('aria-expanded', String(open)); nav?.classList.toggle('open', open); };
+      toggle?.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && toggle?.getAttribute('aria-expanded') === 'true') { setOpen(false); toggle.focus(); }
+      });
+    </script>
     {showAds && <div class="ad-band"><AdSlot placement="site-leaderboard" /></div>}
     <main><slot /></main>
     <footer class="site-footer"><div class="site-footer-inner">

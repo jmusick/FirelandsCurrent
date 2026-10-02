@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.17.0] - 2026-10-02
+
+### Added
+
+- On phones the main navigation folds into a Menu button in the masthead, so every link, including Sign in and the Newsroom, fits without wrapping or being cut off. The date is hidden on phones to make room
+
 ## [1.16.2] - 2026-10-01
 
 ### Added
