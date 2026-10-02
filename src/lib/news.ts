@@ -23,6 +23,7 @@ export type Article = {
   section: Section;
   community: string;
   byline: string;
+  author_id: string | null;
   published_at: number;
 } & LeadImage;
 
@@ -53,8 +54,8 @@ export function isSection(value: string | null | undefined): value is Section {
 
 export async function listArticles(page = 0, section?: Section, pageSize = 20): Promise<Article[]> {
   const result = await env.DB.prepare(`
-    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS}
-    FROM news_articles a LEFT JOIN media m ON m.id = a.lead_media_id
+    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, ${LEAD_COLUMNS}
+    FROM news_articles a LEFT JOIN "user" u ON u.id = a.author_id LEFT JOIN media m ON m.id = a.lead_media_id
     WHERE a.status = 'published' AND (?1 IS NULL OR a.section = ?1)
     ORDER BY a.published_at DESC
     LIMIT ?2 OFFSET ?3
@@ -65,8 +66,8 @@ export async function listArticles(page = 0, section?: Section, pageSize = 20): 
 /** The front page: the featured story if one is published, otherwise the newest, then the next newest after it. */
 export async function frontPageArticles(others = 4): Promise<{ lead: Article | null; more: Article[] }> {
   const result = await env.DB.prepare(`
-    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS}
-    FROM news_articles a LEFT JOIN media m ON m.id = a.lead_media_id
+    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, ${LEAD_COLUMNS}
+    FROM news_articles a LEFT JOIN "user" u ON u.id = a.author_id LEFT JOIN media m ON m.id = a.lead_media_id
     WHERE a.status = 'published'
     ORDER BY a.featured DESC, a.published_at DESC
     LIMIT ?
@@ -81,9 +82,9 @@ export async function articlesBySection(perSection = 3, excludeIds: string[] = [
   const skip = excludeIds.map(() => '?').join(',');
   const result = await env.DB.prepare(`
     SELECT * FROM (
-      SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS},
+      SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, ${LEAD_COLUMNS},
         ROW_NUMBER() OVER (PARTITION BY a.section ORDER BY a.published_at DESC) AS rank
-      FROM news_articles a LEFT JOIN media m ON m.id = a.lead_media_id
+      FROM news_articles a LEFT JOIN "user" u ON u.id = a.author_id LEFT JOIN media m ON m.id = a.lead_media_id
       WHERE a.status = 'published'${skip ? ` AND a.id NOT IN (${skip})` : ''}
     ) WHERE rank <= ? ORDER BY published_at DESC
   `).bind(...excludeIds, perSection).all<Article>();
@@ -94,15 +95,15 @@ export async function articlesBySection(perSection = 3, excludeIds: string[] = [
 
 export async function getArticle(slug: string): Promise<Article | null> {
   return env.DB.prepare(`
-    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, a.byline, a.published_at, ${LEAD_COLUMNS}
-    FROM news_articles a LEFT JOIN media m ON m.id = a.lead_media_id
+    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, ${LEAD_COLUMNS}
+    FROM news_articles a LEFT JOIN "user" u ON u.id = a.author_id LEFT JOIN media m ON m.id = a.lead_media_id
     WHERE a.slug = ? AND a.status = 'published'
   `).bind(slug).first<Article>();
 }
 
 export async function listAdminArticles(): Promise<AdminArticle[]> {
   const result = await env.DB.prepare(`
-    SELECT id, slug, headline, summary, body, section, community, byline, lead_media_id, featured, status, published_at, updated_at
+    SELECT id, slug, headline, summary, body, section, community, byline, author_id, lead_media_id, featured, status, published_at, updated_at
     FROM news_articles
     ORDER BY COALESCE(published_at, updated_at) DESC
   `).all<AdminArticle>();
@@ -111,7 +112,7 @@ export async function listAdminArticles(): Promise<AdminArticle[]> {
 
 export async function getAdminArticle(id: string): Promise<AdminArticle | null> {
   return env.DB.prepare(`
-    SELECT id, slug, headline, summary, body, section, community, byline, lead_media_id, featured, status, published_at, updated_at
+    SELECT id, slug, headline, summary, body, section, community, byline, author_id, lead_media_id, featured, status, published_at, updated_at
     FROM news_articles
     WHERE id = ?
   `).bind(id).first<AdminArticle>();

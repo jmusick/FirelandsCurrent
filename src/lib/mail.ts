@@ -44,10 +44,10 @@ export function sendVerificationMail(user: { email: string; name: string }, url:
     to: user,
     subject: 'Confirm your email address',
     heading: 'Confirm your email address',
-    intro: `Hi ${user.name}, confirm this email address to finish creating your Firelands Current account. The link works for one hour.`,
+    intro: `Hi ${user.name}, confirm this email address for your Firelands Current account. The link works for one hour.`,
     action: 'Confirm email address',
     url,
-    outro: "If you didn't create an account, you can ignore this message.",
+    outro: "If you didn't request an account or email change, you can ignore this message.",
   });
 }
 

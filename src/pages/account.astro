@@ -1,6 +1,7 @@
 ---
 import { env } from 'cloudflare:workers';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Turnstile from '../components/Turnstile.astro';
 import { enabledProviders } from '../lib/auth';
 import { PROVIDER_LABELS } from '../lib/users';
 import { authErrorMessage } from '../lib/auth-errors';
@@ -18,12 +19,28 @@ const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
 <BaseLayout title="Your account">
   <h1>Your account</h1>
   {errorMessage && <p class="message" role="alert" style="max-width:650px">{errorMessage}</p>}
-  {Astro.url.searchParams.get('verified') && <p class="message" role="status" style="max-width:650px">Your email address is confirmed. Welcome to Firelands Current.</p>}
+  {Astro.url.searchParams.get('verified') && <p class="message" role="status" style="max-width:650px">Your email address is confirmed.</p>}
   <div class="card" style="max-width:650px">
     <h2 style="margin-top:0">{user.name}</h2>
     <p><strong>Email:</strong> {user.email}</p>
     <p><strong>Firelands Current ID:</strong> <code style="overflow-wrap:anywhere">{user.id}</code></p>
     <p><strong>Sign-in methods:</strong> {linked.results.map((entry) => PROVIDER_LABELS[entry.providerId] ?? entry.providerId).join(', ') || 'None'}</p>
+    <p><a href={`/profile/${encodeURIComponent(user.id)}`}>View your public profile</a></p>
+    <form id="name-form" class="form" style="margin-top:1.3rem">
+      <label>Display name <input name="name" value={user.name} required maxlength="80" autocomplete="nickname" /></label>
+      <p class="muted" style="margin:0">Shown on your profile, articles, topics, and replies. Names do not have to be unique.</p>
+      <button class="button small" type="submit">Update display name</button>
+      <p id="name-message" class="message" role="status" hidden></p>
+    </form>
+    <details style="margin-top:1.3rem"><summary>Change email address</summary>
+      <form id="email-form" class="form" style="margin-top:1rem">
+        <label>New email address <input name="email" type="email" required maxlength="254" autocomplete="email" /></label>
+        <p class="muted" style="margin:0">Your email stays private. Confirm the link sent to your new address before it replaces your current sign-in email. The link works for one hour. You may need to sign in again if your session is older than a day.</p>
+        <Turnstile />
+        <button class="button small" type="submit">Send confirmation link</button>
+        <p id="email-message" class="message" role="status" hidden></p>
+      </form>
+    </details>
     {available.length > 0 && <div><p class="muted">Link another sign-in method to this same account:</p><div style="display:flex;gap:.6rem;flex-wrap:wrap">{available.map((provider) => <button class="button secondary small link-button" data-provider={provider} type="button">Link {PROVIDER_LABELS[provider]}</button>)}</div></div>}
     <p id="account-message" class="message" role="alert" hidden></p>
     {linkedProviders.has('credential') && <details style="margin-top:1.3rem"><summary>Change password</summary><form id="password-form" class="form" style="margin-top:1rem"><label>Current password <input name="currentPassword" type="password" required autocomplete="current-password" /></label><label>New password <input name="newPassword" type="password" required minlength="12" autocomplete="new-password" /></label><button class="button small" type="submit">Update password</button></form></details>}
@@ -31,8 +48,43 @@ const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
   </div>
   <script>
     import { authClient } from '../lib/auth-client';
+    import { captchaHeaders, resetCaptcha } from '../lib/turnstile-client';
     import type { SocialProvider } from '../lib/auth';
     const message = document.querySelector<HTMLElement>('#account-message')!;
+    document.querySelector<HTMLFormElement>('#name-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget as HTMLFormElement;
+      const notice = document.querySelector<HTMLElement>('#name-message')!;
+      const button = form.querySelector<HTMLButtonElement>('button')!;
+      const name = String(new FormData(form).get('name') ?? '').trim();
+      if (!name || name.length > 80) { notice.textContent = 'Display name must be 1–80 characters.'; notice.hidden = false; return; }
+      button.disabled = true;
+      try {
+        const result = await authClient.updateUser({ name });
+        if (result.error) { notice.textContent = result.error.message || 'Could not update your display name.'; notice.hidden = false; }
+        else window.location.assign('/account?nameUpdated=1');
+      } catch { notice.textContent = 'Could not update your display name. Please try again.'; notice.hidden = false; }
+      finally { button.disabled = false; }
+    });
+    if (new URLSearchParams(window.location.search).has('nameUpdated')) {
+      const notice = document.querySelector<HTMLElement>('#name-message')!;
+      notice.textContent = 'Display name updated.'; notice.hidden = false;
+    }
+    document.querySelector<HTMLFormElement>('#email-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget as HTMLFormElement;
+      const notice = document.querySelector<HTMLElement>('#email-message')!;
+      const button = form.querySelector<HTMLButtonElement>('button')!;
+      button.disabled = true;
+      try {
+        const result = await authClient.changeEmail({
+          newEmail: String(new FormData(form).get('email') ?? '').trim(), callbackURL: '/account?verified=1',
+        }, { headers: captchaHeaders(form) });
+        notice.textContent = result.error?.message || 'If that address is available, a confirmation link is on its way. Your current email stays in use until you confirm it.';
+        if (!result.error) form.reset();
+      } catch { notice.textContent = 'Could not send the confirmation link. Please try again.'; }
+      finally { notice.hidden = false; button.disabled = false; resetCaptcha(); }
+    });
     document.querySelector<HTMLButtonElement>('#sign-out')?.addEventListener('click', async () => {
       const result = await authClient.signOut();
       if (result.error) { message.textContent = result.error.message || 'Could not sign out.'; message.hidden = false; return; }

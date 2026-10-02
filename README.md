@@ -4,7 +4,8 @@ An independent local newspaper for Sandusky, Ohio and the Firelands, built with 
 
 ## What works now
 
-- Email/password registration, sign-in, sign-out, password changes, and password reset by email through Better Auth. New email/password accounts must confirm their address from a link we email before they can sign in; sign-up, reset, and resend requests are protected by Cloudflare Turnstile
+- Email/password registration, sign-in, sign-out, display-name changes, verified email-address changes, password changes, and password reset by email through Better Auth. New email/password accounts must confirm their address from a link we email before they can sign in; sign-up, reset, and resend requests are protected by Cloudflare Turnstile
+- Public profiles at `/profile/<user.id>` group published articles, visible forum topics, and visible replies in paginated tabs. Story bylines and forum names link to profiles; email addresses and account details remain private. Display-name changes appear on linked articles and posts. Hidden discussions, hidden replies, unpublished stories, and draft events stay out of profile activity.
 - A stable local `user.id`, with additional OAuth sign-in methods linked through the `account` table
 - Optional Google, Facebook, Apple, and Microsoft sign-in and sign-up; buttons appear on `/sign-in` and `/register` only when credentials are configured
 - Publicly readable Talk of the Town discussions; signed-in readers can start threads and reply
@@ -54,6 +55,16 @@ npx wrangler d1 execute DB --local --command "INSERT OR REPLACE INTO staff_roles
 ```
 
 Production promotion must be done deliberately against the production D1 database (`--remote`).
+
+## Account profiles and authors
+
+Readers update their display name (1–80 characters), request an email change, and change their password at `/account`. Email changes require a recent session and a Turnstile check; Better Auth sends a one-hour link to the new address and keeps the current address until verification. An address already in use receives no link. Names may be shared; profile URLs use stable account IDs, so changing a name or email does not break links.
+
+Run `npm run test:profiles` for regression checks against an isolated in-memory database. These exercise attribution, visibility, pagination, account deletion, and the real Better Auth name-change and email-verification handlers; test mail is captured locally and Turnstile responses are simulated.
+
+In the news editor, choose an **Author account** to link a story to a profile and use that account's current display name as its byline. New stories default to the editor's account. Choose **Guest byline** for contributors without an account; tip conversions requesting credit default to a guest byline. Deleting an author account keeps its stories with the saved text byline and removes the profile link. Automatically created story/event discussions continue to belong to the Newsroom account.
+
+Migration `0017_article_authors.sql` adds the account relationship and assigns all stories present when it runs (including drafts) to the account with `jd@orboro.net`, with the saved byline `JD`. It leaves stories unchanged if that account is missing; verify the account and resulting attribution before deploying. Apply this migration before deploying the profile code.
 
 ## User management
 

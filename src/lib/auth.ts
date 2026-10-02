@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { betterAuth } from 'better-auth';
-import { APIError } from 'better-auth/api';
+import { APIError, createAuthMiddleware, getAuthoritativeSessionFromCtx } from 'better-auth/api';
 import { captcha } from 'better-auth/plugins';
 import { importPKCS8, SignJWT } from 'jose';
 import { sendPasswordResetMail, sendVerificationMail } from './mail';
@@ -61,6 +61,15 @@ export function createAuth() {
     database: env.DB,
     baseURL: env.SITE_URL,
     secret: env.BETTER_AUTH_SECRET,
+    user: { changeEmail: { enabled: true } },
+    hooks: { before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== '/change-email') return;
+      const current = await getAuthoritativeSessionFromCtx(ctx);
+      if (!current) throw new APIError('UNAUTHORIZED', { message: 'Sign in before changing your email address.' });
+      if (Date.now() - new Date(current.session.createdAt).getTime() >= 24 * 60 * 60 * 1000) {
+        throw new APIError('FORBIDDEN', { message: 'Sign out and sign in again before changing your email address.', code: 'SESSION_NOT_FRESH' });
+      }
+    }) },
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 12,
@@ -82,7 +91,7 @@ export function createAuth() {
       captcha({
         provider: 'cloudflare-turnstile',
         secretKey: env.TURNSTILE_SECRET_KEY,
-        endpoints: ['/sign-up/email', '/request-password-reset', '/send-verification-email'],
+        endpoints: ['/sign-up/email', '/request-password-reset', '/send-verification-email', '/change-email'],
       }),
     ],
     account: {
@@ -105,7 +114,16 @@ export function createAuth() {
     },
     // Failed social sign-ins land on our own sign-in page (as ?error=code) instead of Better Auth's stock error page.
     onAPIError: { errorURL: '/sign-in' },
-    databaseHooks: { session: { create: { before: refuseSuspended } } },
+    databaseHooks: {
+      session: { create: { before: refuseSuspended } },
+      user: { update: { before: async (user) => {
+        if (user.name === undefined) return;
+        if (typeof user.name !== 'string') throw new APIError('BAD_REQUEST', { message: 'Display name must be text.' });
+        const name = user.name.trim();
+        if (!name || name.length > 80) throw new APIError('BAD_REQUEST', { message: 'Display name must be 1–80 characters.' });
+        return { data: { ...user, name } };
+      } } },
+    },
     trustedOrigins: providers.includes('apple') ? ['https://appleid.apple.com'] : [],
   });
 }

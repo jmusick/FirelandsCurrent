@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getProfile, profileItems, PROFILE_PAGE_SIZE, type ProfileTab } from '../../lib/profiles';
+
+const profile = await getProfile(Astro.params.id ?? '');
+if (!profile) return new Response('Profile not found', { status: 404 });
+const tabs: Record<ProfileTab, string> = { articles: 'Articles', topics: 'Topics', replies: 'Replies' };
+const requestedTab = Astro.url.searchParams.get('tab');
+const tab: ProfileTab = requestedTab === 'topics' || requestedTab === 'replies' ? requestedTab : 'articles';
+const requestedPage = Number(Astro.url.searchParams.get('page') ?? 1);
+const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 10000 ? requestedPage : 1;
+const fetched = await profileItems(profile.id, tab, page - 1);
+const hasMore = fetched.length > PROFILE_PAGE_SIZE;
+const items = fetched.slice(0, PROFILE_PAGE_SIZE);
+const href = (selected: ProfileTab, p = 1) => `/profile/${encodeURIComponent(profile.id)}?tab=${selected}${p > 1 ? `&page=${p}` : ''}`;
+const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'America/New_York' });
+---
+<BaseLayout title={`${profile.name}'s profile`} description={`Published articles and public conversations by ${profile.name} on Firelands Current.`}>
+  <div class="profile">
+    <span class="eyebrow">Public profile</span>
+    <h1>{profile.name}</h1>
+    {Astro.locals.user?.id === profile.id && <p><a href="/account">Edit your account</a></p>}
+    <nav class="filter-tabs" aria-label="Profile activity">
+      {Object.entries(tabs).map(([key, label]) => <a href={href(key as ProfileTab)} aria-current={tab === key ? 'page' : undefined}>{label}</a>)}
+    </nav>
+    {items.length === 0 && <p class="muted">No public {tabs[tab].toLowerCase()} to show{page > 1 ? ' on this page' : ' yet'}.</p>}
+    {items.map((item) => <article class="activity">
+      <p class="meta">{tab === 'replies' ? 'Reply in Talk of the Town' : tab === 'topics' ? 'Topic in Talk of the Town' : 'Article'} · {fmt(item.created_at)}</p>
+      <h2><a href={item.path}>{item.title}</a></h2>
+      <p class="excerpt">{item.body.length > 500 ? `${item.body.slice(0, 500)}…` : item.body}</p>
+      {tab === 'replies' && <a href={item.path}>View conversation →</a>}
+    </article>)}
+    {(page > 1 || hasMore) && <nav class="pages" aria-label="Profile activity pages"><span>{page > 1 && <a href={href(tab, page - 1)}>← Newer {tabs[tab].toLowerCase()}</a>}</span><span>{hasMore && <a href={href(tab, page + 1)}>Older {tabs[tab].toLowerCase()} →</a>}</span></nav>}
+  </div>
+</BaseLayout>
+
+<style>
+  .profile { max-width: 760px; overflow-wrap: anywhere; }
+  .activity { padding: 1.4rem 0; border-bottom: 1px solid var(--line-soft); }
+  .activity h2 { margin: .3rem 0 .6rem; }
+  .activity h2 a { color: inherit; }
+  .activity .meta { margin: 0; }
+  .excerpt { white-space: pre-wrap; font-family: var(--read); line-height: 1.6; }
+  .pages { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; }
+</style>

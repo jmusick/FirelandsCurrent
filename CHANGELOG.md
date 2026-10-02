@@ -2,6 +2,20 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.19.0] - 2026-10-02
+
+### Added
+
+- Readers can update their display name and request a verified email-address change from their account page; email changes require a recent sign-in and a Turnstile check
+- Public profiles group each person's published articles, visible Talk of the Town topics, and visible replies in paginated tabs; bylines and forum names link to these profiles
+- The news editor can assign an author account or retain a guest byline; linked bylines follow display-name changes while profile URLs stay stable
+- Regression checks cover profile visibility, pagination, authorship, account deletion, and account editing without changing the working database or sending email
+
+### Changed
+
+- Migration `0017` attributes the existing story archive to JD's account (`jd@orboro.net`), preserving story URLs and publication dates
+- The Privacy Policy and account verification email explain the new profile and email-change behavior
+
 ## [1.18.0] - 2026-10-02
 
 ### Added

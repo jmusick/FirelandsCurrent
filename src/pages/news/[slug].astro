@@ -1,4 +1,5 @@
 ---
+import AuthorLink from '../../components/AuthorLink.astro';
 import AdSlot from '../../components/AdSlot.astro';
 import ShareButtons from '../../components/ShareButtons.astro';
 import Comments from '../../components/Comments.astro';
@@ -32,7 +33,7 @@ chunks.push(blocks.slice(start).join(''));
     <span class="eyebrow">{article.community}<a class="section" href={`/news?section=${article.section}`}>{SECTIONS[article.section]}</a></span>
     <h1 class="headline">{article.headline}</h1>
     <p class="lede" style="margin-top:0">{article.summary}</p>
-    <p class="meta byline">By <strong>{article.byline}</strong><br />{new Date(article.published_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</p>
+    <p class="meta byline">By <strong><AuthorLink id={article.author_id} name={article.byline} /></strong><br />{new Date(article.published_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</p>
     <ShareButtons url={new URL(`/news/${article.slug}`, Astro.url.origin).href} title={article.headline} />
     {lead && <Fragment set:html={figureHtml(lead, { className: 'story-figure lead', eager: true })} />}
     <div class="story">

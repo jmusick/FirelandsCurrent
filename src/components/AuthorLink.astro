@@ -1,0 +1,5 @@
+---
+interface Props { id: string | null; name: string }
+const { id, name } = Astro.props;
+---
+{id ? <a href={`/profile/${encodeURIComponent(id)}`}>{name}</a> : <>{name}</>}

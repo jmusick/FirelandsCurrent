@@ -1,4 +1,5 @@
 ---
+import AuthorLink from '../components/AuthorLink.astro';
 import AdSlot from '../components/AdSlot.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { CATEGORIES, fmtDay, fmtHours, listEvents, today } from '../lib/events';
@@ -19,7 +20,7 @@ const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateS
       <span class="eyebrow">{lead.community}<span class="section">{SECTIONS[lead.section]}</span></span>
       <h1><a href={`/news/${lead.slug}`}>{lead.headline}</a></h1>
       <p class="lede">{lead.summary}</p>
-      <p class="meta">By {lead.byline}, {fmtDate(lead.published_at)}</p>
+      <p class="meta">By <AuthorLink id={lead.author_id} name={lead.byline} />, {fmtDate(lead.published_at)}</p>
       <AdSlot placement="home-rail" class="home-rail" />
     </article>
     <div class="rail">

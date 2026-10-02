@@ -10,12 +10,12 @@ import { emptyArticle, saveArticleFromForm, type ArticleFormValues } from '../..
 const denied = requireSection(Astro, ADMIN.news);
 if (denied) return denied;
 
-let values: ArticleFormValues = { ...emptyArticle, byline: Astro.locals.user!.name };
+let values: ArticleFormValues = { ...emptyArticle, byline: Astro.locals.user!.name, author_id: Astro.locals.user!.id };
 let errors: string[] = [];
 const submissionId = Astro.url.searchParams.get('submission') ?? '';
 if (submissionId && /^[\w-]{8,64}$/.test(submissionId)) {
   const tip = await env.DB.prepare("SELECT * FROM news_submissions WHERE id = ? AND status != 'converted'").bind(submissionId).first<{ id: string; name: string; subject: string; body: string; credit_requested: number }>();
-  if (tip) values = { ...values, headline: tip.subject.slice(0, 160), summary: tip.body.replace(/\s+/g, ' ').slice(0, 400), body: tip.body.slice(0, 50000), byline: tip.credit_requested ? tip.name.slice(0, 80) : Astro.locals.user!.name };
+  if (tip) values = { ...values, headline: tip.subject.slice(0, 160), summary: tip.body.replace(/\s+/g, ' ').slice(0, 400), body: tip.body.slice(0, 50000), author_id: tip.credit_requested ? '' : Astro.locals.user!.id, byline: tip.credit_requested ? tip.name.slice(0, 80) : Astro.locals.user!.name };
 }
 if (Astro.request.method === 'POST') {
   if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });

@@ -3,6 +3,7 @@ import { ImagePlus, Save, Trash, X } from '@lucide/astro';
 import MediaPicker from './MediaPicker.astro';
 import { getMedia, mediaUrl } from '../lib/media';
 import { SECTIONS } from '../lib/news';
+import { listAuthorAccounts } from '../lib/profiles';
 import type { ArticleFormValues } from '../lib/news-admin';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 const { values, errors, saved = false, articleId, liveUrl, canDelete = false, submissionId = '' } = Astro.props;
+const authors = await listAuthorAccounts();
 const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
 ---
 {errors.length > 0 && <div class="message" role="alert"><strong>Couldn’t save the story.</strong><ul>{errors.map((e) => <li>{e}</li>)}</ul></div>}
@@ -34,7 +36,8 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
       </select>
     </label>
     <label>Community <input name="community" value={values.community} required maxlength="60" placeholder="Sandusky" /></label>
-    <label>Byline <input name="byline" value={values.byline} required maxlength="80" /></label>
+    <label>Author account <span class="hint">Links the byline to this person's profile. Leave blank for a guest byline.</span><select name="author_id"><option value="">Guest byline</option>{authors.map((author) => <option value={author.id} selected={values.author_id === author.id}>{author.name} ({author.id.slice(-6)})</option>)}</select></label>
+    <label>Byline <span class="hint">Used for guest authors; an account author uses their display name.</span><input name="byline" value={values.byline} maxlength="80" /></label>
   </div>
   <div class="lead-field">
     <span class="field-label">Lead image <span class="hint">Shown above the story, with it on the front page and in story lists, and in link previews on social media.</span></span>
@@ -169,7 +172,7 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
 <style>
   .editor { max-width: 900px; }
   .hint { font-weight: 400; color: var(--slate); font-size: .82rem; }
-  .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
   .form :global(select) { width: 100%; padding: .8rem .85rem; border: 1px solid var(--field); border-radius: 3px; background: #fff; color: var(--ink); font: inherit; }
   .check { display: flex; gap: .6rem; align-items: start; }
   .check input { margin-top: .3rem; }
