@@ -2,6 +2,19 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.20.0] - 2026-10-02
+
+### Added
+
+- Facebook Page publishing records every published story in a database queue, checks for missed entries every five minutes, verifies the Page token's identity, and prevents overlapping runs from sending the same story
+- Editors can review the archive, record existing Page posts, and retry confirmed missing stories at `/admin/facebook`; dashboard warnings flag posting errors, missed checks, and token expiry
+- Isolated regression checks cover migrations, drafts, duplicate prevention, rate-limit retries, ambiguous responses, credential expiry, and staff audit records
+
+### Changed
+
+- A custom Worker entrypoint preserves Astro web handling and adds the scheduled publisher; production posting is enabled after the database migration and Page token setup
+- The Privacy Policy explains sending public news to Meta and storing Page authorization and delivery records; the README documents deployment, archive review, and token renewal
+
 ## [1.19.0] - 2026-10-02
 
 ### Added

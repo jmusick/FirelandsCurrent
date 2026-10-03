@@ -1,5 +1,5 @@
 ---
-import { BuildingComplex, CalendarDays, ExternalLink, Images, LayoutDashboard, Megaphone, MessagesSquare, Newspaper, Users } from '@lucide/astro';
+import { BuildingComplex, CalendarDays, ExternalLink, Images, LayoutDashboard, Megaphone, MessagesSquare, Newspaper, Send, Users } from '@lucide/astro';
 import { ADMIN, sectionsFor, type AdminSectionKey } from '../lib/admin';
 import { ROLE_LABELS } from '../lib/staff';
 import '../styles/tokens.css';
@@ -8,6 +8,7 @@ import '../styles/tokens.css';
 const SECTION_ICONS = {
   dashboard: LayoutDashboard,
   news: Newspaper,
+  facebook: Send,
   submissions: Newspaper,
   events: CalendarDays,
   media: Images,

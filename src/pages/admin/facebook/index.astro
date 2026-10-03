@@ -1,0 +1,84 @@
+---
+import { env } from 'cloudflare:workers';
+import { ExternalLink, Send } from '@lucide/astro';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { facebookDashboard } from '../../../lib/facebook-admin';
+import { facebookConnectionIssue, facebookPostUrl, FACEBOOK_STATUS_LABELS } from '../../../lib/facebook-publisher';
+
+const denied = requireSection(Astro, ADMIN.facebook);
+if (denied) return denied;
+const pageValue = Number(Astro.url.searchParams.get('page') ?? '1');
+const page = Number.isSafeInteger(pageValue) ? Math.max(1, Math.min(100000, pageValue)) : 1;
+const dashboard = await facebookDashboard(Astro.url.searchParams.get('status') ?? '', page);
+const enabled = env.FACEBOOK_AUTO_POST_ENABLED === 'true';
+const issue = facebookConnectionIssue(env);
+const expiresAt = Number(env.FACEBOOK_TOKEN_EXPIRES_AT);
+const date = (value: number | null | undefined) => value ? new Date(value).toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'medium', timeStyle: 'short' }) : 'Not yet';
+const stale = !dashboard.health?.last_run_at || Date.now() - dashboard.health.last_run_at > 15 * 60_000;
+const pageUrl = (n: number) => `/admin/facebook?status=${dashboard.filter}&page=${n}`;
+---
+<AdminLayout title="Facebook publishing">
+  <span class="eyebrow">News</span>
+  <h1>Facebook publishing</h1>
+  <p>Published stories are queued for the Firelands Current Page. The publisher checks every five minutes and sends up to five stories per run. Edits and republishing do not create another post.</p>
+  <p><a href="https://www.facebook.com/people/Firelands-Current/61594659460586/" target="_blank" rel="noopener noreferrer" class="button secondary"><ExternalLink />Open the Facebook Page</a></p>
+  {Astro.url.searchParams.has('updated') && <p class="notice" role="status">Posting record updated.</p>}
+  <section class="card health" aria-label="Publisher status">
+    <p><strong>{enabled ? 'Automatic posting enabled' : 'Automatic posting paused'}</strong></p>
+    <p>Last check: {date(dashboard.health?.last_run_at)} Eastern. Token expires: {date(expiresAt)} Eastern.</p>
+    {issue && <p class="message">{issue}</p>}
+    {!issue && expiresAt - Date.now() < 14 * 24 * 60 * 60_000 && <p class="message">Renew the Page token within two weeks to keep stories posting.</p>}
+    {enabled && stale && <p class="message">No publisher check in the last 15 minutes. Check the Cloudflare cron trigger and Worker logs.</p>}
+    {dashboard.health?.last_error && <p class="message">{dashboard.health.last_error}</p>}
+    {dashboard.missing > 0 && <p class="message">{dashboard.missing} published stories have no posting record. The next publisher check will add them.</p>}
+    <p class="meta">Token renewal and the posting switch are managed in the server configuration. Credentials are never displayed here.</p>
+  </section>
+  <nav class="counts" aria-label="Posting status filters">
+    <a href="/admin/facebook" aria-current={!dashboard.filter ? 'page' : undefined}>All</a>
+    {dashboard.counts.map(({ status, n }) => <a href={`/admin/facebook?status=${status}`} aria-current={dashboard.filter === status ? 'page' : undefined}>{FACEBOOK_STATUS_LABELS[status]} ({n})</a>)}
+  </nav>
+  <p class="muted">Archive review covers stories published before this integration. Record an existing Facebook post, or check the Page and queue a missing story. “Check Facebook” means a send may have succeeded; verify before retrying.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Story</th><th>Facebook status</th><th>Action</th></tr></thead>
+    <tbody>{dashboard.posts.map(post => <tr>
+      <td><a href={`/admin/news/${post.article_id}`}><strong>{post.headline}</strong></a><p class="meta"><a href={`/news/${post.slug}`}>View story</a> · {post.article_status}</p></td>
+      <td><strong>{FACEBOOK_STATUS_LABELS[post.status]}</strong><p class="meta">{post.attempts} sending attempts · Updated {date(post.updated_at)} Eastern</p>{post.last_error && <p class="error">{post.last_error}</p>}</td>
+      <td>{post.post_id ? <a href={facebookPostUrl(post.post_id)} target="_blank" rel="noopener noreferrer">View Facebook post</a> : post.status === 'posting' ? <span class="muted">Sending…</span> : <details><summary>Resolve posting status</summary>
+        {post.status !== 'pending' && post.article_status === 'published' && <form method="post" action="/api/admin/facebook/resolve">
+          <input type="hidden" name="id" value={post.article_id} /><input type="hidden" name="action" value="queue" />
+          <label class="confirm"><input type="checkbox" name="checked_page" value="1" required />I checked the Page; this story has not been posted.</label>
+          <button class="button small" type="submit"><Send />Queue story</button>
+        </form>}
+        <form method="post" action="/api/admin/facebook/resolve">
+          <input type="hidden" name="id" value={post.article_id} /><input type="hidden" name="action" value="record" />
+          <label>Existing Page post ID<input type="text" name="post_id" placeholder={`${env.FACEBOOK_PAGE_ID}_123456789`} pattern="[0-9]+_[0-9]+" required /></label>
+          <label class="confirm"><input type="checkbox" name="checked_page" value="1" required />This Page post links to this story.</label>
+          <button class="button small secondary" type="submit">Record existing post</button>
+        </form>
+      </details>}</td>
+    </tr>)}</tbody>
+  </table></div>
+  {dashboard.posts.length === 0 && <p class="muted">No stories with this status.</p>}
+  <nav class="pagination" aria-label="Pagination">{page > 1 && <a href={pageUrl(page - 1)}>Previous</a>}<span>Page {page} · {dashboard.total} stories</span>{page * 40 < dashboard.total && <a href={pageUrl(page + 1)}>Next</a>}</nav>
+</AdminLayout>
+<style>
+  .health p:first-child { margin-top: 0; }
+  .counts, .pagination { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1.5rem 0; }
+  .counts [aria-current='page'] { font-weight: 750; color: var(--deep); }
+  .notice { padding: .75rem 1rem; background: var(--shoal); }
+  .table-wrap { overflow-x: auto; border-top: 3px solid var(--deep); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .88rem; color: var(--slate); padding: .8rem .6rem; border-bottom: 1px solid var(--line); }
+  td { padding: .8rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; min-width: 220px; }
+  td:first-child { width: 40%; }
+  td p { margin: .4rem 0; }
+  .error { color: var(--alert); font-size: .9rem; }
+  details { min-width: 260px; }
+  summary { cursor: pointer; color: var(--channel); }
+  form { display: grid; gap: .65rem; margin: 1rem 0; }
+  form + form { border-top: 1px solid var(--line); padding-top: 1rem; }
+  label { display: grid; gap: .4rem; font-size: .9rem; }
+  .confirm { display: flex; align-items: flex-start; }
+  .confirm input { flex-shrink: 0; }
+</style>

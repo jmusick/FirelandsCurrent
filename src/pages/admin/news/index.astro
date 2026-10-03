@@ -15,6 +15,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle
     <div><span class="eyebrow">News</span><h1>Stories</h1></div>
     <a class="button" href="/admin/news/new"><Plus />New story</a>
   </div>
+  <p class="meta"><a href="/admin/facebook">Check Facebook delivery and review stories awaiting a post.</a></p>
   {Astro.url.searchParams.has('deleted') && <p class="message" role="status">Story deleted.</p>}
 
   <div class="filters">

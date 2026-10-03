@@ -17,6 +17,7 @@ An independent local newspaper for Sandusky, Ohio and the Firelands, built with 
 - Local events calendar at `/events`, with an upcoming-events block on the front page, event pages with an add-to-calendar file, and search-engine event data
 - Media library for story, ad and event images, stored in R2, with credits, usage tracking and social-preview images
 - Share buttons (Facebook, X, LinkedIn, Reddit, email, copy link) above and below every story; they are plain links, so no third-party scripts load. The footer links the paper's Facebook and X accounts
+- Facebook Page delivery through a persistent posting queue, with cron checks, bounded retries for rate limits, and an editor dashboard at `/admin/facebook`. Activation requires the production migration, a Page access token secret, and the posting switch described below
 - RSS feed at `/rss.xml` (also `/feed`, `/rss`) and a JSON Feed at `/feed.json`, each with the 30 newest stories (summary, lead image, byline, section). Add `?section=local` (or any section key) for one section. Every page advertises the feed for auto-discovery, and the footer links it
 - `/sitemap.xml` listing the main pages, news sections, published stories, published and cancelled events, and visible discussions, and a `/robots.txt` that points to it and keeps crawlers out of admin, account, business, ad-click, and API routes
 - `/news-sitemap.xml` listing up to 1,000 newest published stories from the last 48 hours with Google News publication metadata, original publication dates, and headlines. It refreshes after at most five minutes of caching; older stories remain in the ordinary sitemap. Both sitemaps are advertised in `/robots.txt`. Submit the news sitemap in Google Search Console after deploying it; an empty news sitemap is expected when no stories were published in the last two days
@@ -45,7 +46,7 @@ The admin panel at `/admin` is available to users with a row in `staff_roles`:
 | Role | Access |
 | --- | --- |
 | `admin` | Every admin section, including Users, Businesses, and Ads; can delete stories and events |
-| `editor` | News, News tips, Events, and Media |
+| `editor` | News, Facebook, News tips, Events, and Media |
 | `moderator` | Talk of the Town |
 
 Sections and the roles allowed in each are listed in `src/lib/admin.ts`; a new content area (classifieds, jobs, …) adds an entry there. Once one administrator exists, roles are managed at `/admin/users`. To create the first administrator, register the account, then:
@@ -65,6 +66,28 @@ Run `npm run test:profiles` for regression checks against an isolated in-memory 
 In the news editor, choose an **Author account** to link a story to a profile and use that account's current display name as its byline. New stories default to the editor's account. Choose **Guest byline** for contributors without an account; tip conversions requesting credit default to a guest byline. Deleting an author account keeps its stories with the saved text byline and removes the profile link. Automatically created story/event discussions continue to belong to the Newsroom account.
 
 Migration `0017_article_authors.sql` adds the account relationship and assigns all stories present when it runs (including drafts) to the account with `jd@orboro.net`, with the saved byline `JD`. It leaves stories unchanged if that account is missing; verify the account and resulting attribution before deploying. Apply this migration before deploying the profile code.
+
+## Facebook Page publishing
+
+The **Firelands Current Publishing** Meta app (`1640810601082553`) sends news to Page API ID `1342964875571057`. The separate **Firelands Current** app handles reader Facebook sign-in. Use a Page token with `pages_manage_posts`, `pages_read_engagement`, and `pages_show_list`, issued for the publishing app and the correct Page. The current verified token expires December 1, 2026; renew it before then. Business verification alone does not establish ongoing Page access.
+
+Migration `0018_facebook_posts.sql` creates the posting ledger and database triggers. Stories already published when it runs start in **Archive review**, since some may have been shared manually. Editors check the Page and either record the full existing post ID (`pageid_postid`) or queue a missing story. Existing IDs can be retrieved from the Page's `/feed` in Meta's Graph API Explorer. Recording an existing post is a staff assertion that it links to that story; the dashboard does not verify its contents with Meta. Each queue or record action is audited. Queuing is unavailable for drafts or stories already recorded as posted.
+
+After activation, every new published story is queued atomically, including stories inserted directly into D1. Every five minutes, the Worker also scans the full published archive for missing ledger entries, checks that the token can post to the configured Page, and sends up to five queued stories, oldest first. It posts the headline, summary, and canonical story link; Facebook fetches the site's public preview metadata and image. Drafts and future-dated stories are held. Editing a story or returning it to published status does not repost it. Deleting or unpublishing a story does not remove its existing Facebook post; editors must handle Facebook corrections separately.
+
+Only explicit rate-limit rejections retry automatically, with exponential delays capped at an hour and at most six attempts. Permission failures need staff attention. Network loss, an unreadable response, server errors, and a Worker interrupted while sending become **Check Facebook**: the post may already exist, so no automatic retry happens. Check the Page, then record its post ID or confirm that it was not posted before queuing it again. Database claims prevent overlapping runs from sending the same queued story.
+
+Deployment steps, after approval:
+
+1. Apply migration `0018` to production with `npx wrangler d1 migrations apply DB --remote` before deploying the new Worker.
+2. Store `FACEBOOK_PAGE_ACCESS_TOKEN` using `npx wrangler secret put FACEBOOK_PAGE_ACCESS_TOKEN`, supplying the token through the prompt or stdin. Never put it in source, command-line arguments, logs, or `wrangler.jsonc`.
+3. Check the publishing app's Meta publishing and access requirements, and verify an approved real story appears for ordinary Facebook readers. Development-mode behavior is not proof of public delivery.
+4. Set `FACEBOOK_AUTO_POST_ENABLED` to `"true"` in `wrangler.jsonc`, keeping `FACEBOOK_PAGE_ID`, `FACEBOOK_GRAPH_VERSION`, and the verified token expiry (`FACEBOOK_TOKEN_EXPIRES_AT`, Unix milliseconds) accurate. Publish the release after the migration and secret are in place.
+5. Review `/admin/facebook`: resolve the archive, inspect any errors, and confirm the five-minute checks are arriving. A run older than 15 minutes and a token within two weeks of expiry show warnings. These are dashboard warnings; there are no email alerts.
+
+Production posting is enabled in `wrangler.jsonc`; the verified Page token is stored as a Cloudflare secret. Keep `FACEBOOK_AUTO_POST_ENABLED=false` in `.dev.vars`; development must never send stories to the live Page. The publisher also refuses a non-production `SITE_URL`. Renew a token in Meta, verify its app, Page, scopes, and expiry, replace the Cloudflare secret, update the recorded expiry, and requeue permission failures after resolving the cause. A valid token can still be revoked or lose permissions before its recorded expiration.
+
+`npm run test:facebook` exercises migrations, direct imports, duplicate prevention, overlapping runs, drafts, expiry, Page identity checks, retries, ambiguous results, database failures, and audited archive actions against an isolated in-memory database and simulated Meta responses. No live Facebook posts or working story records are created by these tests. `src/worker.ts` delegates web requests to Astro and handles the scheduled publisher; the build preserves both handlers.
 
 ## User management
 

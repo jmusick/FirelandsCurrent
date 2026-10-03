@@ -236,6 +236,8 @@ export const PROVIDER_LABELS: Record<string, string> = {
 };
 
 export const AUDIT_LABELS: Record<string, string> = {
+  facebook_queue: 'Queued Facebook story',
+  facebook_record: 'Recorded Facebook post',
   create: 'Created account',
   'update-profile': 'Edited profile',
   'set-role': 'Changed staff role',
