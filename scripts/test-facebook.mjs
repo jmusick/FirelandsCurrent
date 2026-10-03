@@ -163,6 +163,16 @@ test('wrong Page identity blocks posting before a story is claimed', async () =>
   assert.equal(f.post('wrong').attempts, 0);
 });
 
+test('identity errors retain only safe status and numeric codes', async () => {
+  const f = setup(); f.article('invalid-token'); f.due();
+  const result = await publishFacebookStories(f.config, { now: () => NOW, fetch: async () => json({ error: { code: 190, message: 'secret token must not appear' } }, 400) });
+  assert.equal(result.paused, true);
+  const health = f.sql.prepare('SELECT last_error FROM facebook_publisher_health').get();
+  assert.match(health.last_error, /HTTP 400, code 190/);
+  assert.doesNotMatch(health.last_error, /secret token/);
+  assert.equal(f.post('invalid-token').attempts, 0);
+});
+
 test('a busy run sends at most five stories and leaves the rest for the next check', async () => {
   const f = setup();
   for (let i = 0; i < 7; i++) f.article(`busy-${i}`);

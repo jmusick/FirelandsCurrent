@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.20.1] - 2026-10-02
+
+### Fixed
+
+- Facebook connection warnings include safe HTTP status and API error codes so operators can diagnose a rejected token without exposing credentials or raw Meta error messages
+
 ## [1.20.0] - 2026-10-02
 
 ### Added

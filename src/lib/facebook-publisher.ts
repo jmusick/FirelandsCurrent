@@ -67,16 +67,21 @@ export async function publishFacebookStories(config: FacebookConfig, options: { 
 
   // Verify identity on every run, before any write to Meta. A misconfigured token cannot post to another Page.
   let identity: { id?: string; can_post?: boolean };
+  let identityIssue = 'The Page identity or posting permission did not match.';
   try {
     const response = await send(`https://graph.facebook.com/${config.FACEBOOK_GRAPH_VERSION}/me?fields=id,can_post`, {
       headers: { Authorization: `Bearer ${config.FACEBOOK_PAGE_ACCESS_TOKEN}` }, signal: AbortSignal.timeout(15_000), redirect: 'error',
     });
-    const data = response.ok ? await response.json() : null;
+    const data = await response.json() as { id?: string; can_post?: boolean; error?: { code?: unknown } } | null;
+    if (!response.ok) {
+      const code = typeof data?.error?.code === 'number' ? data.error.code : 'unknown';
+      identityIssue = `Facebook identity check returned HTTP ${response.status}, code ${code}.`;
+    }
     identity = data && typeof data === 'object' ? data : {};
-  } catch { identity = {}; }
+  } catch { identity = {}; identityIssue = 'The Facebook identity request failed or returned an unreadable response.'; }
   if (identity.id !== config.FACEBOOK_PAGE_ID || identity.can_post !== true) {
     await config.DB.prepare('UPDATE facebook_publisher_health SET last_error = ? WHERE id = 1')
-      .bind('Facebook could not confirm this token can post to the configured Page. Check its validity and permissions.').run();
+      .bind(`Facebook could not confirm this token can post to the configured Page. ${identityIssue}`).run();
     return { posted: 0, paused: true };
   }
 
