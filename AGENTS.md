@@ -17,6 +17,7 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run dev` | Dev server at `http://127.0.0.1:4321` |
 | `npm run check` | Type-check with `astro check` |
 | `npm run build` | Production build into `dist/` |
+| `npm run test:preview` | Isolated regression tests for safe story previews and their endpoint |
 | `npm run db:migrate:local` | Apply D1 migrations to the local database under `.wrangler/` |
 | `npm run db:seed:demo` | Load fictional demo stories and discussions; only for a throwaway database (see below) |
 | `npm run cf:types` | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
@@ -49,6 +50,7 @@ docs/                Newsroom guides (news-sources.md)
 - **Auth state** comes from `Astro.locals` / `locals` (`user`, `session`, `staffRole`), set by `src/middleware.ts`. Suspended users are treated as signed out.
 - **Admin sections** are declared in `ADMIN` in `src/lib/admin.ts`. Admin pages call `requireSection(Astro, ADMIN.x)`; admin endpoints check `canAccess(locals.staffRole, ADMIN.x)`. A new content area adds an entry there, reuses those roles, and gets a sidebar icon in `SECTION_ICONS` in `AdminLayout.astro`.
 - **API endpoints** are `APIRoute` handlers that accept form posts: check the user and role, reject cross-origin requests with `sameOrigin(request)` from `src/lib/forum.ts`, read fields through `cleanText`, validate ids with a regex, and answer with a `303` redirect back to the page. Return plain-text error responses with the right status (400, 403, 404).
+- **Story previews** are the plain-text POST exception: `/api/admin/news/preview` requires `ADMIN.news` access and `sameOrigin`, bounds the streamed UTF-8 body before rendering, and returns HTML with `Cache-Control: no-store`. Both EasyMDE modes use `createStoryPreview` in `src/scripts/story-preview.ts` and the public `renderBodyBlocks` renderer in `src/lib/news.ts`. Preserve raw-HTML escaping and existing-library-only images; never fall back to EasyMDE's default HTML renderer. Preview requests must not save or log story text. Run `npm run test:preview` when changing this path.
 - **Admin changes to users, businesses, ads, and media** are recorded in `admin_audit_log` (see `auditStatement` in `src/lib/users.ts`, `adAudit`, `mediaAudit`); keep new admin actions audited the same way.
 - **Images** go through the media library (`src/lib/media.ts`): every file in R2 has a `media` row with a required credit, and stories, events, and ads refer to library items. Never delete an R2 object that a story, event, or ad might use; use `mediaUsage` first. Story Markdown only renders `/media/…` images that exist in the library.
 - **Ads** never appear on forms, account pages, dashboards, or the admin panel. Placements are defined in `PLACEMENTS` in `src/lib/ads.ts`.

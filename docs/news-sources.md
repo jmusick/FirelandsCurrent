@@ -6,7 +6,7 @@ How Firelands Current finds, checks and publishes local news. Read this before w
 
 - **Write original reporting.** Take the facts from primary sources and write the story in our own voice. Never reword another outlet's article sentence by sentence, and don't rely on a "Source:" line to fix that.
 - **Link the primary source** in the story body (city, school district, agency, or the document itself).
-- **Byline** is `Firelands Current staff` until the editor says otherwise.
+- **Byline** must link to the specified author's account. If no other author is specified, use JD's account (`jd@orboro.net`): look up its `user.id`, set the article's `author_id` to that id, and use the account's display name (`JD`) as the saved byline. Never use `Firelands Current staff`. If the JD account cannot be found, resolve the attribution before importing a story.
 - **Verify dates.** Confirm each fact's date on the source page itself. Search-engine summaries have mixed up years (a September 2025 dispensary opening and a fall 2025 terror-plot case both showed up as "this month"). Skip anything older than the current news cycle unless it explains something current.
 - **Say what we don't know.** If an announcement gives a claim without figures or terms, report the claim and note what's missing, as the job-growth and visitors-bureau stories do.
 - **Local first.** Publish to the local database, let the editor review in local dev, and sync to production only when asked (see "Getting a story live").
@@ -40,6 +40,7 @@ Places outside these areas, including Toledo and Cleveland, are covered only whe
 | [Ohio Lake Erie Commission](https://lakeerie.ohio.gov/) | Lake Erie restoration, grants | Some deep links move; search by title. |
 | [Erie County Health Department](https://eriehealthohio.com/news-page/) | Public health grants, clinics, lead and housing programs, overdose response | Posts several dated items a week. Many put the details in an image of the press release, so open the image (or the page in a browser) before writing. Program pages and posts don't always agree on figures; report the difference. The old `eriecohealthohio.com` address redirects here. |
 | [City of Huron](https://www.cityofhuron.org/) | Leaf pickup, hydrant flushing, city services and events | Same site platform as Sandusky; news pages are `news_detail_T3_R##.php`. |
+| [Perkins Township](https://perkinstownship.com/) | Trustee actions, police and fire, township events | WordPress; RSS at `/feed/`. Used for the October 2026 Fire Station 3 open house and township events. Its [official Facebook Page](https://www.facebook.com/PerkinsTownship) also carries event flyers; verify their dates and use website announcements when available. Meeting minutes are PDFs under `/wp-content/uploads/`. |
 | [Erie County Board of Elections](https://www.boe.ohio.gov/erie/) | Candidate and issue filings, voting dates | The filing PDFs block scripted downloads and sometimes return a maintenance page; try again later or ask the board for a copy. |
 | [City of Sandusky on Facebook](https://www.facebook.com/cityofsandusky) and [Sandusky Police](https://www.facebook.com/sanduskypolice) | Commission meeting notices, events, groundbreakings, new officers | Official accounts, so usable as a source, but link the city website or document when one exists. Posts often carry details the city website never gets. |
 | [Huron County](https://www.huroncounty-oh.gov/) and Erie MetroParks ([eriemetroparks.org](https://eriemetroparks.org/)) | County departments, parks | Thin on news; useful for facts and contact details. |
@@ -52,7 +53,6 @@ Found in an October 2026 probe of the wider coverage area. None of these has pro
 
 | Source | Good for | Notes |
 | --- | --- | --- |
-| [Perkins Township](https://perkinstownship.com/) | Trustee actions, police and fire, township events | WordPress; RSS at `/feed/`, several posts a month. Meeting minutes are PDFs under `/wp-content/uploads/`. |
 | [City of Port Clinton](https://www.portclinton.com/newslist.php) | Water and sewer projects, city staff, transit | Revize, like Sandusky; news pages are `news_detail_T28_R##.php`. A post every month or two. |
 | [City of Oak Harbor](https://www.oakharbor.oh.us/newslist.php) | Street and school-zone safety projects, grants | Revize. A few posts a year. |
 | [Village of Clyde](https://www.clydeohio.org/CivicAlerts.aspx) | Village notices and events | CivicPlus. Posts every few weeks. |
@@ -65,6 +65,15 @@ Found in an October 2026 probe of the wider coverage area. None of these has pro
 | [Ohio Sea Grant and Stone Lab](https://ohioseagrant.osu.edu/news) | Lake Erie research, algal blooms, water quality | Several posts a week, statewide; use the ones about the western basin or Sandusky Bay. |
 | [Huron County Public Health](https://www.huroncohealth.com/public-information) | Public health notices for Norwalk and Huron County | Dated items; check how current the latest one is. |
 | [Huron County](https://www.huroncounty-oh.gov/) RSS | County departments | The home page lists several RSS feeds (Revize `rss?token=…` links), which may be easier to watch than the site. |
+
+**Nonprofits and community funding**
+
+Added Oct. 3, 2026. These sources have not yet produced a story; check announcement dates and distinguish application deadlines from award dates.
+
+| Source | Good for | Notes |
+| --- | --- | --- |
+| [Sandusky County Communities Foundation](https://www.sanduskyccf.org/) | Local grants, scholarships and funded community projects | Wix. Start with [News and Events](https://www.sanduskyccf.org/news-and-events) and [Grant Guidance and Timeline](https://www.sanduskyccf.org/grant-guidance). The 2026 timeline lists a Celebration of Philanthropy for Oct. 14 at 5 p.m.; confirm venue, access and recipients before coverage. Older grant PDFs can appear in search results. |
+| [United Way of Sandusky County](https://uwsandco.org/) | Community services, nonprofit funding, food assistance and volunteer opportunities | Use its program pages, assistance directories and [grant funding page](https://uwsandco.org/grant.php). The homepage still featured August events when checked in October 2026, so do not assume featured announcements are current. |
 
 **Slow, stale, or hard to read**
 
@@ -127,7 +136,7 @@ Not found: a Page for the City of Bellevue itself, ODOT District 3, or Fremont C
 Stories are rows in `news_articles`, and a published story also gets a discussion thread in `forum_threads` (the admin editor does this through `ensureArticleThread`).
 
 1. Write the story as Markdown and check the headline, summary and body against the source.
-2. Insert it into the local database (for example with `npx wrangler d1 execute DB --local --file stories.sql`), including a matching thread row with `author_id = 'newsroom'`. Only `/media/…` library images render in the body.
+2. Insert it into the local database (for example with `npx wrangler d1 execute DB --local --file stories.sql`), setting the article's `author_id` and byline as described above and including a matching discussion thread with `author_id = 'newsroom'`. The discussion's Newsroom author is separate from the article's account-linked byline. Only `/media/…` library images render in the body.
 3. Review at `http://127.0.0.1:4321/news`.
 4. When the editor says to sync, insert the same rows into production (`--remote`), then confirm counts per section on both sides. Migrations, if any, are applied first (see AGENTS.md).
 

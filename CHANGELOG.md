@@ -2,6 +2,18 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.20.5] - 2026-10-03
+
+### Fixed
+
+- Story editor previews and live side-by-side views use the published-story renderer, keeping raw HTML inert and blocking external images while preserving media-library photos, captions, and credits
+- Preview requests require newsroom access, enforce request limits, and prevent caching; failed or stale requests cannot fall back to unsafe browser rendering
+
+### Changed
+
+- Document preview processing in the Privacy Policy, editor guidance, and agent instructions, with isolated regression checks
+- Clarify account-linked story attribution and update regional reporting sources
+
 ## [1.20.4] - 2026-10-02
 
 ### Fixed

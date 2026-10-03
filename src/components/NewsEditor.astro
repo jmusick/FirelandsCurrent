@@ -76,6 +76,7 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
 <script>
   import { imageMarkdown } from '../scripts/media-client';
   import { openMediaPicker } from '../scripts/media-picker';
+  import { createStoryPreview } from '../scripts/story-preview';
 
   // EasyMDE comes from the CDN script above; this module runs after it.
   declare const EasyMDE: any;
@@ -139,6 +140,7 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
       autosave: { enabled: false },
       status: ['words'],
       minHeight: '380px',
+      previewRender: createStoryPreview(),
       toolbar: ['bold', 'italic', 'heading-2', 'heading-3', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link',
         { name: 'image', action: (e: { codemirror: CodeMirror }) => insertImage(e.codemirror), className: 'fa fa-picture-o', title: 'Insert image' },
         '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],

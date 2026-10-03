@@ -125,6 +125,10 @@ Images are uploaded from the library page or straight from the story editor: the
 
 In a story, an image on a line of its own shows as a figure with its caption and credit. Stories can only show library images: an image linked from another site shows as its alt text instead. Each story can also have a **lead image**, shown above the story, with it on the front page and in the news list, and as the preview image when the story is shared on social media.
 
+The story editor's preview and side-by-side view use the same safe renderer as published stories. Raw HTML appears as text, and previews load only existing media-library images, with captions and credits. Previews send the current story text to our Cloudflare-hosted server without saving it and require a connection and a current administrator or editor sign-in. A failed preview shows an error; it does not fall back to rendering untrusted HTML in the browser.
+
+`npm run test:preview` checks HTML and image restrictions, ordinary Markdown, preview authorization, request limits, and handling of stale or failed preview responses with isolated fixtures. It does not create database records or contact external image hosts.
+
 The front page leads with the newest published story unless an editor ticks **Feature on the front page** in the story editor. The featured story stays the large lead until another story is featured (which un-features it) or it is unticked or unpublished; the four newest other stories fill the list beside it. Only one story is featured at a time. Below the lead, each news section (Local News, Government, and so on) has its own block with its three newest headlines and a link to the full section; sections with no stories are hidden.
 
 An image’s page lists every story, ad and event that uses it, its details and its history. Images in use can’t be deleted; deleting a story, ad or event leaves its images in the library. Uploads, edits and deletions are recorded in the audit log.
