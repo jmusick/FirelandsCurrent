@@ -14,7 +14,7 @@ interface Props {
 }
 
 const { title, description = 'Independent local news and conversation for Sandusky and the Firelands.', image, type = 'website' } = Astro.props;
-const previewImage = image ?? { url: '/social-logo.png', width: 1200, height: 630, alt: 'Firelands Current' };
+const previewImage = image ?? { url: '/social-logo.png?v=2', width: 1200, height: 630, alt: 'Firelands Current' };
 const pageUrl = new URL(Astro.url.pathname, Astro.url.origin).href;
 const user = Astro.locals.user;
 const staffRole = Astro.locals.staffRole;

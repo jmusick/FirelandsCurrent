@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.20.4] - 2026-10-02
+
+### Fixed
+
+- Center the social preview masthead with equal side padding and remove the source logo's unused canvas space; version the image URL so Facebook can fetch the corrected placement
+
 ## [1.20.3] - 2026-10-02
 
 ### Fixed
