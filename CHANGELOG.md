@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.20.2] - 2026-10-02
+
+### Fixed
+
+- Use the supported manual redirect mode for Facebook requests on Cloudflare Workers; a runtime regression check verifies both identity and publishing requests preserve redirect protection
+
 ## [1.20.1] - 2026-10-02
 
 ### Fixed

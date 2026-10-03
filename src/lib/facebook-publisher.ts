@@ -70,7 +70,7 @@ export async function publishFacebookStories(config: FacebookConfig, options: { 
   let identityIssue = 'The Page identity or posting permission did not match.';
   try {
     const response = await send(`https://graph.facebook.com/${config.FACEBOOK_GRAPH_VERSION}/me?fields=id,can_post`, {
-      headers: { Authorization: `Bearer ${config.FACEBOOK_PAGE_ACCESS_TOKEN}` }, signal: AbortSignal.timeout(15_000), redirect: 'error',
+      headers: { Authorization: `Bearer ${config.FACEBOOK_PAGE_ACCESS_TOKEN}` }, signal: AbortSignal.timeout(15_000), redirect: 'manual',
     });
     const data = await response.json() as { id?: string; can_post?: boolean; error?: { code?: unknown } } | null;
     if (!response.ok) {
@@ -110,7 +110,7 @@ export async function publishFacebookStories(config: FacebookConfig, options: { 
       response = await send(`https://graph.facebook.com/${config.FACEBOOK_GRAPH_VERSION}/${config.FACEBOOK_PAGE_ID}/feed`, {
         method: 'POST', headers: { Authorization: `Bearer ${config.FACEBOOK_PAGE_ACCESS_TOKEN}` },
         body: new URLSearchParams({ message: `${story.headline}\n\n${story.summary}`, link }),
-        signal: AbortSignal.timeout(20_000), redirect: 'error',
+        signal: AbortSignal.timeout(20_000), redirect: 'manual',
       });
       const data = await response.json();
       result = data && typeof data === 'object' ? data : {};

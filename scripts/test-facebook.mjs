@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import ts from 'typescript';
+import { Miniflare } from 'miniflare';
 import { publishFacebookStories, reconcileFacebookPosts } from '../src/lib/facebook-publisher.ts';
 
 const PAGE = '1342964875571057';
@@ -57,6 +58,34 @@ function fakeGraph(callback = () => json({ id: `${PAGE}_12345` })) {
   return { calls, fetch };
 }
 const run = (fixture, graph, now = NOW) => publishFacebookStories(fixture.config, { fetch: graph.fetch, now: () => now });
+
+test('publisher request options work in the Cloudflare runtime without following redirects', async () => {
+  const publisher = ts.transpileModule(readFileSync(new URL('../src/lib/facebook-publisher.ts', import.meta.url), 'utf8'),
+    { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
+  const script = `import { publishFacebookStories } from './publisher.js';
+    export default { async fetch() {
+      let claimed = false;
+      const DB = { prepare(query) { return { bind() { return this; }, async run() { return {}; }, async first() {
+        if (query.includes('RETURNING article_id')) { if (claimed) return null; claimed = true; return { article_id: 'story', attempts: 1 }; }
+        return { slug: 'story', headline: 'Headline', summary: 'Summary', status: 'published', published_at: 1 };
+      } }; } };
+      let requests = 0;
+      const result = await publishFacebookStories({ DB, SITE_URL: 'https://firelandscurrent.com', FACEBOOK_AUTO_POST_ENABLED: 'true',
+        FACEBOOK_PAGE_ID: '${PAGE}', FACEBOOK_GRAPH_VERSION: 'v26.0', FACEBOOK_PAGE_ACCESS_TOKEN: 'fake-secret', FACEBOOK_TOKEN_EXPIRES_AT: '${NOW + 86400000}' },
+        { now: () => ${NOW}, fetch: async (url, options) => {
+          const request = new Request(url, options);
+          if (request.redirect !== 'manual') throw new Error('Credentials must not follow redirects');
+          requests++;
+          return Response.json(request.method === 'POST' ? { id: '${PAGE}_12345' } : { id: '${PAGE}', can_post: true });
+        } });
+      return Response.json({ ...result, requests });
+    } };`;
+  const runtime = new Miniflare({ workers: [{ config: { name: 'facebook-test', compatibilityDate: '2026-09-26',
+    manifest: { mainModule: 'test.js', modules: { 'test.js': { type: 'esm', contents: script }, 'publisher.js': { type: 'esm', contents: publisher } } } } }] });
+  try {
+    assert.deepEqual(await (await runtime.dispatchFetch('http://localhost/')).json(), { posted: 1, paused: false, requests: 2 });
+  } finally { await runtime.dispose(); }
+});
 
 test('archive is reviewed; new published stories and draft transitions queue atomically', () => {
   const f = setup({ archive: true });
