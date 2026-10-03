@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.20.3] - 2026-10-02
+
+### Fixed
+
+- Social previews use the Firelands Current masthead when a page has no lead photo, preventing Facebook from selecting an advertisement as the story image
+
 ## [1.20.2] - 2026-10-02
 
 ### Fixed
