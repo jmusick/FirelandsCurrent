@@ -210,6 +210,11 @@ INSERT INTO events (id, slug, title, summary, description, category, starts_on, 
   ('demo-e8', 'demo-community-cleanup', 'Shoreline cleanup', 'Volunteers picked up litter along the beach; gloves and bags were provided.', '',
    'outdoors', date('now', '-4 days'), NULL, NULL, NULL, 'Lakeview Park', '', 'Lorain', '', 'Free', '', 'published', 0, 0);
 
+UPDATE events SET ticket_price = '0' WHERE id IN ('demo-e2', 'demo-e3', 'demo-e5', 'demo-e6', 'demo-e8');
+UPDATE events SET performer = 'Demo Lake Erie Quartet', performer_type = 'PerformingGroup',
+  ticket_price = '15', ticket_url = 'https://example.com/demo-jazz-tickets', ticket_availability = 'InStock'
+WHERE id = 'demo-e4';
+
 UPDATE events
 SET created_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000, updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000
 WHERE id LIKE 'demo-e%';

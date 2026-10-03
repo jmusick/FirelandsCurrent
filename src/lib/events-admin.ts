@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { type AdminEvent, type Category, type EventStatus, STATUS_LABELS, isCategory } from './events';
+import { type AdminEvent, type Category, type EventStatus, type PerformerType, type TicketAvailability, STATUS_LABELS, TICKET_AVAILABILITY, isCategory } from './events';
 import { cleanText, ensureEventThread } from './forum';
 import { isMediaId } from './media';
 import { sanitizeSlug } from './news';
@@ -10,6 +10,7 @@ export type EventFormValues = {
   /** Shown instead of the times when the hours differ by day; empty to show the times. */
   hours_note: string;
   venue: string; address: string; community: string; organizer: string; cost: string; link: string;
+  performer: string; performer_type: PerformerType; ticket_price: string; ticket_url: string; ticket_availability: TicketAvailability;
   /** Media library item shown with the event; empty for none. */
   image_media_id: string;
   status: EventStatus;
@@ -22,12 +23,15 @@ export type EventFormResult =
 export const emptyEvent: EventFormValues = {
   title: '', slug: '', summary: '', description: '', category: '', starts_on: '', start_time: '', ends_on: '', end_time: '', hours_note: '',
   venue: '', address: '', community: '', organizer: '', cost: '', link: '', image_media_id: '', status: 'draft',
+  performer: '', performer_type: 'PerformingGroup', ticket_price: '', ticket_url: '', ticket_availability: '',
 };
 
 export function valuesFromEvent(e: AdminEvent): EventFormValues {
-  const { title, slug, summary, description, category, starts_on, hours_note, venue, address, community, organizer, cost, link, status } = e;
+  const { title, slug, summary, description, category, starts_on, hours_note, venue, address, community, organizer, cost, link, status,
+    performer, performer_type, ticket_price, ticket_url, ticket_availability } = e;
   return {
     title, slug, summary, description, category, starts_on, hours_note, venue, address, community, organizer, cost, link, status,
+    performer, performer_type, ticket_price, ticket_url, ticket_availability,
     start_time: e.start_time ?? '', ends_on: e.ends_on ?? '', end_time: e.end_time ?? '', image_media_id: e.image_media_id ?? '',
   };
 }
@@ -48,6 +52,10 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   const typedSlug = sanitizeSlug(cleanText(form.get('slug')));
   let link = cleanText(form.get('link'));
   if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
+  let ticketUrl = cleanText(form.get('ticket_url'));
+  if (ticketUrl && !/^[a-z][a-z\d+.-]*:/i.test(ticketUrl)) ticketUrl = `https://${ticketUrl}`;
+  const performerType = cleanText(form.get('performer_type')) || 'PerformingGroup';
+  const ticketAvailability = cleanText(form.get('ticket_availability'));
   const values: EventFormValues = {
     title: cleanText(form.get('title')),
     slug: typedSlug,
@@ -65,6 +73,11 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
     organizer: cleanText(form.get('organizer')),
     cost: cleanText(form.get('cost')),
     link,
+    performer: cleanText(form.get('performer')),
+    performer_type: performerType === 'Person' ? 'Person' : 'PerformingGroup',
+    ticket_price: cleanText(form.get('ticket_price')),
+    ticket_url: ticketUrl,
+    ticket_availability: Object.hasOwn(TICKET_AVAILABILITY, ticketAvailability) ? ticketAvailability as TicketAvailability : '',
     image_media_id: cleanText(form.get('image_media_id')),
     status: Object.hasOwn(STATUS_LABELS, status) ? status as EventStatus : 'draft',
   };
@@ -92,6 +105,18 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   if (!values.community || values.community.length > 60) errors.push('Community is required (up to 60 characters).');
   if (values.organizer.length > 120) errors.push('Organizer must be under 120 characters.');
   if (values.cost.length > 80) errors.push('Cost must be under 80 characters.');
+  if (values.performer.length > 120) errors.push('Performer must be under 120 characters.');
+  if (!['Person', 'PerformingGroup'].includes(performerType)) errors.push('Choose a valid performer type.');
+  if (ticketAvailability && !Object.hasOwn(TICKET_AVAILABILITY, ticketAvailability)) errors.push('Choose a valid ticket availability.');
+  if (values.ticket_price && !/^\d{1,6}(\.\d{1,2})?$/.test(values.ticket_price)) errors.push('Ticket price must be a dollar amount from 0 to 999999.99, with at most two decimal places.');
+  if (!values.ticket_price && (values.ticket_url || values.ticket_availability)) errors.push('Add the ticket price, or clear the ticket URL and availability.');
+  if (values.ticket_price && Number(values.ticket_price) > 0 && !values.ticket_url) errors.push('Add the ticket purchase URL for a paid event.');
+  if (values.ticket_url) {
+    try {
+      const url = new URL(values.ticket_url);
+      if (!/^https?:$/.test(url.protocol) || url.username || url.password || values.ticket_url.length > 500) throw new Error();
+    } catch { errors.push('Ticket URL must be a valid web address without sign-in credentials.'); }
+  }
   if (values.link) {
     try {
       const url = new URL(values.link);
@@ -120,18 +145,22 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   const now = Date.now();
   await env.DB.prepare(`
     INSERT INTO events (id, slug, title, summary, description, category, starts_on, start_time, ends_on, end_time,
-      venue, address, community, organizer, cost, link, image_media_id, status, created_at, updated_at, hours_note)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?19, ?20)
+      venue, address, community, organizer, cost, link, image_media_id, status, created_at, updated_at, hours_note,
+      performer, performer_type, ticket_price, ticket_url, ticket_availability)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?19, ?20, ?21, ?22, ?23, ?24, ?25)
     ON CONFLICT(id) DO UPDATE SET
       slug = excluded.slug, title = excluded.title, summary = excluded.summary, description = excluded.description,
       category = excluded.category, starts_on = excluded.starts_on, start_time = excluded.start_time, ends_on = excluded.ends_on,
       end_time = excluded.end_time, venue = excluded.venue, address = excluded.address, community = excluded.community,
       organizer = excluded.organizer, cost = excluded.cost, link = excluded.link, image_media_id = excluded.image_media_id,
-      status = excluded.status, updated_at = excluded.updated_at, hours_note = excluded.hours_note
+      status = excluded.status, updated_at = excluded.updated_at, hours_note = excluded.hours_note,
+      performer = excluded.performer, performer_type = excluded.performer_type, ticket_price = excluded.ticket_price,
+      ticket_url = excluded.ticket_url, ticket_availability = excluded.ticket_availability
   `).bind(id, values.slug, values.title, values.summary, values.description, values.category, values.starts_on,
     values.start_time || null, values.ends_on || null, (values.start_time && values.end_time) || null,
     values.venue, values.address, values.community, values.organizer, values.cost, values.link,
-    values.image_media_id || null, values.status, now, values.hours_note).run();
+    values.image_media_id || null, values.status, now, values.hours_note,
+    values.performer, values.performer_type, values.ticket_price, values.ticket_url, values.ticket_availability).run();
   if (values.status !== 'draft') await ensureEventThread({ id, title: values.title, summary: values.summary });
   return { ok: true, id };
 }

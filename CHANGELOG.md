@@ -2,6 +2,17 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.20.6] - 2026-10-03
+
+### Fixed
+
+- Add verified ticket offers and performer details to event pages and search-engine structured data, with optional editor fields for admission price, purchase URL, availability, and performer type
+- Keep unknown event details omitted and stop treating an event details link as the organizer's website
+
+### Changed
+
+- Document recommended event fields, public event data, and isolated regression checks
+
 ## [1.20.5] - 2026-10-03
 
 ### Fixed

@@ -2,7 +2,7 @@
 import { Copy, ImagePlus, Save, Trash, X } from '@lucide/astro';
 import { env } from 'cloudflare:workers';
 import MediaPicker from './MediaPicker.astro';
-import { CATEGORIES, STATUS_LABELS } from '../lib/events';
+import { CATEGORIES, STATUS_LABELS, TICKET_AVAILABILITY } from '../lib/events';
 import type { EventFormValues } from '../lib/events-admin';
 import { getMedia, mediaUrl } from '../lib/media';
 
@@ -65,6 +65,33 @@ const communities = (await env.DB.prepare('SELECT community FROM events UNION SE
     <label>Cost <input name="cost" value={values.cost} maxlength="80" placeholder="Free, $10, $5 for kids…" /></label>
     <label>Link <span class="hint">Tickets or details</span><input name="link" value={values.link} maxlength="500" inputmode="url" placeholder="https://" /></label>
   </div>
+
+  <fieldset>
+    <legend>Performer <span class="hint">Optional. The artist, speaker, or group appearing at the event. Leave blank when there is no performer.</span></legend>
+    <div class="row">
+      <label>Name <input name="performer" value={values.performer} maxlength="120" /></label>
+      <label>Type
+        <select name="performer_type">
+          <option value="PerformingGroup" selected={values.performer_type === 'PerformingGroup'}>Group</option>
+          <option value="Person" selected={values.performer_type === 'Person'}>Person</option>
+        </select>
+      </label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Tickets <span class="hint">Optional. Enter verified admission information. Keep other charges and pricing details in Cost above.</span></legend>
+    <div class="row">
+      <label>Lowest admission price (USD) <span class="hint">Include fees. Enter 0 for free admission; leave blank if unknown.</span><input type="number" name="ticket_price" value={values.ticket_price} min="0" max="999999.99" step="0.01" /></label>
+      <label>Availability
+        <select name="ticket_availability">
+          <option value="" selected={!values.ticket_availability}>Unknown / not applicable</option>
+          {Object.entries(TICKET_AVAILABILITY).map(([key, label]) => <option value={key} selected={values.ticket_availability === key}>{label}</option>)}
+        </select>
+      </label>
+    </div>
+    <label>Ticket URL <span class="hint">The purchase or registration page for this event. Required for paid admission.</span><input name="ticket_url" value={values.ticket_url} maxlength="500" inputmode="url" placeholder="https://" /></label>
+  </fieldset>
 
   <div class="image-field">
     <span class="field-label">Image <span class="hint">Optional. Shown on the event page and in link previews on social media.</span></span>

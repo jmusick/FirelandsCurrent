@@ -117,6 +117,12 @@ Events are *Draft* (staff only), *Published*, or *Cancelled*. Cancelled events s
 
 Readers see upcoming events at `/events`, grouped by day, with filters for category and community and a list of past events. Events that have already started stay under *Today* until their last day. Each event page has a map link, an **Add to calendar** `.ics` file (`/events/<slug>.ics`), and schema.org `Event` data so search engines can list it. The next four events appear under *Coming up* on the front page, and published events are in the sitemap.
 
+The editor also accepts an optional performer name and type (person or group), lowest admission price in USD including fees, ticket purchase or registration URL, and ticket availability. These appear on the public page and in its event structured data. Enter `0` for verified free admission; leave unknown prices blank. Paid admission requires a ticket purchase URL specific to that event. The free-text Cost and More details link are not used to guess ticket offers, and the details link is not treated as the organizer's website. Keep prices and availability current, and review ticket information when duplicating an event.
+
+Search Console may report recommended-field warnings even for valid events. Choose a representative, credited image from the media library, enter the organizer and a verified end time when known, and add performers only when applicable. Unknown details stay omitted; a generic site logo, invented end time, or organizer reused as a performer would misrepresent the event. Existing listings need their new ticket and performer fields filled in where applicable; migration `0019` leaves them blank. After deploying and updating the affected listings, use Google's Rich Results Test before starting Search Console validation.
+
+`npm run test:events` checks migration compatibility, admission and performer saves, public queries, ticket validation, and structured data against an isolated in-memory database. It does not change working event records.
+
 ## Media library
 
 Every image on the site lives in the media library at `/admin/media`, open to administrators and editors. Each image has a **credit** (required, shown with it on the site), optional **alt text** and **caption**, and a staff-only **source & permission** note recording where it came from and who allowed its use. Only use images the paper made or has permission to run.

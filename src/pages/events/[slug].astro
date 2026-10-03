@@ -4,7 +4,7 @@ import Comments from '../../components/Comments.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor } from '../../lib/ads';
 import { getEventThread } from '../../lib/forum';
-import { CATEGORIES, eventJsonLd, fmtDates, fullHours, getEvent, isPast, mapsUrl } from '../../lib/events';
+import { CATEGORIES, TICKET_AVAILABILITY, eventJsonLd, fmtDates, fullHours, getEvent, isPast, mapsUrl } from '../../lib/events';
 import { mediaByKeys, mediaKeysIn } from '../../lib/media';
 import { figureHtml, leadMedia, renderBodyBlocks } from '../../lib/news';
 
@@ -33,11 +33,14 @@ const over = isPast(event);
       <div><dt><Clock />When</dt><dd>{fmtDates(event, { year: true })}<br />{fullHours(event)}{event.ends_on && event.start_time && !event.hours_note && <span class="meta"> each day</span>}</dd></div>
       <div><dt><MapPin />Where</dt><dd>{event.venue}<br />{event.address ? `${event.address}, ${event.community}` : event.community}<br /><a href={mapsUrl(event)} rel="noopener">Map</a></dd></div>
       {event.cost && <div><dt><Ticket />Cost</dt><dd>{event.cost}</dd></div>}
+      {event.ticket_price !== '' && <div><dt><Ticket />Admission</dt><dd>{Number(event.ticket_price) === 0 ? 'Free' : `From ${Number(event.ticket_price).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`}{event.ticket_availability && <><br />{TICKET_AVAILABILITY[event.ticket_availability]}</>}</dd></div>}
       {event.organizer && <div><dt><Users />Organizer</dt><dd>{event.organizer}</dd></div>}
+      {event.performer && <div><dt><Users />Performer</dt><dd>{event.performer}</dd></div>}
     </dl>
     <div class="actions">
       {!cancelled && !over && <a class="button" href={`/events/${event.slug}.ics`} download={`${event.slug}.ics`}><CalendarPlus />Add to calendar</a>}
       {event.link && <a class="button secondary" href={event.link} rel="noopener">More details<ExternalLink /></a>}
+      {event.ticket_url && <a class="button secondary" href={event.ticket_url} rel="noopener"><Ticket />Tickets / registration</a>}
     </div>
 
     {image && <Fragment set:html={figureHtml(image, { className: 'story-figure', eager: true })} />}
