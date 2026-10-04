@@ -2,6 +2,22 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.21.0] - 2026-10-04
+
+### Added
+
+- Advertising inquiry form on `/advertise` emails `ads@firelandscurrent.com`, with the visitor's email in Reply-To, field validation, Turnstile protection, and a direct email link
+
+### Fixed
+
+- Advertising and Contact forms show an error when email sending fails; news tips remain accepted after being saved for newsroom review
+- Keep display ads off the advertising inquiry page
+
+### Changed
+
+- Explain advertising inquiry handling in the Privacy Policy and document isolated inbox regression checks
+- Update the newsroom source guide with school, council, food-assistance, and community-event sources
+
 ## [1.20.6] - 2026-10-03
 
 ### Fixed

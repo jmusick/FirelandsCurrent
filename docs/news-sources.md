@@ -32,6 +32,8 @@ Places outside these areas, including Toledo and Cleveland, are covered only whe
 | --- | --- | --- |
 | [City of Sandusky](https://www.cityofsandusky.com/) | Commission meeting recaps, staff and appointment news | News pages are `news_detail_T12_R###.php`; recaps are `blog_T41_R##.php`. The `/news.php` URL 404s, so start from the home page. |
 | [Sandusky City Schools](https://www.scs-k12.net/) | Levy, calendar, new programs, closures | The Levy Hub and Back to School Hub pages carry the details. |
+| [Huron City Schools](https://huronk12.org/) | District operations, safety, newsletters and community conversations | Used Oct. 4, 2026. News posts link to PDF newsletters; check the newsletter date and read the relevant pages. Future events can remain current even when announced earlier. |
+| [Port Clinton City Schools](https://www.pccsd.net/) | District news, school fundraisers and community events | Used for the Oct. 5, 2026 Kick for the Cure fundraiser involving Sandusky teams. News pages include a posting date; distinguish game admission from paid fundraiser activities. |
 | Erie County ([eriecounty.oh.gov](https://www.eriecounty.oh.gov/)) and the [County Auditor](https://auditor.eriecounty.oh.gov/) | Commissioner actions, property tax, ballot levies | Auditor press releases are PDFs. Read them with `pdftotext -layout`. |
 | [ODOT](https://www.transportation.ohio.gov/) and the [U.S. 6 project page](https://publicinput.com/usr6) | Road and roundabout projects | The ODOT project page itself may 404; PublicInput works. Completion dates differ between sources, so quote ODOT. |
 | [ODNR](https://ohiodnr.gov/) | Hunting seasons, fishing, parks | The season chart is a PDF; use `pdftotext -layout`. Zone columns need careful reading. |
@@ -44,6 +46,8 @@ Places outside these areas, including Toledo and Cleveland, are covered only whe
 | [Erie County Board of Elections](https://www.boe.ohio.gov/erie/) | Candidate and issue filings, voting dates | The filing PDFs block scripted downloads and sometimes return a maintenance page; try again later or ask the board for a copy. |
 | [City of Sandusky on Facebook](https://www.facebook.com/cityofsandusky) and [Sandusky Police](https://www.facebook.com/sanduskypolice) | Commission meeting notices, events, groundbreakings, new officers | Official accounts, so usable as a source, but link the city website or document when one exists. Posts often carry details the city website never gets. |
 | [Huron County](https://www.huroncounty-oh.gov/) and Erie MetroParks ([eriemetroparks.org](https://eriemetroparks.org/)) | County departments, parks | Thin on news; useful for facts and contact details. |
+| [City of Oberlin](https://cityofoberlin.com/) | Council vacancies, boards, grants | Used for the Oct. 16, 2026 council application deadline. Notices can link to application PDFs. Keep appointment deadlines separate from the date the seat becomes vacant. |
+| [OHgo](https://www.ohgoreach.org/) | Food assistance, fresh markets, school pantries and fundraisers | Added Oct. 4, 2026. Its [official Facebook Page](https://www.facebook.com/ohgoreach) carries current distributions; event schedules also link to Raise. The Empty Bowls homepage promotion still said tickets were live when the linked ticket page said sold out; use the event page for availability. |
 
 ### Promising, not yet used
 
@@ -56,10 +60,7 @@ Found in an October 2026 probe of the wider coverage area. None of these has pro
 | [City of Port Clinton](https://www.portclinton.com/newslist.php) | Water and sewer projects, city staff, transit | Revize, like Sandusky; news pages are `news_detail_T28_R##.php`. A post every month or two. |
 | [City of Oak Harbor](https://www.oakharbor.oh.us/newslist.php) | Street and school-zone safety projects, grants | Revize. A few posts a year. |
 | [Village of Clyde](https://www.clydeohio.org/CivicAlerts.aspx) | Village notices and events | CivicPlus. Posts every few weeks. |
-| [City of Oberlin](https://cityofoberlin.com/) | Council, boards, grants | WordPress; RSS at `/feed/`, several posts a month. Western Lorain County, so lead with what matters to readers here. |
 | [City of Amherst](https://amherstohio.org/) | Road projects, joint work with Lorain | WordPress; RSS at `/feed/`, irregular. |
-| [Huron City Schools](https://huronk12.org/) | District news, levies, programs | Dated posts about monthly. |
-| [Port Clinton City Schools](https://www.pccsd.net/) | District news | Dated posts on the home page. |
 | [Vermilion Local Schools](https://www.vermilionschools.org/) | District news and calendar | Some dates on the home page are upcoming events, not posts. |
 | [BGSU Firelands](https://www.bgsu.edu/firelands/news.html) | Campus programs, enrollment, community events | About one post a month. |
 | [Ohio Sea Grant and Stone Lab](https://ohioseagrant.osu.edu/news) | Lake Erie research, algal blooms, water quality | Several posts a week, statewide; use the ones about the western basin or Sandusky Bay. |
@@ -74,6 +75,8 @@ Added Oct. 3, 2026. These sources have not yet produced a story; check announcem
 | --- | --- | --- |
 | [Sandusky County Communities Foundation](https://www.sanduskyccf.org/) | Local grants, scholarships and funded community projects | Wix. Start with [News and Events](https://www.sanduskyccf.org/news-and-events) and [Grant Guidance and Timeline](https://www.sanduskyccf.org/grant-guidance). The 2026 timeline lists a Celebration of Philanthropy for Oct. 14 at 5 p.m.; confirm venue, access and recipients before coverage. Older grant PDFs can appear in search results. |
 | [United Way of Sandusky County](https://uwsandco.org/) | Community services, nonprofit funding, food assistance and volunteer opportunities | Use its program pages, assistance directories and [grant funding page](https://uwsandco.org/grant.php). The homepage still featured August events when checked in October 2026, so do not assume featured announcements are current. |
+| [Care & Share of Erie County](https://careandshareerieco.org/hours/) | Food and clothing assistance in Sandusky | Added Oct. 4, 2026. Direct service-hours and eligibility page; verify requirements and exceptions before writing a service guide. |
+| [Sandusky County Job and Family Services](https://sanduskycountydjfs.org/public/food-assistance/) | County food assistance, pantry and meal referrals | Added Oct. 4, 2026. Lists providers and service areas; confirm individual schedules with each provider. |
 
 **Slow, stale, or hard to read**
 

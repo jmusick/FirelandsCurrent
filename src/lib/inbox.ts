@@ -3,12 +3,13 @@ import { env } from 'cloudflare:workers';
 export const INBOXES = {
   news: { address: 'news@firelandscurrent.com', subject: 'News tip', path: '/submit-news' },
   contact: { address: 'contact@firelandscurrent.com', subject: 'Contact form', path: '/contact' },
+  ads: { address: 'ads@firelandscurrent.com', subject: 'Advertising inquiry', path: '/advertise' },
 } as const;
 
 export type InboxKind = keyof typeof INBOXES;
 
 export function isInboxKind(value: string): value is InboxKind {
-  return value === 'news' || value === 'contact';
+  return value === 'news' || value === 'contact' || value === 'ads';
 }
 
 export async function verifyTurnstile(token: string, ip: string | null): Promise<boolean> {

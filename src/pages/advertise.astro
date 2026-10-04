@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import InboxForm from '../components/InboxForm.astro';
 import { FORMAT_SIZES, PLACEMENTS } from '../lib/ads';
 ---
 <BaseLayout title="Advertise" description="Reach readers across Sandusky and the Firelands with Firelands Current.">
@@ -20,7 +21,9 @@ import { FORMAT_SIZES, PLACEMENTS } from '../lib/ads';
   <section class="card" style="margin-top:2.5rem;max-width:760px">
     <h2 style="margin-top:0">Get started</h2>
     <p class="muted">Tell us about your business and what you want to promote, and we'll put together a plan and pricing that fit.</p>
-    <p class="muted" style="margin-bottom:0">Contact details for our advertising team are coming soon.</p>
+    <InboxForm kind="ads" subjectLabel="Business or campaign" bodyLabel="Your business and what you'd like to promote" submitLabel="Send inquiry" />
+    <p class="muted">Your inquiry goes to our advertising team. See our <a href="/privacy">Privacy Policy</a> for how we handle your information.</p>
+    <p class="muted" style="margin-bottom:0">You can also email <a href="mailto:ads@firelandscurrent.com">ads@firelandscurrent.com</a>.</p>
   </section>
 </BaseLayout>
 

@@ -39,9 +39,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   try {
     await sendToInbox(kind, { name: senderName, email, subject, body });
-  } catch (err) {
+  } catch {
     // The news tip is safely stored in D1 even if the notification email fails.
-    console.error('inbox send failed', err);
+    console.error('inbox send failed', kind);
+    if (kind !== 'news') return back('error=send');
   }
   return back('sent=1');
 };

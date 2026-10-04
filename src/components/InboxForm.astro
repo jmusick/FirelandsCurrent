@@ -1,5 +1,5 @@
 ---
-interface Props { kind: 'news' | 'contact'; subjectLabel: string; bodyLabel: string; submitLabel: string; }
+interface Props { kind: import('../lib/inbox').InboxKind; subjectLabel: string; bodyLabel: string; submitLabel: string; }
 import { env } from 'cloudflare:workers';
 const { kind, subjectLabel, bodyLabel, submitLabel } = Astro.props;
 const sent = Astro.url.searchParams.get('sent');
