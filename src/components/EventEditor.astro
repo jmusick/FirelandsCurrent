@@ -66,6 +66,8 @@ const communities = (await env.DB.prepare('SELECT community FROM events UNION SE
     <label>Link <span class="hint">Tickets or details</span><input name="link" value={values.link} maxlength="500" inputmode="url" placeholder="https://" /></label>
   </div>
 
+  <label>Organizer website <span class="hint">Optional. The organizer’s official website, separate from the ticket or event details link.</span><input name="organizer_url" value={values.organizer_url} maxlength="500" inputmode="url" placeholder="https://" /></label>
+
   <fieldset>
     <legend>Performer <span class="hint">Optional. The artist, speaker, or group appearing at the event. Leave blank when there is no performer.</span></legend>
     <div class="row">

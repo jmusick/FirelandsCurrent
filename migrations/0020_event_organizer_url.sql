@@ -1,0 +1,1 @@
+ALTER TABLE events ADD COLUMN organizer_url TEXT NOT NULL DEFAULT '';

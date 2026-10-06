@@ -2,6 +2,17 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.21.1] - 2026-10-06
+
+### Fixed
+
+- Add a separate organizer website field to the event editor, public event pages, and search-engine structured data to address missing organizer URL warnings
+
+### Changed
+
+- Document public organizer websites, migration requirements, and event regression checks
+- Expand the newsroom source guide and retain the Oct. 5–6 editorial review records
+
 ## [1.21.0] - 2026-10-04
 
 ### Added

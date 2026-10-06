@@ -9,7 +9,7 @@ export type EventFormValues = {
   starts_on: string; start_time: string; ends_on: string; end_time: string;
   /** Shown instead of the times when the hours differ by day; empty to show the times. */
   hours_note: string;
-  venue: string; address: string; community: string; organizer: string; cost: string; link: string;
+  venue: string; address: string; community: string; organizer: string; organizer_url: string; cost: string; link: string;
   performer: string; performer_type: PerformerType; ticket_price: string; ticket_url: string; ticket_availability: TicketAvailability;
   /** Media library item shown with the event; empty for none. */
   image_media_id: string;
@@ -22,16 +22,16 @@ export type EventFormResult =
 
 export const emptyEvent: EventFormValues = {
   title: '', slug: '', summary: '', description: '', category: '', starts_on: '', start_time: '', ends_on: '', end_time: '', hours_note: '',
-  venue: '', address: '', community: '', organizer: '', cost: '', link: '', image_media_id: '', status: 'draft',
+  venue: '', address: '', community: '', organizer: '', organizer_url: '', cost: '', link: '', image_media_id: '', status: 'draft',
   performer: '', performer_type: 'PerformingGroup', ticket_price: '', ticket_url: '', ticket_availability: '',
 };
 
 export function valuesFromEvent(e: AdminEvent): EventFormValues {
   const { title, slug, summary, description, category, starts_on, hours_note, venue, address, community, organizer, cost, link, status,
-    performer, performer_type, ticket_price, ticket_url, ticket_availability } = e;
+    performer, performer_type, ticket_price, ticket_url, ticket_availability, organizer_url } = e;
   return {
     title, slug, summary, description, category, starts_on, hours_note, venue, address, community, organizer, cost, link, status,
-    performer, performer_type, ticket_price, ticket_url, ticket_availability,
+    performer, performer_type, ticket_price, ticket_url, ticket_availability, organizer_url,
     start_time: e.start_time ?? '', ends_on: e.ends_on ?? '', end_time: e.end_time ?? '', image_media_id: e.image_media_id ?? '',
   };
 }
@@ -54,6 +54,8 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
   let ticketUrl = cleanText(form.get('ticket_url'));
   if (ticketUrl && !/^[a-z][a-z\d+.-]*:/i.test(ticketUrl)) ticketUrl = `https://${ticketUrl}`;
+  let organizerUrl = cleanText(form.get('organizer_url'));
+  if (organizerUrl && !/^[a-z][a-z\d+.-]*:/i.test(organizerUrl)) organizerUrl = `https://${organizerUrl}`;
   const performerType = cleanText(form.get('performer_type')) || 'PerformingGroup';
   const ticketAvailability = cleanText(form.get('ticket_availability'));
   const values: EventFormValues = {
@@ -71,6 +73,7 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
     address: cleanText(form.get('address')),
     community: cleanText(form.get('community')),
     organizer: cleanText(form.get('organizer')),
+    organizer_url: organizerUrl,
     cost: cleanText(form.get('cost')),
     link,
     performer: cleanText(form.get('performer')),
@@ -104,6 +107,13 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   if (values.address.length > 200) errors.push('Address must be under 200 characters.');
   if (!values.community || values.community.length > 60) errors.push('Community is required (up to 60 characters).');
   if (values.organizer.length > 120) errors.push('Organizer must be under 120 characters.');
+  if (values.organizer_url && !values.organizer) errors.push('Add the organizer name, or clear the organizer website.');
+  if (values.organizer_url) {
+    try {
+      const url = new URL(values.organizer_url);
+      if (!/^https?:$/.test(url.protocol) || url.username || url.password || values.organizer_url.length > 500) throw new Error();
+    } catch { errors.push('Organizer website must be a valid web address without sign-in credentials.'); }
+  }
   if (values.cost.length > 80) errors.push('Cost must be under 80 characters.');
   if (values.performer.length > 120) errors.push('Performer must be under 120 characters.');
   if (!['Person', 'PerformingGroup'].includes(performerType)) errors.push('Choose a valid performer type.');
@@ -146,8 +156,8 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   await env.DB.prepare(`
     INSERT INTO events (id, slug, title, summary, description, category, starts_on, start_time, ends_on, end_time,
       venue, address, community, organizer, cost, link, image_media_id, status, created_at, updated_at, hours_note,
-      performer, performer_type, ticket_price, ticket_url, ticket_availability)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?19, ?20, ?21, ?22, ?23, ?24, ?25)
+      performer, performer_type, ticket_price, ticket_url, ticket_availability, organizer_url)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26)
     ON CONFLICT(id) DO UPDATE SET
       slug = excluded.slug, title = excluded.title, summary = excluded.summary, description = excluded.description,
       category = excluded.category, starts_on = excluded.starts_on, start_time = excluded.start_time, ends_on = excluded.ends_on,
@@ -155,12 +165,12 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
       organizer = excluded.organizer, cost = excluded.cost, link = excluded.link, image_media_id = excluded.image_media_id,
       status = excluded.status, updated_at = excluded.updated_at, hours_note = excluded.hours_note,
       performer = excluded.performer, performer_type = excluded.performer_type, ticket_price = excluded.ticket_price,
-      ticket_url = excluded.ticket_url, ticket_availability = excluded.ticket_availability
+      ticket_url = excluded.ticket_url, ticket_availability = excluded.ticket_availability, organizer_url = excluded.organizer_url
   `).bind(id, values.slug, values.title, values.summary, values.description, values.category, values.starts_on,
     values.start_time || null, values.ends_on || null, (values.start_time && values.end_time) || null,
     values.venue, values.address, values.community, values.organizer, values.cost, values.link,
     values.image_media_id || null, values.status, now, values.hours_note,
-    values.performer, values.performer_type, values.ticket_price, values.ticket_url, values.ticket_availability).run();
+    values.performer, values.performer_type, values.ticket_price, values.ticket_url, values.ticket_availability, values.organizer_url).run();
   if (values.status !== 'draft') await ensureEventThread({ id, title: values.title, summary: values.summary });
   return { ok: true, id };
 }

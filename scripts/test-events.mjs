@@ -51,11 +51,12 @@ const markup = (event) => JSON.parse(eventJsonLd(event, 'https://example.test/ev
 
 test('event admission and performers', async (t) => {
   for (const name of readdirSync(new URL('../migrations/', import.meta.url)).sort()) {
-    if (!name.startsWith('0019')) database.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
+    if (!name.startsWith('0019') && !name.startsWith('0020')) database.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
   }
   database.exec(`INSERT INTO events (id, slug, title, summary, category, starts_on, venue, community, cost, status, created_at, updated_at)
     VALUES ('existing', 'existing', 'Existing event', 'Existing summary', 'community', '2026-10-10', 'Test park', 'Sandusky', 'Free; rides extra', 'published', 123, 456)`);
   database.exec(readFileSync(new URL('../migrations/0019_event_offers_performers.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../migrations/0020_event_organizer_url.sql', import.meta.url), 'utf8'));
 
   await t.test('migration preserves existing content without inventing an offer or performer', async () => {
     const event = await getEvent('existing');
@@ -63,23 +64,28 @@ test('event admission and performers', async (t) => {
     assert.equal(event.updated_at, 456);
     assert.equal(event.ticket_price, '');
     assert.equal(event.performer, '');
+    assert.equal(event.organizer_url, '');
     assert.equal(markup(event).offers, undefined);
     assert.equal(markup(event).performer, undefined);
   });
 
   await t.test('paid offer survives saving, public reads, editing, and copying', async () => {
     const saved = await saveEventFromForm(form({ status: 'published', performer: 'Test Quartet', ticket_price: '15.50',
-      ticket_url: 'example.com/tickets', ticket_availability: 'InStock', end_time: '21:00' }), null);
+      ticket_url: 'example.com/tickets', ticket_availability: 'InStock', end_time: '21:00',
+      organizer: 'Test host', organizer_url: 'example.com/host' }), null);
     assert.equal(saved.ok, true);
     const event = await getEvent('test-event');
     const data = markup(event);
     assert.deepEqual(data.offers, { '@type': 'Offer', price: 15.5, priceCurrency: 'USD', url: 'https://example.com/tickets', availability: 'https://schema.org/InStock' });
     assert.deepEqual(data.performer, { '@type': 'PerformingGroup', name: 'Test Quartet' });
+    assert.deepEqual(data.organizer, { '@type': 'Organization', name: 'Test host', url: 'https://example.com/host' });
     assert.equal(data.endDate, '2026-10-11T01:00:00.000Z');
     assert.equal((await listEvents({})).find((item) => item.id === saved.id).ticket_price, '15.50');
     const admin = await getAdminEvent(saved.id);
     assert.equal(valuesFromEvent(admin).ticket_price, '15.50');
     assert.equal(copyOfEvent(admin).performer, 'Test Quartet');
+    assert.equal(valuesFromEvent(admin).organizer_url, 'https://example.com/host');
+    assert.equal(copyOfEvent(admin).organizer_url, 'https://example.com/host');
     const edited = await saveEventFromForm(form({ slug: event.slug, status: 'published', performer: 'Test Speaker', performer_type: 'Person', ticket_price: '0' }), admin);
     assert.equal(edited.ok, true);
     const updated = markup(await getEvent('test-event'));
@@ -98,6 +104,11 @@ test('event admission and performers', async (t) => {
       { ticket_price: '0', ticket_url: 'ftp://example.com/tickets' },
       { ticket_price: '0', ticket_url: 'https://user:password@example.com/tickets' },
       { ticket_price: '0', ticket_availability: 'Unknown' }, { performer_type: 'Organization' },
+      { organizer_url: 'https://example.com/host' },
+      { organizer: 'Test host', organizer_url: 'javascript:alert(1)' },
+      { organizer: 'Test host', organizer_url: 'ftp://example.com/host' },
+      { organizer: 'Test host', organizer_url: 'https://user:password@example.com/host' },
+      { organizer: 'Test host', organizer_url: `https://example.com/${'a'.repeat(500)}` },
     ]) {
       const result = await saveEventFromForm(form(overrides), null);
       assert.equal(result.ok, false, JSON.stringify(overrides));

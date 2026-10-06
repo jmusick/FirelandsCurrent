@@ -33,7 +33,7 @@ export type EventTiming = { starts_on: string; start_time: string | null; ends_o
 
 export type CalendarEvent = EventTiming & {
   id: string; slug: string; title: string; summary: string; description: string; category: Category;
-  venue: string; address: string; community: string; organizer: string; cost: string; link: string;
+  venue: string; address: string; community: string; organizer: string; organizer_url: string; cost: string; link: string;
   performer: string; performer_type: PerformerType; ticket_price: string; ticket_url: string; ticket_availability: TicketAvailability;
   status: Exclude<EventStatus, 'draft'>; updated_at: number;
 } & LeadImage;
@@ -46,7 +46,7 @@ export type AdminEvent = Omit<CalendarEvent, 'status' | keyof LeadImage> & {
 export const today = () => statDay();
 
 const PUBLIC_COLUMNS = `e.id, e.slug, e.title, e.summary, e.description, e.category, e.starts_on, e.start_time, e.ends_on, e.end_time, e.hours_note,
-  e.venue, e.address, e.community, e.organizer, e.cost, e.link,
+  e.venue, e.address, e.community, e.organizer, e.organizer_url, e.cost, e.link,
   e.performer, e.performer_type, e.ticket_price, e.ticket_url, e.ticket_availability, e.status, e.updated_at, ${LEAD_COLUMNS}`;
 
 export type EventFilters = { category?: Category; community?: string; past?: boolean };
@@ -80,7 +80,7 @@ export async function getEvent(slug: string): Promise<CalendarEvent | null> {
 }
 
 const ADMIN_COLUMNS = `id, slug, title, summary, description, category, starts_on, start_time, ends_on, end_time, hours_note,
-  venue, address, community, organizer, cost, link, performer, performer_type, ticket_price, ticket_url, ticket_availability,
+  venue, address, community, organizer, organizer_url, cost, link, performer, performer_type, ticket_price, ticket_url, ticket_availability,
   image_media_id, status, created_at, updated_at`;
 
 export async function listAdminEvents(): Promise<AdminEvent[]> {
@@ -181,7 +181,7 @@ export function eventJsonLd(e: CalendarEvent, url: string, imageUrl: string | nu
       address: { '@type': 'PostalAddress', ...(e.address ? { streetAddress: e.address } : {}), addressLocality: e.community, addressRegion: 'OH', addressCountry: 'US' },
     },
     ...(imageUrl ? { image: [imageUrl] } : {}),
-    ...(e.organizer ? { organizer: { '@type': 'Organization', name: e.organizer } } : {}),
+    ...(e.organizer ? { organizer: { '@type': 'Organization', name: e.organizer, ...(e.organizer_url ? { url: e.organizer_url } : {}) } } : {}),
     ...(e.performer ? { performer: { '@type': e.performer_type, name: e.performer } } : {}),
     ...(e.ticket_price !== '' ? { offers: {
       '@type': 'Offer', price: Number(e.ticket_price), priceCurrency: 'USD',

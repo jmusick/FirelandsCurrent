@@ -34,7 +34,7 @@ const over = isPast(event);
       <div><dt><MapPin />Where</dt><dd>{event.venue}<br />{event.address ? `${event.address}, ${event.community}` : event.community}<br /><a href={mapsUrl(event)} rel="noopener">Map</a></dd></div>
       {event.cost && <div><dt><Ticket />Cost</dt><dd>{event.cost}</dd></div>}
       {event.ticket_price !== '' && <div><dt><Ticket />Admission</dt><dd>{Number(event.ticket_price) === 0 ? 'Free' : `From ${Number(event.ticket_price).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`}{event.ticket_availability && <><br />{TICKET_AVAILABILITY[event.ticket_availability]}</>}</dd></div>}
-      {event.organizer && <div><dt><Users />Organizer</dt><dd>{event.organizer}</dd></div>}
+      {event.organizer && <div><dt><Users />Organizer</dt><dd>{event.organizer_url ? <a href={event.organizer_url} rel="noopener">{event.organizer}</a> : event.organizer}</dd></div>}
       {event.performer && <div><dt><Users />Performer</dt><dd>{event.performer}</dd></div>}
     </dl>
     <div class="actions">
