@@ -1,0 +1,10 @@
+---
+import { Flag } from '@lucide/astro';
+interface Props { kind: import('../lib/corrections').CorrectionKind; slug: string; }
+const { kind, slug } = Astro.props;
+---
+<p class="correction-link"><Flag /><a href={`/report-inaccuracy?type=${kind}&slug=${encodeURIComponent(slug)}`} rel="nofollow">Spot a mistake? Report an inaccuracy</a></p>
+<style>
+  .correction-link { display: flex; align-items: center; gap: .45rem; margin: 1.6rem 0 0; font-family: var(--scan); font-size: .95rem; color: var(--slate); }
+  .correction-link :global(.lucide) { width: 1rem; height: 1rem; }
+</style>

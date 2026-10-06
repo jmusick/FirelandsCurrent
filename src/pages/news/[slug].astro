@@ -3,6 +3,7 @@ import AuthorLink from '../../components/AuthorLink.astro';
 import AdSlot from '../../components/AdSlot.astro';
 import ShareButtons from '../../components/ShareButtons.astro';
 import Comments from '../../components/Comments.astro';
+import CorrectionLink from '../../components/CorrectionLink.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor, inlineAdBreaks } from '../../lib/ads';
 import { getArticleThread } from '../../lib/forum';
@@ -40,6 +41,7 @@ chunks.push(blocks.slice(start).join(''));
       {chunks.map((html, i) => <>{i > 0 && <AdSlot placement="article-inline" class="story-ad" />}<Fragment set:html={html} /></>)}
     </div>
     <ShareButtons url={new URL(`/news/${article.slug}`, Astro.url.origin).href} title={article.headline} />
+    <CorrectionLink kind="news" slug={article.slug} />
   </article>
   <div class="story-rail"><AdSlot placement="article-rail" /></div>
   </div>

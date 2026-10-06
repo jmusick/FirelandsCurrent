@@ -1,0 +1,35 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { KIND_LABELS, STATUS_LABELS, listCorrections, type CorrectionStatus } from '../../../lib/corrections';
+
+const denied = requireSection(Astro, ADMIN.corrections);
+if (denied) return denied;
+const requested = Astro.url.searchParams.get('status');
+const status = (requested === 'open' || requested === 'corrected' || requested === 'declined' ? requested : null) as CorrectionStatus | null;
+const rows = await listCorrections(status);
+const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/New_York' });
+const filters: [string, string | null][] = [['All', null], ['Open', 'open'], ['Corrected', 'corrected'], ['Declined', 'declined']];
+---
+<AdminLayout title="Corrections">
+  <span class="eyebrow">Newsroom</span><h1>Corrections</h1>
+  <p class="muted">Inaccuracies reported by readers on stories and events, newest first.</p>
+  <nav class="filters" aria-label="Filter by status">
+    {filters.map(([label, value]) => <a href={value ? `/admin/corrections?status=${value}` : '/admin/corrections'} aria-current={value === status ? 'page' : undefined}>{label}</a>)}
+  </nav>
+  {rows.length ? <div class="table-wrap"><table><thead><tr><th>Reported</th><th>About</th><th>Reported by</th><th>Status</th><th>Date</th></tr></thead><tbody>
+    {rows.map((c) => <tr>
+      <td><a class="headline" href={`/admin/corrections/${c.id}`}>{c.details.length > 90 ? `${c.details.slice(0, 90)}…` : c.details}</a></td>
+      <td>{c.item_title}<div class="meta">{KIND_LABELS[c.kind]}</div></td>
+      <td>{c.name}<div class="meta">{c.account_name ? `Account: ${c.account_name}` : c.email}</div></td>
+      <td><span class={`pill ${c.status}`}>{STATUS_LABELS[c.status]}</span></td>
+      <td class="meta">{fmt(c.created_at)}</td>
+    </tr>)}
+  </tbody></table></div> : <div class="card"><h2>No corrections {status ? `marked ${status}` : 'reported'} yet</h2></div>}
+</AdminLayout>
+<style>
+  .filters { display: flex; gap: .4rem; flex-wrap: wrap; margin: 1rem 0; }
+  .filters a { padding: .3rem .8rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; font-size: .9rem; color: var(--deep); }
+  .filters a[aria-current] { background: var(--deep); color: #fff; border-color: var(--deep); }
+  .table-wrap { overflow-x:auto; border-top:3px solid var(--deep); } table { width:100%; border-collapse:collapse; } th { text-align:left; font-size: .88rem; color:var(--slate); padding:.8rem .6rem; border-bottom:1px solid var(--line); } td { padding:.9rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; } .meta { margin-top:.2rem; } .headline { font-weight:700; color:var(--deep); text-decoration:none; } .headline:hover { text-decoration:underline; } .pill { display:inline-block; padding:.15rem .55rem; border-radius:999px; font-size:.78rem; font-weight:700; background:var(--shoal); } .pill.open { background:var(--alert-bg); color:var(--alert); }
+</style>

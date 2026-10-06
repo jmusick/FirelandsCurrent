@@ -11,9 +11,10 @@ interface Props {
   /** Shown when the page is shared on social media, e.g. a story's lead image. */
   image?: { url: string; width: number; height: number; alt: string } | null;
   type?: 'website' | 'article';
+  noindex?: boolean;
 }
 
-const { title, description = 'Independent local news and conversation for Sandusky and the Firelands.', image, type = 'website' } = Astro.props;
+const { title, description = 'Independent local news and conversation for Sandusky and the Firelands.', image, type = 'website', noindex = false } = Astro.props;
 const previewImage = image ?? { url: '/social-logo.png?v=2', width: 1200, height: 630, alt: 'Firelands Current' };
 const pageUrl = new URL(Astro.url.pathname, Astro.url.origin).href;
 const user = Astro.locals.user;
@@ -30,6 +31,7 @@ const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID 
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {noindex && <meta name="robots" content="noindex" />}
     <!-- Without JavaScript the phone menu can't open, so the nav stays expanded unless this runs. -->
     <script is:inline>document.documentElement.classList.add('js');</script>
     {gaId && <>

@@ -1,6 +1,7 @@
 ---
 import { CalendarPlus, Clock, ExternalLink, MapPin, Ticket, Users } from '@lucide/astro';
 import Comments from '../../components/Comments.astro';
+import CorrectionLink from '../../components/CorrectionLink.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor } from '../../lib/ads';
 import { getEventThread } from '../../lib/forum';
@@ -45,6 +46,7 @@ const over = isPast(event);
 
     {image && <Fragment set:html={figureHtml(image, { className: 'story-figure', eager: true })} />}
     {details && <div class="story"><Fragment set:html={details} /></div>}
+    <CorrectionLink kind="event" slug={event.slug} />
   </article>
   {thread && <div style="max-width:760px"><Comments thread={thread} path={`/events/${event.slug}`} /><p><a href={`/talk/${thread.id}`}>Also in Talk of the Town</a></p></div>}
   <p style="margin-top:2.5rem"><a href="/events">See everything on the calendar</a></p>

@@ -7,6 +7,7 @@ export const GET: APIRoute = ({ url }) => {
     'Disallow: /admin',
     'Disallow: /api/',
     'Disallow: /account',
+    'Disallow: /report-inaccuracy',
     'Disallow: /business',
     'Disallow: /ads/',
     '',

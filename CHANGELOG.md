@@ -2,6 +2,19 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.21.2] - 2026-10-06
+
+### Added
+
+- Readers can report an inaccuracy from every story and event page. The form at `/report-inaccuracy` is protected by Turnstile and a honeypot, and each report is stored and emailed to `news@firelandscurrent.com`
+- Corrections queue at `/admin/corrections` for admins and editors, with status filters, a detail page linking to the live page and its editor, and Mark corrected, Decline, and Reopen actions that record who resolved each report
+- Dashboard count of open corrections, and a banner on a story's or event's edit page listing open reports against it
+
+### Changed
+
+- Explain inaccuracy reports in the Privacy Policy and document the corrections queue and its regression checks
+- Add `noindex` support to the public layout; the report page is excluded from search and from ads
+
 ## [1.21.1] - 2026-10-06
 
 ### Fixed

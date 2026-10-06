@@ -22,6 +22,7 @@ An independent local newspaper for Sandusky, Ohio and the Firelands, built with 
 - `/sitemap.xml` listing the main pages, news sections, published stories, published and cancelled events, and visible discussions, and a `/robots.txt` that points to it and keeps crawlers out of admin, account, business, ad-click, and API routes
 - `/news-sitemap.xml` listing up to 1,000 newest published stories from the last 48 hours with Google News publication metadata, original publication dates, and headlines. It refreshes after at most five minutes of caching; older stories remain in the ordinary sitemap. Both sitemaps are advertised in `/robots.txt`. Submit the news sitemap in Google Search Console after deploying it; an empty news sitemap is expected when no stories were published in the last two days
 - Submit news (`/submit-news`) and Contact (`/contact`) forms, open to anyone. Submit news is linked in the main navigation and footer, Contact in the footer. News tips are stored in D1 and emailed to `news@firelandscurrent.com`; signed-in submitters are linked to their account, and submitters can request a byline if their tip becomes a story. Editors review tips at `/admin/submissions` and can mark them reviewed, decline them, or convert them into a story. Contact messages are emailed to `contact@firelandscurrent.com` and are not stored in D1. Both forms use the `EMAIL` Cloudflare Email Sending binding, with the sender in Reply-To. Cloudflare Turnstile (`TURNSTILE_SITE_KEY` var, `TURNSTILE_SECRET_KEY` secret) and a hidden honeypot field filter bots
+- Report an inaccuracy: every story and event page links to `/report-inaccuracy?type=news|event&slug=…`, a Turnstile- and honeypot-protected form (open to anyone, `noindex`, no ads) collecting name, email, what is wrong, an optional suggested fix, and an optional source link. Reports are stored in the `corrections` table (migration `0021_corrections.sql`) and emailed to `news@firelandscurrent.com` with a link to the review page. Admins and editors work the queue at `/admin/corrections` (status filters, a detail page with links to the live page and its editor, and Mark corrected / Decline / Reopen with an optional note recording who resolved it). The dashboard shows the open count, and a story's or event's edit page lists open reports against it. Editing the story itself still happens in the normal editor.
 - Google Analytics (GA4) on every page outside the admin panel, with the measurement ID set as `GA_MEASUREMENT_ID` in `wrangler.jsonc`; the tag loads only in production builds
 - Advertising inquiries on `/advertise`, open to anyone, use the shared inbox form to email `ads@firelandscurrent.com` with the visitor in Reply-To. The form collects name, email, business or campaign subject, and message; inquiries are not stored in D1. Turnstile and a honeypot filter bots, and the page carries no display ads. Advertising and Contact forms show a send error if Cloudflare rejects the email; news tips remain accepted when stored in D1 even if their notification fails. The existing `EMAIL` binding and onboarded sending domain are required; no new migration or secret is needed
 - Terms of Service at `/terms`, linked from the footer and the registration page. It covers accounts, community posting and moderation, and advertising, and names Ohio law; have counsel review it before relying on it
@@ -40,6 +41,8 @@ Requires Node.js 24 or later.
 
 The local D1 database persists under `.wrangler/` and is separate from production. The working local database is kept matching production content, so don't load the demo seeds into it; `npm run db:seed:demo` (fictional stories and discussions) and `scripts/seed-ads-demo.sql` are only for a throwaway database. `npm run check` and `npm run build` verify the code.
 
+Run `npm run test:corrections` for isolated regressions of the inaccuracy report endpoint (origin, bot checks, validation, storage, and notification failures); it simulates Turnstile, email, and the database.
+
 Run `npm run test:inbox` for isolated inbox regressions covering advertising routing, Reply-To, validation, bot checks, email failures, and news-tip retention. Email sends and Turnstile responses are simulated; these tests do not send real mail or modify the local database.
 
 ## Staff roles
@@ -49,7 +52,7 @@ The admin panel at `/admin` is available to users with a row in `staff_roles`:
 | Role | Access |
 | --- | --- |
 | `admin` | Every admin section, including Users, Businesses, and Ads; can delete stories and events |
-| `editor` | News, Facebook, News tips, Events, and Media |
+| `editor` | News, Facebook, News tips, Corrections, Events, and Media |
 | `moderator` | Talk of the Town |
 
 Sections and the roles allowed in each are listed in `src/lib/admin.ts`; a new content area (classifieds, jobs, …) adds an entry there. Once one administrator exists, roles are managed at `/admin/users`. To create the first administrator, register the account, then:

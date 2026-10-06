@@ -3,6 +3,7 @@ import { ArrowLeft } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import EventEditor from '../../../components/EventEditor.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
+import { openCorrectionsFor } from '../../../lib/corrections';
 import { STATUS_LABELS, getAdminEvent } from '../../../lib/events';
 import { saveEventFromForm, valuesFromEvent } from '../../../lib/events-admin';
 import { sameOrigin } from '../../../lib/forum';
@@ -21,6 +22,7 @@ if (Astro.request.method === 'POST') {
   if (result.ok) return Astro.redirect(`/admin/events/${result.id}?saved=1`, 303);
   ({ values, errors } = result);
 }
+const corrections = await openCorrectionsFor('event', event.id);
 const liveUrl = event.status !== 'draft' ? `/events/${event.slug}` : null;
 ---
 <AdminLayout title={`Edit: ${event.title}`}>
@@ -28,5 +30,6 @@ const liveUrl = event.status !== 'draft' ? `/events/${event.slug}` : null;
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Events · {STATUS_LABELS[event.status]}</span>
   <h1>Edit event</h1>
   <p class="meta">Last saved {new Date(event.updated_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/New_York' })}{liveUrl && <> · <a href={liveUrl}>View on site</a></>}</p>
+  {corrections.length > 0 && <p class="message" role="status"><strong>{corrections.length} open correction {corrections.length === 1 ? 'report' : 'reports'}:</strong> {corrections.map((c, i) => <>{i > 0 && ', '}<a href={`/admin/corrections/${c.id}`}>review {i + 1}</a></>)}</p>}
   <EventEditor values={values} errors={errors} saved={Astro.url.searchParams.has('saved') && !errors.length} eventId={event.id} liveUrl={liveUrl} canDelete={Astro.locals.staffRole === 'admin'} />
 </AdminLayout>

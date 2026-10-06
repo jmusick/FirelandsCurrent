@@ -1,5 +1,5 @@
 ---
-import { CalendarDays, CalendarPlus, FilePen, Flag, MessagesSquare, Newspaper, Plus, Users } from '@lucide/astro';
+import { CalendarDays, CalendarPlus, FilePen, Flag, MessagesSquare, Newspaper, Plus, SpellCheck, Users } from '@lucide/astro';
 import { env } from 'cloudflare:workers';
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { ADMIN, canAccess, requireSection } from '../../lib/admin';
@@ -13,11 +13,12 @@ const stats = await env.DB.prepare(`
     (SELECT COUNT(*) FROM news_articles WHERE status = 'published') AS published,
     (SELECT COUNT(*) FROM news_articles WHERE status = 'draft') AS drafts,
     (SELECT COUNT(*) FROM news_submissions WHERE status = 'unread') AS unread_tips,
+    (SELECT COUNT(*) FROM corrections WHERE status = 'open') AS corrections,
     (SELECT COUNT(*) FROM events WHERE status = 'published' AND COALESCE(ends_on, starts_on) >= ?1) AS events,
     (SELECT COUNT(*) FROM forum_threads WHERE status = 'published') AS threads,
     (SELECT COUNT(*) FROM forum_reports WHERE status = 'open') AS reports,
     (SELECT COUNT(*) FROM "user" WHERE id != 'newsroom') AS users
-`).bind(today()).first<{ published: number; drafts: number; unread_tips: number; events: number; threads: number; reports: number; users: number }>();
+`).bind(today()).first<{ published: number; drafts: number; unread_tips: number; corrections: number; events: number; threads: number; reports: number; users: number }>();
 const role = Astro.locals.staffRole;
 const news = canAccess(role, ADMIN.news);
 const events = canAccess(role, ADMIN.events);
@@ -31,6 +32,7 @@ const users = canAccess(role, ADMIN.users);
     {news && <a class="card tile" href="/admin/news?status=published"><span class="meta"><Newspaper />Published stories</span><strong>{stats?.published ?? 0}</strong></a>}
     {news && <a class="card tile" href="/admin/news?status=draft"><span class="meta"><FilePen />Drafts</span><strong>{stats?.drafts ?? 0}</strong></a>}
     {news && <a class="card tile" href="/admin/submissions"><span class="meta"><Newspaper />Unread news tips</span><strong class={stats?.unread_tips ? 'alert' : undefined}>{stats?.unread_tips ?? 0}</strong></a>}
+    {news && <a class="card tile" href="/admin/corrections"><span class="meta"><SpellCheck />Open corrections</span><strong class={stats?.corrections ? 'alert' : undefined}>{stats?.corrections ?? 0}</strong></a>}
     {events && <a class="card tile" href="/admin/events"><span class="meta"><CalendarDays />Upcoming events</span><strong>{stats?.events ?? 0}</strong></a>}
     {talk && <a class="card tile" href="/admin/talk"><span class="meta"><Flag />Open reports</span><strong class={stats?.reports ? 'alert' : undefined}>{stats?.reports ?? 0}</strong></a>}
     <div class="card tile"><span class="meta"><MessagesSquare />Talk of the Town discussions</span><strong>{stats?.threads ?? 0}</strong></div>

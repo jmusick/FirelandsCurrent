@@ -1,0 +1,43 @@
+---
+import { env } from 'cloudflare:workers';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { correctionKind, correctionTarget } from '../lib/corrections';
+
+const kind = correctionKind(Astro.url.searchParams.get('type'));
+const slug = Astro.url.searchParams.get('slug') ?? '';
+const target = kind && /^[a-z0-9-]{1,120}$/.test(slug) ? await correctionTarget(kind, slug) : null;
+if (!kind || !target) return new Response('Story or event not found', { status: 404 });
+
+const sent = Astro.url.searchParams.has('sent');
+const error = Astro.url.searchParams.get('error');
+const user = Astro.locals.user;
+const noun = kind === 'news' ? 'story' : 'event';
+---
+<BaseLayout title="Report an inaccuracy" description="Tell the Firelands Current newsroom about a mistake in a story or event listing." noindex>
+  <h1>Report an inaccuracy</h1>
+  <p class="lede">Found an error in the {noun} <a href={target.path}>{target.title}</a>? Tell us what's wrong and, if you can, where we can confirm the right information. An editor will review it.</p>
+  {sent ? <>
+    <p class="message ok" role="status">Thank you. Your report went to our editors. We'll email you if we need anything more.</p>
+    <p><a href={target.path}>Back to the {noun}</a></p>
+  </> : <>
+    {error && <p class="message" role="alert">{error === 'captcha' ? 'Please complete the human check and try again.' : 'Please enter your name, a valid email, and a description of the problem (10–5,000 characters). A source link, if given, must start with http:// or https://.'}</p>}
+    <form class="form" method="post" action="/api/corrections">
+      <input type="hidden" name="type" value={kind} />
+      <input type="hidden" name="slug" value={target.slug} />
+      <label class="hp" aria-hidden="true">Leave this empty <input name="website" tabindex="-1" autocomplete="off" /></label>
+      <label>Your name <input name="name" required maxlength="100" autocomplete="name" value={user?.name} /></label>
+      <label>Your email <input name="email" type="email" required maxlength="200" autocomplete="email" value={user?.email} /></label>
+      <label>What is inaccurate? <span class="hint">Quote the part that is wrong and explain the problem.</span><textarea name="details" required minlength="10" maxlength="5000"></textarea></label>
+      <label>What should it say instead? <span class="hint">Optional.</span><textarea name="suggested_fix" maxlength="2000" style="min-height:90px"></textarea></label>
+      <label>Source link <span class="hint">Optional. A page that confirms the correct information.</span><input name="source_url" type="url" maxlength="500" inputmode="url" placeholder="https://" /></label>
+      <div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY}></div>
+      <button class="button" type="submit">Send report</button>
+    </form>
+    <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  </>}
+</BaseLayout>
+<style>
+  .hint { font-weight: 400; color: var(--slate); font-size: .82rem; }
+  .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  .message.ok { border-left-color: var(--channel); color: var(--ink); background: var(--shoal); }
+</style>

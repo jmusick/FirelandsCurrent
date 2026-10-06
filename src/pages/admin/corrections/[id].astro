@@ -1,0 +1,55 @@
+---
+import { ArrowLeft, ExternalLink, Pencil } from '@lucide/astro';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { KIND_LABELS, STATUS_LABELS, getCorrection } from '../../../lib/corrections';
+
+const denied = requireSection(Astro, ADMIN.corrections);
+if (denied) return denied;
+const c = await getCorrection(Astro.params.id ?? '');
+if (!c) return new Response('Correction not found', { status: 404 });
+
+const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/New_York' });
+// The edit link survives only while the story or event still exists; the public link only while it is live.
+const editHref = c.article_id ? `/admin/news/${c.article_id}` : c.event_id ? `/admin/events/${c.event_id}` : null;
+const publicHref = `${c.kind === 'news' ? '/news' : '/events'}/${c.item_slug}`;
+---
+<AdminLayout title={`Correction: ${c.item_title}`}>
+  <a class="back" href="/admin/corrections"><ArrowLeft />All corrections</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">{KIND_LABELS[c.kind]} correction · {STATUS_LABELS[c.status]}</span>
+  <h1>{c.item_title}</h1>
+  <div class="links">
+    {editHref && <a class="button" href={editHref}><Pencil />Edit {KIND_LABELS[c.kind].toLowerCase()}</a>}
+    <a class="button secondary" href={publicHref}>View on site<ExternalLink /></a>
+  </div>
+  <div class="card details">
+    <p><strong>From:</strong> {c.name} · <a href={`mailto:${c.email}`}>{c.email}</a></p>
+    <p><strong>Submitted:</strong> {fmt(c.created_at)}</p>
+    <p><strong>Account:</strong> {c.account_name ? `${c.account_name} (signed in)` : 'Guest'}</p>
+    <hr />
+    <h2>What is inaccurate</h2>
+    <p class="body">{c.details}</p>
+    {c.suggested_fix && <><h2>Suggested fix</h2><p class="body">{c.suggested_fix}</p></>}
+    {c.source_url && <><h2>Source</h2><p><a href={c.source_url} rel="noopener noreferrer nofollow">{c.source_url}</a></p></>}
+  </div>
+  {c.status !== 'open' && <p>{STATUS_LABELS[c.status]}{c.resolver_name && <> by {c.resolver_name}</>}{c.resolved_at && <> on {fmt(c.resolved_at)}</>}.{c.resolution_note && <> Note: <span class="body">{c.resolution_note}</span></>}</p>}
+  <form class="actions" method="post" action="/api/admin/corrections">
+    <input type="hidden" name="id" value={c.id} />
+    {c.status === 'open'
+      ? <>
+          <label>Note for the record (optional)<textarea name="note" maxlength="2000" rows="2"></textarea></label>
+          <div class="buttons">
+            <button class="button" name="action" value="corrected">Mark corrected</button>
+            <button class="button secondary" name="action" value="declined">Decline</button>
+          </div>
+        </>
+      : <div class="buttons"><button class="button secondary" name="action" value="reopen">Reopen</button></div>}
+  </form>
+</AdminLayout>
+<style>
+  .links { display: flex; gap: .6rem; flex-wrap: wrap; margin: 1rem 0; }
+  .details { max-width: 850px; margin: 1rem 0; } .details p { line-height: 1.6; } .details h2 { font-size: 1rem; margin: 1rem 0 .2rem; } .body { white-space: pre-wrap; }
+  .actions { display: grid; gap: .8rem; max-width: 850px; } .actions label { display: grid; gap: .4rem; font-weight: 600; font-size: .95rem; }
+  .actions textarea { width: 100%; padding: .6rem .75rem; border: 1px solid #9fb3b6; border-radius: 2px; font: inherit; }
+  .buttons { display: flex; gap: .6rem; flex-wrap: wrap; }
+</style>
