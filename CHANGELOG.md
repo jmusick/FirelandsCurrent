@@ -2,6 +2,17 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.21.4] - 2026-10-09
+
+### Fixed
+
+- Count an ad click only when a reader's browser marks the link as they act on it, so link scanners that fetch every URL on a page no longer inflate clicks and click-through rates
+- Count the impression when a reader clicks an ad before it has been on screen for a full second
+
+### Changed
+
+- Cleared all ad impression and click stats recorded before this fix
+
 ## [1.21.3] - 2026-10-09
 
 ### Fixed

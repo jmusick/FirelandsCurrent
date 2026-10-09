@@ -42,7 +42,26 @@ const label = ad.kind === 'house' ? 'From Firelands Current' : format === 'nativ
       }
     }
   }, { threshold: 0.5 });
-  document.querySelectorAll('[data-ad-token]').forEach((el) => observer.observe(el));
+  document.querySelectorAll<HTMLElement>('[data-ad-token]').forEach((el) => {
+    observer.observe(el);
+    // Link scanners fetch every href without running scripts, so the click link only counts once
+    // a reader's browser marks it. A reader who acts on an ad has seen it, so the impression goes too.
+    const mark = () => {
+      el.querySelectorAll<HTMLAnchorElement>('a[href^="/ads/click"]').forEach((a) => {
+        const url = new URL(a.href);
+        url.searchParams.set('v', '1');
+        a.href = url.pathname + url.search;
+      });
+      if (timers.has(el)) {
+        window.clearTimeout(timers.get(el));
+        timers.delete(el);
+        observer.unobserve(el);
+        pending.add(el.dataset.adToken!);
+        flush();
+      }
+    };
+    for (const type of ['pointerdown', 'keydown', 'contextmenu', 'click']) el.addEventListener(type, mark, { capture: true });
+  });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
 </script>
 
