@@ -43,7 +43,7 @@ const href = (changes: { category?: string | null; community?: string | null; pa
 };
 const heading = past ? 'Past events' : category ? CATEGORIES[category] : 'Local events';
 ---
-<BaseLayout title={past ? 'Past events' : category ? `${CATEGORIES[category]} events` : 'Local events'} description="What's happening in Sandusky and across the Firelands: concerts, festivals, meetings, markets and more.">
+<BaseLayout title={past ? 'Past events' : category ? `${CATEGORIES[category]} events` : 'Local events'} description="What's happening in Sandusky and across the Firelands: concerts, festivals, meetings, markets and more." canonicalPath={href({ page })}>
   {community && <span class="eyebrow">{community}</span>}
   <h1>{heading}</h1>
   <nav aria-label="Event categories" class="filter-tabs">

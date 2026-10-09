@@ -22,7 +22,7 @@ const href = (over: { type?: string | null; page?: number }) => {
   return params.size ? `/talk?${params}` : '/talk';
 };
 ---
-<BaseLayout title="Talk of the Town" description="Local conversations from Sandusky and communities across the Firelands.">
+<BaseLayout title="Talk of the Town" description="Local conversations from Sandusky and communities across the Firelands." canonicalPath={href({ page })}>
   <div class="head">
     <div><h1>Talk of the Town</h1><p class="lede">A place for neighbors to discuss what is happening across Sandusky and the surrounding region.</p></div>
     <a class="button" href={user ? '/talk/new' : '/sign-in?next=/talk/new'}>Start a discussion</a>

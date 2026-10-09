@@ -22,7 +22,7 @@ const pageHref = (n: number) => {
   return query ? `/news?${query}` : '/news';
 };
 ---
-<BaseLayout title={section ? SECTIONS[section] : 'News'} description="Local news from Sandusky and communities across the Firelands.">
+<BaseLayout title={section ? SECTIONS[section] : 'News'} description="Local news from Sandusky and communities across the Firelands." canonicalPath={pageHref(page)}>
   <h1>{section ? SECTIONS[section] : 'Latest news'}</h1>
   <nav aria-label="News sections" class="filter-tabs">
     <a href="/news" aria-current={section ? undefined : 'page'}>All</a>

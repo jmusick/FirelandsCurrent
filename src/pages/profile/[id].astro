@@ -13,9 +13,13 @@ const fetched = await profileItems(profile.id, tab, page - 1);
 const hasMore = fetched.length > PROFILE_PAGE_SIZE;
 const items = fetched.slice(0, PROFILE_PAGE_SIZE);
 const href = (selected: ProfileTab, p = 1) => `/profile/${encodeURIComponent(profile.id)}?tab=${selected}${p > 1 ? `&page=${p}` : ''}`;
+const canonicalParams = new URLSearchParams();
+if (tab !== 'articles') canonicalParams.set('tab', tab);
+if (page > 1) canonicalParams.set('page', String(page));
+const canonicalPath = `/profile/${encodeURIComponent(profile.id)}${canonicalParams.size ? `?${canonicalParams}` : ''}`;
 const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'America/New_York' });
 ---
-<BaseLayout title={`${profile.name}'s profile`} description={`Published articles and public conversations by ${profile.name} on Firelands Current.`}>
+<BaseLayout title={`${profile.name}'s profile`} description={`Published articles and public conversations by ${profile.name} on Firelands Current.`} canonicalPath={canonicalPath}>
   <div class="profile">
     <span class="eyebrow">Public profile</span>
     <h1>{profile.name}</h1>

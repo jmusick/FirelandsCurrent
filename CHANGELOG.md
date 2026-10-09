@@ -2,6 +2,18 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.21.3] - 2026-10-09
+
+### Fixed
+
+- Declare canonical URLs for public pages, removing tracking parameters while preserving content filters, profile tabs, and pagination
+- Keep sign-in, registration, password, account, and business portal pages out of search results and exclude them from Google Analytics
+- Prevent local production previews and alternate deployment URLs from reporting Google Analytics traffic
+
+### Changed
+
+- Explain Analytics exclusions, URL redaction, and data retention in the Privacy Policy and operator documentation
+
 ## [1.21.2] - 2026-10-06
 
 ### Added

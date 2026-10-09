@@ -12,26 +12,31 @@ interface Props {
   image?: { url: string; width: number; height: number; alt: string } | null;
   type?: 'website' | 'article';
   noindex?: boolean;
+  /** Normalized content filters and pagination, without tracking or form query parameters. */
+  canonicalPath?: string;
 }
 
-const { title, description = 'Independent local news and conversation for Sandusky and the Firelands.', image, type = 'website', noindex = false } = Astro.props;
+const { title, description = 'Independent local news and conversation for Sandusky and the Firelands.', image, type = 'website', noindex = false, canonicalPath } = Astro.props;
 const previewImage = image ?? { url: '/social-logo.png?v=2', width: 1200, height: 630, alt: 'Firelands Current' };
-const pageUrl = new URL(Astro.url.pathname, Astro.url.origin).href;
+const pageUrl = new URL(canonicalPath ?? Astro.url.pathname, Astro.url.origin).href;
+const accountPage = ['/sign-in', '/register', '/forgot-password', '/reset-password', '/account', '/business'].some((path) => Astro.url.pathname === path || Astro.url.pathname.startsWith(`${path}/`));
 const user = Astro.locals.user;
 const staffRole = Astro.locals.staffRole;
 const showAds = pageTakesAds(Astro.url.pathname);
 // The masthead carries the day's date, as a printed paper does, in the region's own time zone.
 const dateline = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' });
 const current = (prefix: string) => Astro.url.pathname === prefix || Astro.url.pathname.startsWith(`${prefix}/`) ? 'page' : undefined;
-// Only production builds report to Google Analytics, so local development doesn't count as traffic.
-const gaId = import.meta.env.PROD && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID ?? '') ? env.GA_MEASUREMENT_ID : null;
+// Account and password pages can contain private information and authentication tokens.
+const analyticsHost = Astro.url.protocol === 'https:' && Astro.url.origin === new URL(env.SITE_URL).origin;
+const gaId = import.meta.env.PROD && analyticsHost && !accountPage && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID ?? '') ? env.GA_MEASUREMENT_ID : null;
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {noindex && <meta name="robots" content="noindex" />}
+    {(noindex || accountPage) && <meta name="robots" content="noindex" />}
+    {!noindex && !accountPage && <link rel="canonical" href={pageUrl} />}
     <!-- Without JavaScript the phone menu can't open, so the nav stays expanded unless this runs. -->
     <script is:inline>document.documentElement.classList.add('js');</script>
     {gaId && <>
