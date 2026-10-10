@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.2] - 2026-10-09
+
+### Fixed
+
+- Add a visible-on-focus skip link to public and admin pages so keyboard users can bypass navigation and header advertising and move directly into main content
+
 ## [1.22.1] - 2026-10-09
 
 ### Fixed

@@ -30,6 +30,7 @@ An independent local newspaper for Sandusky, Ohio and the Firelands, built with 
 - Privacy Policy at `/privacy`, linked from the footer and the registration page. It describes exactly what the site collects (accounts, sessions, posts, Google Analytics, Cloudflare Web Analytics, ad counts), so update it whenever that changes
 - Admin panel at `/admin` (dashboard, News editor, news tips, events calendar, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
 - On phones the main navigation folds into a Menu button in the masthead
+- Public and admin pages start with a keyboard-focusable “Skip to main content” link, visible on focus, that bypasses navigation and any header advertising.
 
 ## Local setup
 

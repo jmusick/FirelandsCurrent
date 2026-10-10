@@ -2,6 +2,7 @@
 import { env } from 'cloudflare:workers';
 import { Menu, X } from '@lucide/astro';
 import AdSlot from '../components/AdSlot.astro';
+import SkipLink from '../components/SkipLink.astro';
 import { pageTakesAds } from '../lib/ads';
 import '../styles/tokens.css';
 
@@ -154,6 +155,7 @@ const gaId = import.meta.env.PROD && analyticsHost && !accountPage && /^G-[A-Z0-
     </style>
   </head>
   <body>
+    <SkipLink />
     <header class="site-header">
       <div class="masthead">
         <a class="brand" href="/" aria-label="Firelands Current home"><img class="brand-mark" src="/logo-mark.svg" alt="" width="64" height="64" /><span>Firelands Current</span></a>
@@ -176,7 +178,7 @@ const gaId = import.meta.env.PROD && analyticsHost && !accountPage && /^G-[A-Z0-
       });
     </script>
     {showAds && <div class="ad-band"><AdSlot placement="site-leaderboard" /></div>}
-    <main><slot /></main>
+    <main id="main-content" tabindex="-1"><slot /></main>
     <footer class="site-footer"><div class="site-footer-inner">
       <div><p class="foot-brand">Firelands Current</p><p>Independent local reporting and conversation for Sandusky and the Firelands.</p></div>
       <nav aria-label="Site">

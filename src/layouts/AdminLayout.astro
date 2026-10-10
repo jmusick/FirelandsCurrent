@@ -2,6 +2,7 @@
 import { BuildingComplex, CalendarDays, ExternalLink, Images, LayoutDashboard, Megaphone, MessagesSquare, Newspaper, Send, SpellCheck, Users } from '@lucide/astro';
 import { ADMIN, sectionsFor, type AdminSectionKey } from '../lib/admin';
 import { ROLE_LABELS } from '../lib/staff';
+import SkipLink from '../components/SkipLink.astro';
 import '../styles/tokens.css';
 
 // One icon per admin section; a section added to ADMIN won't type-check until it has one here.
@@ -106,6 +107,7 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
     </style>
   </head>
   <body>
+    <SkipLink />
     <header class="admin-top"><div class="admin-top-inner">
       <a class="admin-brand" href="/admin"><img src="/logo-mark.svg" alt="" width="29" height="29" /><span>Firelands Current <small>Admin</small></span></a>
       <div class="who"><a class="plain" href="/"><ExternalLink />View site</a><span class="role">{user.name}, {ROLE_LABELS[role]}</span></div>
@@ -118,7 +120,7 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
           return <a href={href} aria-current={isActive(href) ? 'page' : undefined}><Icon />{label}</a>;
         })}
       </nav>
-      <main class="admin-main"><slot /></main>
+      <main id="main-content" class="admin-main" tabindex="-1"><slot /></main>
     </div>
   </body>
 </html>
