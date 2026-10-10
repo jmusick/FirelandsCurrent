@@ -63,6 +63,19 @@ export async function listEvents(filters: EventFilters, page = 0, pageSize = 30)
   return result.results;
 }
 
+/** Events on any day from `from` through `to` (YYYY-MM-DD), including multi-day events that overlap them, for the month view. */
+export async function listEventsBetween(filters: Omit<EventFilters, 'past'>, from: string, to: string): Promise<CalendarEvent[]> {
+  const result = await env.DB.prepare(`
+    SELECT ${PUBLIC_COLUMNS}
+    FROM events e LEFT JOIN media m ON m.id = e.image_media_id
+    WHERE e.status != 'draft' AND (?1 IS NULL OR e.category = ?1) AND (?2 IS NULL OR e.community = ?2)
+      AND e.starts_on <= ?4 AND COALESCE(e.ends_on, e.starts_on) >= ?3
+    ORDER BY e.starts_on, COALESCE(e.start_time, ''), e.title
+    LIMIT 1000
+  `).bind(filters.category ?? null, filters.community ?? null, from, to).all<CalendarEvent>();
+  return result.results;
+}
+
 /** Communities with upcoming events, for the calendar's filter. */
 export async function upcomingCommunities(): Promise<string[]> {
   const result = await env.DB.prepare(`
@@ -154,7 +167,7 @@ export function easternInstant(day: string, time = '00:00'): Date {
   return new Date(at);
 }
 
-const addDays = (day: string, n: number) => new Date(Date.parse(`${day}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+export const addDays = (day: string, n: number) => new Date(Date.parse(`${day}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 
 /** Start and end as schema.org and calendar apps want them: dates for all-day events, instants otherwise. */
 function span(e: EventTiming): { allDay: true; start: string; end: string } | { allDay: false; start: Date; end: Date | null } {

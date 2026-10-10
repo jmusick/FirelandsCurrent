@@ -40,7 +40,7 @@ const { emptyEvent, saveEventFromForm, valuesFromEvent, copyOfEvent } = (await l
   './events': events.url, './news': news.url, './forum': forum.url,
   './media': 'data:text/javascript,export const isMediaId = () => false;',
 })).module;
-const { getAdminEvent, getEvent, listEvents, eventJsonLd } = events.module;
+const { getAdminEvent, getEvent, listEvents, listEventsBetween, eventJsonLd } = events.module;
 const form = (overrides = {}) => {
   const data = new FormData();
   for (const [key, value] of Object.entries({ ...emptyEvent, title: 'Test event', summary: 'A verified event summary.',
@@ -123,5 +123,19 @@ test('event admission and performers', async (t) => {
     assert.equal(json.includes('</script>'), false);
     assert.deepEqual(JSON.parse(json).organizer, { '@type': 'Organization', name: 'Test host' });
     assert.deepEqual(JSON.parse(json).image, ['https://example.test/media/photo.jpg']);
+  });
+
+  await t.test('month view includes multi-day events that overlap the range and leaves out drafts', async () => {
+    database.exec(`INSERT INTO events (id, slug, title, summary, category, starts_on, ends_on, venue, community, status, created_at, updated_at) VALUES
+      ('spans', 'spans', 'Spanning festival', 'Summary', 'community', '2026-09-28', '2026-10-02', 'Test park', 'Huron', 'published', 1, 1),
+      ('draft', 'draft', 'Draft event', 'Summary', 'community', '2026-10-15', NULL, 'Test park', 'Sandusky', 'draft', 1, 1),
+      ('later', 'later', 'November event', 'Summary', 'community', '2026-11-01', NULL, 'Test park', 'Sandusky', 'published', 1, 1)`);
+    const october = (await listEventsBetween({}, '2026-10-01', '2026-10-31')).map((e) => e.slug);
+    assert.ok(october.includes('spans'));
+    assert.ok(october.includes('existing'));
+    assert.equal(october.includes('draft'), false);
+    assert.equal(october.includes('later'), false);
+    assert.deepEqual((await listEventsBetween({ community: 'Huron' }, '2026-10-01', '2026-10-31')).map((e) => e.slug), ['spans']);
+    assert.deepEqual(await listEventsBetween({ category: 'music' }, '2026-09-01', '2026-09-30'), []);
   });
 });

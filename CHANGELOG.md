@@ -2,6 +2,14 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.0] - 2026-10-09
+
+### Added
+
+- Calendar view on the Events page: a List / Calendar toggle shows a month at a time, Sunday to Saturday, with month-to-month navigation and the same category and community filters as the list
+- Multi-day events appear on every day they run, marked "Continues" after the first day; busy days show four events with the rest behind "+N more"
+- On phones the month becomes a list of the days that have events, with every event shown
+
 ## [1.21.5] - 2026-10-09
 
 ### Fixed

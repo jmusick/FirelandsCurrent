@@ -1,49 +1,92 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor } from '../../lib/ads';
-import { CATEGORIES, fmtDay, fmtDates, fmtHours, isCategory, listEvents, today, upcomingCommunities, type CalendarEvent } from '../../lib/events';
+import { addDays, CATEGORIES, fmtDay, fmtDates, fmtHours, isCategory, lastDay, listEvents, listEventsBetween, today, upcomingCommunities, type CalendarEvent } from '../../lib/events';
 
 const params = Astro.url.searchParams;
+const now = today();
 const category = isCategory(params.get('category')) ? params.get('category') as keyof typeof CATEGORIES : undefined;
-const past = params.get('when') === 'past';
+const calendarView = params.get('view') === 'calendar';
+const past = !calendarView && params.get('when') === 'past';
+
+// The month view reaches from 2020 to two years ahead; any other month shows this one, so crawlers can't page forever.
+const thisMonth = now.slice(0, 7);
+const lastYear = Number(now.slice(0, 4)) + 2;
+const monthInRange = (m: string) => m >= '2020-01' && Number(m.slice(0, 4)) <= lastYear;
+const monthParam = params.get('month') ?? '';
+const month = calendarView && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthParam) && monthInRange(monthParam) ? monthParam : thisMonth;
+const shiftMonth = (m: string, offset: number) => {
+  const d = new Date(Date.UTC(Number(m.slice(0, 4)), Number(m.slice(5, 7)) - 1 + offset, 1));
+  return d.toISOString().slice(0, 7);
+};
+const prevMonth = shiftMonth(month, -1);
+const nextMonth = shiftMonth(month, 1);
+
 const communities = await upcomingCommunities();
 const communityParam = params.get('community') ?? '';
-// Past events can be from anywhere; the upcoming list only offers communities that have something coming up.
-const community = communityParam && (past || communities.includes(communityParam)) && communityParam.length <= 60 ? communityParam : undefined;
+// Past events and other months can be from anywhere; the upcoming list only offers communities that have something coming up.
+const community = communityParam && (past || calendarView || communities.includes(communityParam)) && communityParam.length <= 60 ? communityParam : undefined;
+const communityOptions = community && !communities.includes(community) ? [...communities, community].sort() : communities;
 const requestedPage = Number(params.get('page') ?? 1);
-const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 1000 ? requestedPage : 1;
+const page = !calendarView && Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 1000 ? requestedPage : 1;
 const PAGE_SIZE = 30;
-const fetched = await listEvents({ category, community, past }, page - 1, PAGE_SIZE);
-const hasMore = fetched.length > PAGE_SIZE;
-const events = fetched.slice(0, PAGE_SIZE);
+
+const monthStart = `${month}-01`;
+const monthEnd = addDays(`${nextMonth}-01`, -1);
+const fetched = calendarView
+  ? await listEventsBetween({ category, community }, monthStart, monthEnd)
+  : await listEvents({ category, community, past }, page - 1, PAGE_SIZE);
+const hasMore = !calendarView && fetched.length > PAGE_SIZE;
+const events = calendarView ? fetched : fetched.slice(0, PAGE_SIZE);
 await adPlanFor(Astro.request, Astro.locals);
 
-// Upcoming events that have already started sit under today, so a weekend festival shows on Sunday too.
-const now = today();
-const groups: { day: string; events: CalendarEvent[] }[] = [];
-for (const e of events) {
-  const day = !past && e.starts_on < now ? now : e.starts_on;
-  if (groups.at(-1)?.day !== day) groups.push({ day, events: [] });
-  groups.at(-1)!.events.push(e);
-}
-const tomorrow = new Date(Date.parse(`${now}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
+const tomorrow = addDays(now, 1);
 const dayLabel = (day: string) => day === now ? `Today, ${fmtDay(day)}` : day === tomorrow ? `Tomorrow, ${fmtDay(day)}` :fmtDay(day, { weekday: 'long', month: 'long', day: 'numeric', ...(day.slice(0, 4) !== now.slice(0, 4) ? { year: 'numeric' } : {}) });
 
-const href = (changes: { category?: string | null; community?: string | null; past?: boolean; page?: number }) => {
+// Upcoming events that have already started sit under today, so a weekend festival shows on Sunday too.
+const groups: { day: string; events: CalendarEvent[] }[] = [];
+if (!calendarView) {
+  for (const e of events) {
+    const day = !past && e.starts_on < now ? now : e.starts_on;
+    if (groups.at(-1)?.day !== day) groups.push({ day, events: [] });
+    groups.at(-1)!.events.push(e);
+  }
+}
+
+// The month grid runs Sunday to Saturday, padded with blank days from the months either side.
+const weekday = (day: string) => new Date(`${day}T12:00:00Z`).getUTCDay();
+const cells: { day: string; inMonth: boolean; events: CalendarEvent[] }[] = [];
+if (calendarView) {
+  for (let day = addDays(monthStart, -weekday(monthStart)); day <= addDays(monthEnd, 6 - weekday(monthEnd)); day = addDays(day, 1)) {
+    const inMonth = day >= monthStart && day <= monthEnd;
+    const onDay = inMonth ? events.filter((e) => e.starts_on <= day && lastDay(e) >= day) : [];
+    // What starts that day comes before festivals already under way, which would otherwise repeat at the top of every cell.
+    cells.push({ day, inMonth, events: [...onDay.filter((e) => e.starts_on === day), ...onDay.filter((e) => e.starts_on < day)] });
+  }
+}
+const CELL_LIMIT = 4;
+const monthName = (m: string, opts: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }) => fmtDay(`${m}-01`, opts);
+const nearMonth = (m: string) => monthName(m, m.slice(0, 4) === month.slice(0, 4) ? { month: 'long' } : undefined);
+
+const href = (changes: { category?: string | null; community?: string | null; past?: boolean; page?: number; calendar?: boolean; month?: string }) => {
   const next = new URLSearchParams();
   const c = changes.category === undefined ? category : changes.category;
   const m = changes.community === undefined ? community : changes.community;
-  const p = changes.past ?? past;
+  const cal = changes.calendar ?? calendarView;
+  const mo = changes.month ?? month;
   if (c) next.set('category', c);
   if (m) next.set('community', m);
-  if (p) next.set('when', 'past');
+  if (!cal && (changes.past ?? past)) next.set('when', 'past');
+  if (cal) next.set('view', 'calendar');
+  if (cal && mo !== thisMonth) next.set('month', mo);
   if (changes.page && changes.page > 1) next.set('page', String(changes.page));
   const query = next.toString();
   return query ? `/events?${query}` : '/events';
 };
 const heading = past ? 'Past events' : category ? CATEGORIES[category] : 'Local events';
+const title = past ? 'Past events' : category ? `${CATEGORIES[category]} events` : 'Local events';
 ---
-<BaseLayout title={past ? 'Past events' : category ? `${CATEGORIES[category]} events` : 'Local events'} description="What's happening in Sandusky and across the Firelands: concerts, festivals, meetings, markets and more." canonicalPath={href({ page })}>
+<BaseLayout title={calendarView ? `${title}, ${monthName(month)}` : title} description="What's happening in Sandusky and across the Firelands: concerts, festivals, meetings, markets and more." canonicalPath={href({ page })}>
   {community && <span class="eyebrow">{community}</span>}
   <h1>{heading}</h1>
   <nav aria-label="Event categories" class="filter-tabs">
@@ -53,17 +96,55 @@ const heading = past ? 'Past events' : category ? CATEGORIES[category] : 'Local 
   <form method="get" action="/events" class="refine">
     {category && <input type="hidden" name="category" value={category} />}
     {past && <input type="hidden" name="when" value="past" />}
-    {!past && communities.length > 1 && <label>Community
+    {calendarView && <input type="hidden" name="view" value="calendar" />}
+    {calendarView && month !== thisMonth && <input type="hidden" name="month" value={month} />}
+    {!past && communityOptions.length > 1 && <label>Community
       <select name="community" id="community">
         <option value="">Everywhere</option>
-        {communities.map((c) => <option value={c} selected={community === c}>{c}</option>)}
+        {communityOptions.map((c) => <option value={c} selected={community === c}>{c}</option>)}
       </select>
     </label>}
-    {!past && communities.length > 1 && <noscript><button class="button secondary small" type="submit">Show</button></noscript>}
-    <a class="when" href={href({ past: !past, community: null, page: 1 })}>{past ? 'Upcoming events' : 'Past events'}</a>
+    {!past && communityOptions.length > 1 && <noscript><button class="button secondary small" type="submit">Show</button></noscript>}
+    <span class="end">
+      {!calendarView && <a class="when" href={href({ past: !past, community: null, page: 1 })}>{past ? 'Upcoming events' : 'Past events'}</a>}
+      <span class="views" role="group" aria-label="View">
+        <a href={href({ calendar: false, past: false, page: 1 })} aria-current={calendarView ? undefined : 'page'}>List</a>
+        <a href={href({ calendar: true, month: thisMonth, page: 1 })} aria-current={calendarView ? 'page' : undefined}>Calendar</a>
+      </span>
+    </span>
   </form>
 
-  <div class="calendar">
+  {calendarView ? <div class="month-view">
+    <nav aria-label="Months" class="month-nav">
+      <span>{monthInRange(prevMonth) && <a href={href({ month: prevMonth })}>← {nearMonth(prevMonth)}</a>}</span>
+      <h2>{monthName(month)}</h2>
+      <span>{monthInRange(nextMonth) && <a href={href({ month: nextMonth })}>{nearMonth(nextMonth)} →</a>}</span>
+    </nav>
+    {month !== thisMonth && <p class="this-month"><a href={href({ month: thisMonth })}>Back to {monthName(thisMonth, { month: 'long' })}</a></p>}
+    {events.length === 0
+      ? <div class="card" style="margin-top:1rem"><h2>Nothing on the calendar in {monthName(month, { month: 'long' })}</h2><p class="muted">{category || community ? <>Try <a href={href({ category: null, community: null })}>all events</a>.</> : month < thisMonth ? 'No events were listed that month.' : 'Check back soon for what’s happening around the region.'}</p></div>
+      : <>
+        <div class="weekdays" aria-hidden="true">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => <span>{d}</span>)}</div>
+        <ol class="grid">
+          {cells.map((c) => <li class:list={{ out: !c.inMonth, empty: c.events.length === 0, today: c.day === now, past: c.day < now }} aria-hidden={c.inMonth ? undefined : 'true'}>
+            {c.inMonth && <>
+              <h3><time datetime={c.day} aria-current={c.day === now ? 'date' : undefined}><span class="num">{Number(c.day.slice(8, 10))}</span><span class="full">{dayLabel(c.day)}</span></time></h3>
+              {[c.events.slice(0, CELL_LIMIT), c.events.slice(CELL_LIMIT)].map((list, i) => {
+                if (!list.length) return null;
+                const items = <ul>
+                  {list.map((e) => <li class:list={{ cancelled: e.status === 'cancelled' }}>
+                    <a href={`/events/${e.slug}`}><span class="hours">{e.starts_on < c.day ? 'Continues' : fmtHours(e)}</span> <span class="title">{e.title}</span></a>
+                    {e.status === 'cancelled' && <span class="flag">Cancelled</span>}
+                  </li>)}
+                </ul>;
+                return i === 0 ? items : <details class="more"><summary>+{list.length} more</summary>{items}</details>;
+              })}
+            </>}
+          </li>)}
+        </ol>
+      </>}
+  </div>
+  : <div class="calendar">
     {groups.length === 0 ? <div class="card" style="margin-top:1rem"><h2>{past ? 'No past events' : 'Nothing on the calendar yet'}</h2><p class="muted">{category || community ? <>Try <a href={href({ category: null, community: null, page: 1 })}>all events</a>.</> : 'Check back soon for what’s happening around the region.'}</p></div>
     : groups.map((g) => <section class:list={['day', { today: g.day === now }]}>
       <h2><span class="num">{Number(g.day.slice(8, 10))}</span><span>{dayLabel(g.day)}</span></h2>
@@ -78,19 +159,27 @@ const heading = past ? 'Past events' : category ? CATEGORIES[category] : 'Local 
         {e.lead_key && <a class="thumb" href={`/events/${e.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${e.lead_key}`} alt="" width={e.lead_width!} height={e.lead_height!} loading="lazy" /></a>}
       </article>)}
     </section>)}
-  </div>
+  </div>}
   {(page > 1 || hasMore) && <nav aria-label="Event pages" class="pages"><span>{page > 1 && <a href={href({ page: page - 1 })}>← {past ? 'More recent' : 'Sooner'}</a>}</span><span>{hasMore && <a href={href({ page: page + 1 })}>{past ? 'Older' : 'Later'} →</a>}</span></nav>}
 </BaseLayout>
 
 <script is:inline>
   document.getElementById('community')?.addEventListener('change', function () { this.form.submit(); });
+  // On a phone the month is a plain list of days, with room for every event.
+  if (matchMedia('(max-width: 760px)').matches) document.querySelectorAll('details.more').forEach((d) => { d.open = true; });
 </script>
 
 <style>
   .refine { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; align-items: center; margin-top: 1rem; }
   .refine label { display: flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .95rem; }
   .refine select { padding: .45rem .6rem; border: 1px solid #9fb3b6; border-radius: 2px; background: var(--paper); color: var(--ink); font: inherit; }
-  .refine .when { margin-left: auto; font-weight: 600; }
+  .refine .end { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; margin-left: auto; }
+  .refine .when { font-weight: 600; }
+  .views { display: inline-flex; border: 1px solid var(--line); border-radius: 2px; }
+  .views a { padding: .35rem .8rem; font-weight: 600; font-size: .95rem; text-decoration: none; color: var(--slate); }
+  .views a + a { border-left: 1px solid var(--line); }
+  .views a:hover { color: var(--deep); background: var(--shoal-2); }
+  .views a[aria-current] { background: var(--deep); color: #fff; }
   .calendar { margin-top: .5rem; }
   /* Each day reads like a timetable entry: the date number large, the day beside it. Today is marked in sunset. */
   .day h2 { display: flex; align-items: baseline; gap: .7rem; font-size: 1.3rem; font-stretch: 85%; margin: 2rem 0 0; padding: .5rem 0 .6rem; border-top: 3px solid var(--deep); }
@@ -108,10 +197,59 @@ const heading = past ? 'Past events' : category ? CATEGORIES[category] : 'Local 
   .cancelled h3 a { text-decoration: line-through; color: var(--slate); }
   .thumb img { display: block; width: 160px; aspect-ratio: 3 / 2; height: auto; object-fit: cover; background: var(--shoal); }
   .pages { display: flex; justify-content: space-between; margin-top: 1.5rem; }
+
+  .month-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 1rem; margin-top: 1.5rem; padding-top: .5rem; border-top: 3px solid var(--deep); }
+  .month-nav h2 { margin: 0; font-size: 1.6rem; font-stretch: 85%; text-align: center; }
+  .month-nav span:last-child { text-align: right; }
+  .month-nav a { font-weight: 600; }
+  .this-month { margin: .3rem 0 0; text-align: center; font-size: .95rem; }
+  /* A wall calendar: seven columns, the date in the corner, each event a line you can follow. Today is marked in sunset. */
+  .weekdays, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .weekdays { margin-top: 1rem; border-bottom: 1px solid var(--line); }
+  .weekdays span { padding: .3rem .45rem; font-weight: 700; font-size: .8rem; color: var(--slate); text-transform: uppercase; letter-spacing: .04em; }
+  .grid { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line-soft); }
+  .grid > li { min-width: 0; min-height: 7.5rem; padding: .35rem .45rem .6rem; border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+  .grid > li.out { background: var(--fog); }
+  .grid > li.today { box-shadow: inset 0 3px 0 var(--sunset); background: var(--shoal-2); }
+  .grid h3 { margin: 0; font-size: 1rem; }
+  .grid .num { font-size: 1.35rem; font-weight: 800; font-stretch: 62%; font-variant-numeric: tabular-nums; }
+  .grid .past .num { color: var(--slate); }
+  .grid .full { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .grid ul { list-style: none; margin: .2rem 0 0; padding: 0; display: grid; gap: .45rem; }
+  .grid ul li { font-size: .85rem; line-height: 1.25; }
+  .grid ul a { display: block; text-decoration: none; color: var(--ink); overflow-wrap: anywhere; }
+  .grid ul a:hover .title { color: var(--channel); text-decoration: underline; }
+  .grid .hours { display: block; font-weight: 700; color: var(--deep); font-size: .75rem; font-variant-numeric: tabular-nums; }
+  .grid .cancelled .title { text-decoration: line-through; color: var(--slate); }
+  .grid .flag { font-size: .75rem; }
+  .more { margin-top: .45rem; }
+  .more summary { cursor: pointer; font-size: .8rem; font-weight: 700; color: var(--channel); }
+  .more[open] summary { margin-bottom: .1rem; }
+
   @media (max-width: 640px) {
     .event { grid-template-columns: minmax(0, 1fr) auto; gap: .9rem; }
     .time { grid-column: 1 / -1; margin: 0; }
     .thumb img { width: 96px; }
-    .refine .when { margin-left: 0; }
+    .refine .end { margin-left: 0; }
+  }
+  /* Seven columns don't fit a phone, so the month becomes a list of the days that have something on. */
+  @media (max-width: 760px) {
+    .month-nav { grid-template-columns: 1fr 1fr; gap: .3rem 1rem; }
+    .month-nav h2 { grid-column: 1 / -1; grid-row: 1; }
+    .weekdays { display: none; }
+    .grid { display: block; border-left: 0; margin-top: .5rem; }
+    .grid > li { min-height: 0; padding: .8rem 0; border-right: 0; }
+    .grid > li.out, .grid > li.empty { display: none; }
+    .grid > li.today { background: none; }
+    .grid h3 time { display: flex; align-items: baseline; gap: .6rem; }
+    .grid .num { font-size: 1.9rem; min-width: 1.9rem; }
+    .grid .full { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: 1.1rem; font-stretch: 85%; }
+    .grid ul { gap: .6rem; margin-top: .4rem; }
+    .grid ul li { font-size: 1.02rem; }
+    .grid ul a { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: .75rem; }
+    .grid .hours { font-size: .92rem; }
+    .more { margin-top: .6rem; }
+    .more[open] summary { display: none; }
+    .more summary { font-size: .95rem; }
   }
 </style>
