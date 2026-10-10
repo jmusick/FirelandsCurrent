@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.6] - 2026-10-10
+
+### Added
+
+- Publish `NewsArticle` structured data on story pages with headline, publication and modification dates, author and profile link, publisher, canonical URL, and lead image when available (#30)
+
+### Changed
+
+- Give the homepage a descriptive title, "Sandusky & Firelands Local News" (#31)
+
 ## [1.22.5] - 2026-10-10
 
 ### Added

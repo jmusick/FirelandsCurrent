@@ -25,6 +25,7 @@ export type Article = {
   byline: string;
   author_id: string | null;
   published_at: number;
+  updated_at: number;
 } & LeadImage;
 
 /** The story's lead image, from the media library; all null when it has none. */
@@ -35,12 +36,40 @@ export type LeadImage = {
 
 export const LEAD_COLUMNS = `m.object_key AS lead_key, m.width AS lead_width, m.height AS lead_height, m.alt AS lead_alt, m.caption AS lead_caption, m.credit AS lead_credit`;
 
+/** Saves this soon after publication are treated as finishing touches, not a modification worth announcing. */
+const MODIFIED_GRACE_MS = 60 * 60 * 1000;
+
+/** schema.org NewsArticle data for a story page; fields the story doesn't have are left out. */
+export function newsArticleJsonLd(a: Article, origin: string): string {
+  const url = new URL(`/news/${a.slug}`, origin).href;
+  const lead = leadMedia(a);
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: a.headline,
+    description: a.summary,
+    mainEntityOfPage: url,
+    url,
+    datePublished: new Date(a.published_at).toISOString(),
+    ...(a.updated_at - a.published_at > MODIFIED_GRACE_MS ? { dateModified: new Date(a.updated_at).toISOString() } : {}),
+    author: {
+      '@type': 'Person',
+      name: a.byline,
+      ...(a.author_id ? { url: new URL(`/profile/${encodeURIComponent(a.author_id)}`, origin).href } : {}),
+    },
+    publisher: { '@type': 'Organization', name: 'Firelands Current', url: new URL('/', origin).href },
+    ...(lead ? { image: [new URL(`/media/${lead.object_key}`, origin).href] } : {}),
+  };
+  // Keeps "</script>" in any field from closing the tag it's written into.
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
+
 /** The lead image in the shape figureHtml takes, or null. */
 export const leadMedia = (a: LeadImage) => a.lead_key
   ? { object_key: a.lead_key, width: a.lead_width!, height: a.lead_height!, alt: a.lead_alt ?? '', caption: a.lead_caption ?? '', credit: a.lead_credit ?? '' }
   : null;
 
-export type AdminArticle = Omit<Article, 'published_at' | keyof LeadImage> & {
+export type AdminArticle = Omit<Article, 'published_at' | 'updated_at' | keyof LeadImage> & {
   lead_media_id: string | null;
   featured: number;
   status: ArticleStatus;
@@ -54,7 +83,7 @@ export function isSection(value: string | null | undefined): value is Section {
 
 export async function listArticles(page = 0, section?: Section, pageSize = 20): Promise<Article[]> {
   const result = await env.DB.prepare(`
-    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, ${LEAD_COLUMNS}
+    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, a.updated_at, ${LEAD_COLUMNS}
     FROM news_articles a LEFT JOIN "user" u ON u.id = a.author_id LEFT JOIN media m ON m.id = a.lead_media_id
     WHERE a.status = 'published' AND (?1 IS NULL OR a.section = ?1)
     ORDER BY a.published_at DESC

@@ -13,7 +13,7 @@ const events = (await listEvents({}, 0, 4)).slice(0, 4);
 const now = today();
 const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium' });
 ---
-<BaseLayout title="Home">
+<BaseLayout title="Sandusky & Firelands Local News">
   {lead ? <section class="front">
     <article class="lead">
       {leadImage && <figure class="front-photo">
