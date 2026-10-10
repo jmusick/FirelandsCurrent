@@ -2,6 +2,17 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.3] - 2026-10-10
+
+### Added
+
+- Talk starter scripts: `scripts/seed-talk-starter.sql` loads five fictional proof-of-concept community discussions, story comments, and up- and downvotes; `scripts/clear-talk-starter.sql` removes them while keeping threads with later reader comments
+- Editorial review notes for Oct. 7–9, 2026 under `docs/editorial/`
+
+### Changed
+
+- News sources guide: add parishes, sheriff fingerprinting fees, Huron and Oak Harbor sources, Port Clinton, Sandusky County Soil and Water, the Sandusky County Visitors Bureau, Pipe Creek and Halloween contest pages, and the X accounts Firelands Current follows
+
 ## [1.22.2] - 2026-10-09
 
 ### Fixed
