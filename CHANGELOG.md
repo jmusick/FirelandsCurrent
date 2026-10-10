@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.7] - 2026-10-10
+
+### Security
+
+- Validate the sign-in return URL by parsed origin, so values such as `/\example.com` no longer redirect off the site after sign-in; unsafe values fall back to the account page (#6)
+
 ## [1.22.6] - 2026-10-10
 
 ### Added
