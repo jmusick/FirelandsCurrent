@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.21.5] - 2026-10-09
+
+### Fixed
+
+- Place the front-page rectangle ad below the Latest stories in the right column
+- Show the homepage lead photo's caption and credit, with a link to its story for photo and license details
+
 ## [1.21.4] - 2026-10-09
 
 ### Fixed

@@ -16,12 +16,14 @@ const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateS
 <BaseLayout title="Home">
   {lead ? <section class="front">
     <article class="lead">
-      {leadImage && <a class="front-image" href={`/news/${lead.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${leadImage.object_key}`} alt="" width={leadImage.width} height={leadImage.height} fetchpriority="high" /></a>}
+      {leadImage && <figure class="front-photo">
+        <a class="front-image" href={`/news/${lead.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${leadImage.object_key}`} alt="" width={leadImage.width} height={leadImage.height} fetchpriority="high" /></a>
+        <figcaption>{leadImage.caption} {leadImage.credit} <a href={`/news/${lead.slug}`}>Photo details</a></figcaption>
+      </figure>}
       <span class="eyebrow">{lead.community}<span class="section">{SECTIONS[lead.section]}</span></span>
       <h1><a href={`/news/${lead.slug}`}>{lead.headline}</a></h1>
       <p class="lede">{lead.summary}</p>
       <p class="meta">By <AuthorLink id={lead.author_id} name={lead.byline} />, {fmtDate(lead.published_at)}</p>
-      <AdSlot placement="home-rail" class="home-rail" />
     </article>
     <div class="rail">
       <h2>Latest</h2>
@@ -31,6 +33,7 @@ const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateS
         <p class="meta">{fmtDate(article.published_at)}</p>
       </article>)}
       <p class="more"><a href="/news">All the latest news</a></p>
+      <AdSlot placement="home-rail" class="home-rail" />
     </div>
   </section> : <section class="empty-front">
     <h1>The region's stories belong here.</h1>
@@ -78,7 +81,9 @@ const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateS
   .lead h1 a:hover, .rail h3 a:hover, .news-section h3 a:hover, .coming-up h3 a:hover { color: var(--channel); }
   .lead .lede { margin: 0 0 .9rem; font-size: clamp(1.2rem, 2.4vw, 1.4rem); }
   .lead .meta { margin: 0; }
-  .front-image img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: var(--shoal); margin-bottom: 1.2rem; }
+  .front-photo { margin: 0 0 1.2rem; }
+  .front-photo figcaption { margin-top: .5rem; font-family: var(--scan); font-size: .85rem; line-height: 1.45; color: var(--slate); }
+  .front-image img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: var(--shoal); }
   .rail { min-width: 0; border-left: 1px solid var(--line); padding-left: 2rem; }
   .rail h2 { margin: 0 0 .4rem; font-size: 1.1rem; font-stretch: 90%; color: var(--slate); }
   .rail article { padding: 1rem 0; border-top: 1px solid var(--line-soft); }
@@ -117,7 +122,7 @@ const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateS
   .about h2 a { color: var(--deep); text-decoration: none; }
   .about h2 a:hover { color: var(--channel); text-decoration: underline; }
   .about p { margin: 0; font-family: var(--read); font-size: 1.05rem; line-height: 1.5; color: var(--slate); max-width: 34em; }
-  .lead :global(.home-rail) { margin-top: 2rem; }
+  .rail :global(.home-rail) { margin-top: 2rem; }
   @media (max-width: 860px) {
     .front { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
     .rail { border-left: 0; padding-left: 0; border-top: 3px solid var(--deep); padding-top: .6rem; }
