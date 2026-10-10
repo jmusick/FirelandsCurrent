@@ -1,0 +1,23 @@
+import { pathToFileURL } from 'node:url';
+import { editorialDirectory } from '../../project-library.mjs';
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync } from 'node:fs';
+const directory = pathToFileURL(editorialDirectory('2026-10-06'));
+const [stories, events, threads] = JSON.parse(readFileSync(new URL('production-verified.json', directory), 'utf8'));
+const escape = value => value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+const results = await Promise.all([...stories.map(row => ({ row, type: 'news', title: row.headline, body: row.body })), ...events.map(row => ({ row, type: 'events', title: row.title, body: row.description }))].map(async ({ row, type, title, body }) => {
+  const url = `https://firelandscurrent.com/${type}/${row.slug}`;
+  const response = await fetch(url);
+  assert.equal(response.status, 200, url);
+  const html = await response.text();
+  assert(html.includes(escape(title)), `Missing title: ${url}`);
+  assert(html.includes(escape(row.summary)), `Missing summary: ${url}`);
+  assert(html.includes(`property="og:url" content="${url}"`), `Incorrect sharing URL: ${url}`);
+  const thread = threads.find(item => item.article_id === row.id || item.event_id === row.id);
+  assert(html.includes(`/talk/${thread.id}`), `Missing discussion: ${url}`);
+  if (type === 'news') assert(html.includes(`/profile/${row.author_id}`), `Missing author link: ${url}`);
+  for (const match of body.matchAll(/\]\((https:\/\/[^)]+)\)/g)) assert(html.includes(escape(match[1])), `Missing source link: ${url}`);
+  return { url, status: response.status, title, sharingUrl: true, discussion: true, sources: true, anonymouslyAccessible: true };
+}));
+writeFileSync(new URL('live-verification.json', directory), JSON.stringify(results, null, 2));
+console.log(JSON.stringify(results, null, 2));

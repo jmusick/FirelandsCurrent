@@ -1,0 +1,20 @@
+import { editorialDirectory } from '../../project-library.mjs';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import assert from 'node:assert/strict';
+const dir=editorialDirectory('2026-10-07');
+const original=JSON.parse(readFileSync(dir+'content.json','utf8'));
+const q=v=>v===null?'NULL':typeof v==='number'?String(v):"'"+v.replaceAll("'","''")+"'";
+const ids=rows=>rows.map(r=>q(r.id)).join(',');
+function query(mode,sql){const out=execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','DB',mode,'--command',sql,'--json'],{encoding:'utf8'});return JSON.parse(out.slice(out.indexOf('[')));}
+const select=`SELECT * FROM news_articles WHERE id IN (${ids(original.articles)}); SELECT * FROM events WHERE id IN (${ids(original.events)}); SELECT * FROM forum_threads WHERE article_id IN (${ids(original.articles)}) OR event_id IN (${ids(original.events)}); SELECT id,name FROM user WHERE email='jd@orboro.net';`;
+const local=query('--local',select);
+assert.equal(local[0].results.length,3);assert.equal(local[1].results.length,3);assert.equal(local[2].results.length,6);
+const fresh={articles:local[0].results,events:local[1].results,threads:local[2].results};
+const remote=query('--remote',`SELECT id,name FROM user WHERE email='jd@orboro.net'; SELECT id,slug FROM news_articles WHERE id IN (${ids(fresh.articles)}) OR slug IN (${fresh.articles.map(r=>q(r.slug)).join(',')}); SELECT id,slug FROM events WHERE id IN (${ids(fresh.events)}) OR slug IN (${fresh.events.map(r=>q(r.slug)).join(',')}); SELECT id FROM user WHERE id='newsroom';`);
+assert.deepEqual(remote[0].results,local[3].results);assert.equal(remote[1].results.length,0);assert.equal(remote[2].results.length,0);assert.equal(remote[3].results.length,1);
+assert(fresh.articles.every(r=>r.author_id===remote[0].results[0].id && r.status==='published'));
+const insert=(table,row)=>`INSERT INTO ${table} (${Object.keys(row).join(',')}) VALUES (${Object.values(row).map(q).join(',')});`;
+writeFileSync(dir+'reviewed-content.json',JSON.stringify(fresh,null,2));
+writeFileSync(dir+'sync-production.sql',[...fresh.articles.map(r=>insert('news_articles',r)),...fresh.events.map(r=>insert('events',r)),...fresh.threads.map(r=>insert('forum_threads',r)),`UPDATE facebook_posts SET status='review' WHERE article_id IN (${ids(fresh.articles)});`].join('\n'));
+console.log('Fresh local export saved; production IDs/slugs clear, JD and Newsroom accounts match. Ready to sync 3 stories, 3 events, 6 discussions with Facebook review holds.');

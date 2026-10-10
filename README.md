@@ -2,6 +2,20 @@
 
 An independent local newspaper for Sandusky, Ohio and the Firelands, built with Astro on Cloudflare Workers and live at [firelandscurrent.com](https://firelandscurrent.com). It publishes news and a local events calendar, hosts reader discussions in **Talk of the Town**, and sells display ads to local businesses.
 
+Historical external-service checks and unresolved setup observations are recorded in [docs/operations-history.md](docs/operations-history.md); dated observations there do not certify current settings.
+
+Outstanding work is tracked in [GitHub Issues](https://github.com/jmusick/firelands-current/issues). The [October 10 backlog migration](https://github.com/jmusick/firelands-current/issues/1) preserves the former TODO.md audit context and links to each migrated item. Ask Codex to review, create, update, or implement an issue by number; the source documentation remains the reference for current behavior and implementation guidance.
+
+Git tracks application code, migrations, demo fixtures, tests, utility scripts, shared launch settings, and source documentation. Local environment values, build/runtime output, database exports, temporary reports, and Python caches are ignored. Keep reporting records and artwork in the project library described below. `.gitignore` prevents new files from being added; it does not remove files already committed or erase Git history.
+
+## Publication working records
+
+Dated reporting reviews, source evidence, content snapshots, import SQL, and publication screenshots live in the separate [project library](../../Projects/firelands-current/README.md), under `editorial/<date>/` or `image-research/<date>/publication/`. These records describe publication work rather than site implementation. The editorial rules remain in [docs/news-sources.md](docs/news-sources.md).
+
+The associated October 2–9 editorial utilities live in `scripts/editorial/<date>/`; October 9 image utilities live in `scripts/image-publication/2026-10-09/`; campaign utilities live in `scripts/ad-creatives/<campaign>/`. The shared JavaScript `scripts/project-library.mjs` and Python `scripts/project_library.py` helpers resolve the library relative to the source checkout, defaulting to `../../Projects/firelands-current/` from the repository root. Set `FIRELANDS_PROJECT_DIR` to an absolute library path for a different checkout layout. Run utilities from the repository root so Wrangler configuration, dependencies, and the local database resolve correctly. Python artwork rendering also requires Pillow; JavaScript image export uses the installed Sharp dependency. The dated utilities retain their original operations and assumptions; production commands still require deliberate authorization.
+
+For the October artist campaigns, `node scripts/ad-creatives/2026-10-artists/prepare.mjs` rebuilds exports; `node scripts/ad-creatives/2026-10-artists/publish.mjs` validates and prepares publication SQL. Publishing requires the explicit `--publish --local` or `--publish --remote` arguments and authorization for the selected target. Give replacement artwork new media IDs and object keys because existing images have long-lived caching.
+
 ## What works now
 
 - Email/password registration, sign-in, sign-out, display-name changes, verified email-address changes, password changes, and password reset by email through Better Auth. New email/password accounts must confirm their address from a link we email before they can sign in; sign-up, reset, and resend requests are protected by Cloudflare Turnstile
@@ -48,6 +62,8 @@ For the publisher's proof of concept, `scripts/seed-talk-starter.sql` adds five 
 Run `npm run test:corrections` for isolated regressions of the inaccuracy report endpoint (origin, bot checks, validation, storage, and notification failures); it simulates Turnstile, email, and the database.
 
 Run `npm run test:inbox` for isolated inbox regressions covering advertising routing, Reply-To, validation, bot checks, email failures, and news-tip retention. Email sends and Turnstile responses are simulated; these tests do not send real mail or modify the local database.
+
+If a large layout edit leaves the local page showing stale global styles, restart the dev server to clear Vite's stylesheet cache. Also restart it after running `npm run check`, which can invalidate the dev server's client scripts.
 
 ## Staff roles
 

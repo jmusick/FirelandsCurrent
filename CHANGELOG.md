@@ -7,7 +7,7 @@ All notable changes to Firelands Current are recorded here. The site follows [Se
 ### Added
 
 - Talk starter scripts: `scripts/seed-talk-starter.sql` loads five fictional proof-of-concept community discussions, story comments, and up- and downvotes; `scripts/clear-talk-starter.sql` removes them while keeping threads with later reader comments
-- Editorial review notes for Oct. 7–9, 2026 under `docs/editorial/`
+- Editorial review notes for Oct. 7–9, 2026, now retained in the separate [project library](../../Projects/firelands-current/editorial/)
 
 ### Changed
 

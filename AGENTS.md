@@ -57,13 +57,14 @@ docs/                Newsroom guides (news-sources.md)
 - **Styling** is plain CSS in the layouts and pages; there is no CSS framework.
 - **Icons** in the admin panel come from Lucide via `@lucide/astro` (`import { Plus } from '@lucide/astro'`), rendered as inline SVG on the server. Use current icon names, not the deprecated aliases (`Trash`, not `Trash2`). Icons sit before a button's or heading's text and are decorative; the text carries the meaning.
 - Writing or sourcing news stories: read [docs/news-sources.md](docs/news-sources.md) first. It covers the editorial rules, which sources to trust, and how stories get into the database.
+- Dated reporting reviews, evidence, content snapshots, and publication records belong in the separate project library, not `docs/` or `.wrangler/`. Keep their utilities in `scripts/` and resolve the library through `scripts/project-library.mjs` or `scripts/project_library.py`; the README documents `FIRELANDS_PROJECT_DIR` and the dated folders.
 - Match the surrounding code: comment density, naming, and idiom. Comments explain why, not what.
 - Keep `README.md` current when behavior an operator or editor would notice changes.
 - Keep the Privacy Policy (`src/pages/privacy.astro`) accurate: update it in the same change when you add or change what data is collected, stored, shown publicly, or sent to a third party (a new analytics tag, cookie, form field, or sign-in provider).
 
 ## Database migrations
 
-- Add a new numbered file in `migrations/` (next is `0017_*.sql`); never edit a migration that has shipped.
+- Add a new numbered file in `migrations/`, using the next number after the highest existing migration; never edit a migration that has shipped.
 - Apply locally with `npm run db:migrate:local`. Update `scripts/seed-demo.sql` or `scripts/seed-ads-demo.sql` if the schema change affects demo data.
 - Production migrations are applied deliberately with `npx wrangler d1 migrations apply DB --remote`. Don't run `--remote` commands unless the user asks.
 
@@ -84,6 +85,10 @@ To release a version:
 Use **patch** for fixes, **minor** for new features or sections, and **major** for changes that break existing URLs, accounts, or data.
 
 ## Git
+
+- Track outstanding work in [GitHub Issues](https://github.com/jmusick/firelands-current/issues), not a local TODO.md or duplicate vault backlog. Read the relevant issue and check for related existing issues before creating new work.
+- Preserve issue evidence, acceptance criteria, and audit dates; dated findings require current verification. Category labels group work; `priority:1`, `priority:2`, and `priority:3` mean address first, next, and longer term within each category. Earlier audit follow-ups remain unprioritized until reviewed.
+- Reference issue numbers in implementation summaries. Close an issue only when its acceptance criteria and required validation are satisfied; distinguish local completion from production deployment.
 
 - Commit messages are short imperative summaries (for example, "Redirect www to canonical domain"). Release commits use the `vX.Y.Z - <summary>` form above.
 - Do not add `Co-Authored-By` or other AI attribution trailers to commits.
