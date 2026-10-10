@@ -76,6 +76,7 @@ export function createAuth() {
       // Nobody gets a session until they prove they own the address.
       requireEmailVerification: true,
       resetPasswordTokenExpiresIn: 60 * 60,
+      revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => sendPasswordResetMail(user, url),
     },
     emailVerification: {

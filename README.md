@@ -87,6 +87,10 @@ Production promotion must be done deliberately against the production D1 databas
 
 Readers update their display name (1–80 characters), request an email change, and change their password at `/account`. Email changes require a recent session and a Turnstile check; Better Auth sends a one-hour link to the new address and keeps the current address until verification. An address already in use receives no link. Names may be shared; profile URLs use stable account IDs, so changing a name or email does not break links.
 
+Password-reset links expire after one hour and can be used once. A successful reset signs the account out everywhere, including existing account, business, and admin sessions; the person must sign in again with the new password. Requesting a link or submitting an invalid or expired link does not sign anyone out.
+
+Run `npm run test:auth` for password-reset regressions using the real Better Auth handlers and site middleware against an isolated in-memory database. The tests capture reset mail and simulate Turnstile; they do not send real mail or modify the working database.
+
 Run `npm run test:profiles` for regression checks against an isolated in-memory database. These exercise attribution, visibility, pagination, account deletion, and the real Better Auth name-change and email-verification handlers; test mail is captured locally and Turnstile responses are simulated.
 
 In the news editor, choose an **Author account** to link a story to a profile and use that account's current display name as its byline. New stories default to the editor's account. Choose **Guest byline** for contributors without an account; tip conversions requesting credit default to a guest byline. Deleting an author account keeps its stories with the saved text byline and removes the profile link. Automatically created story/event discussions continue to belong to the Newsroom account.

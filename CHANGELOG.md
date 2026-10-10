@@ -2,6 +2,20 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.4] - 2026-10-10
+
+### Fixed
+
+- Sign accounts out everywhere after a successful password reset so existing account, business, and admin sessions cannot survive account recovery (#2)
+
+### Changed
+
+- Track outstanding work in GitHub Issues and organize dated reporting and publication records in the separate project library
+
+### Added
+
+- Isolated password-reset regressions covering session revocation, protected page access, expired and reused links, and fresh sign-in
+
 ## [1.22.3] - 2026-10-10
 
 ### Added
