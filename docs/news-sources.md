@@ -65,6 +65,12 @@ Places outside these areas, including Toledo and Cleveland, are covered only whe
 - Sandusky's [Pipe Creek project page](https://www.cityofsandusky.com/city_projects/pipe_creek_parking_lot.php) gives the October 2026 construction schedule, contract cost and scope. Its official Oct. 8 Facebook notice explicitly says the parking lot is closed. Distinguish scheduled completion from confirmed reopening; the city maintains the entrance while ODNR manages wetland cells.
 - The city's [Halloween contest entry form](https://www.cityofsandusky.com/HauntedHouse) redirects to Survey123. Used with the official Oct. 8 Facebook announcement to verify the Oct. 16 deadline, city-limit eligibility and required photo permission. Read the city's own comment for the entry link; residents' comments are leads only.
 
+### Sources added Oct. 10, 2026
+
+- [U.S. Army Corps of Engineers, Buffalo District](https://www.lrd.usace.army.mil/buffalo) supplies Sandusky Harbor navigation, dredging and Lake Erie engineering announcements. Releases also appear on [Army.mil](https://www.army.mil/). Check the release date, scheduled work dates and contractor; older photo albums can retain outdated contract descriptions. The district's [Flickr account](https://www.flickr.com/photos/buffalousace/) has file photos, but verify the license on each image rather than assuming every government account image is public domain. CC BY-ND photos should remain uncropped body figures instead of cropped lead/card images.
+- [Lakeside Chautauqua](https://lakesideohio.com/) and the [Marblehead Peninsula Chamber of Commerce](https://themarbleheadpeninsula.com/) supply peninsula festivals and community programs. Use the year-specific organizer event page and [event changes](https://lakesideohio.com/calendar/event-changes/). Narrative hours can be more precise than an all-day calendar label. Free gate admission does not establish that every activity is free; check wristbands, tours and parking separately.
+- The City of Sandusky's official Facebook Page links to detailed event announcements. Expand the full description and verify the year in the event header; a generic map pin does not establish every activity's venue. Separate citywide trick-or-treat hours from the downtown program, and wait for the organizer's participating-location map before describing a route.
+
 ### X sources
 
 Followed from Firelands Current on Oct. 9, 2026: [City of Sandusky](https://x.com/cityofsandusky), [Sandusky Transit](https://x.com/SanduskyTransit), [Sandusky Schools](https://x.com/gobluestreaks) and [Perkins Schools](https://x.com/perkinspirates). The city and transit accounts carry government and service leads. Sandusky Schools' newest visible post was July 2023; use its website for current news. Perkins' visible feed includes August 2026 notices. Check each post's full date before relying on it, and corroborate on the agency's website when available. The existing follow of @_SanduskyOhio describes local updates but does not establish official city ownership.
@@ -72,6 +78,9 @@ Followed from Firelands Current on Oct. 9, 2026: [City of Sandusky](https://x.co
 ### Promising, not yet used
 
 Additional lead checked Oct. 7, 2026: [Ohio Council of Teachers of Mathematics](https://ohioctm.org/Annual-Conference-Sandusky-2026) for educator conferences and programs at Kalahari. Its Oct. 8–9, 2026 conference page says registration is closed; verify access and local participation before coverage.
+
+- [Ohio Library Council](https://www.olc.org/) supplies library policy, professional programs and conferences. Its [2026 convention page](https://www.olc.org/2026-convention-and-expo/) identifies local library organizers and an Oct. 21–23 gathering at Kalahari. Main and keynote pages disagree on whether registration is open; verify attendance or media access before listing it as a public event.
+- [The Wave at Marblehead](https://www.wavemarblehead.com/happenings) supplies venue programs and meal events. Check the year, cost and reservation/access terms on each listing before adding it to the calendar.
 
 Found in an October 2026 probe of the wider coverage area. None of these has produced a story yet, so check a source's dates and figures carefully the first time you use it, then move it to the table above.
 

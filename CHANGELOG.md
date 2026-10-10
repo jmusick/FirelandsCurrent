@@ -2,6 +2,17 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.5] - 2026-10-10
+
+### Added
+
+- Editorial import and production sync utilities for the Oct. 10 stories, licensed photos and events, with content preservation, image checksum checks, discussion links and audited Facebook queuing
+
+### Changed
+
+- Expand the news sources guide with Army Corps and Lakeside sources, potential library and Marblehead venue leads, and guidance for verifying event details and photo licenses
+- Document the local review and production publication workflow, including featuring stories with lead photos and verifying live pages before releasing the Facebook queue
+
 ## [1.22.4] - 2026-10-10
 
 ### Fixed
