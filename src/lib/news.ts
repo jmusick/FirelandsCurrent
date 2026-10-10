@@ -63,18 +63,24 @@ export async function listArticles(page = 0, section?: Section, pageSize = 20): 
   return result.results;
 }
 
-/** The front page: the featured story if one is published, otherwise the newest, then the next newest after it. */
+/** A random published featured story (or the newest), followed by the newest other stories. */
 export async function frontPageArticles(others = 4): Promise<{ lead: Article | null; more: Article[] }> {
-  const result = await env.DB.prepare(`
+  const lead = await env.DB.prepare(`
     SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, ${LEAD_COLUMNS}
     FROM news_articles a LEFT JOIN "user" u ON u.id = a.author_id LEFT JOIN media m ON m.id = a.lead_media_id
     WHERE a.status = 'published'
-    ORDER BY a.featured DESC, a.published_at DESC
+    ORDER BY a.featured DESC, CASE WHEN a.featured = 1 THEN random() END, a.published_at DESC
+    LIMIT 1
+  `).first<Article>();
+  if (!lead) return { lead: null, more: [] };
+  const result = await env.DB.prepare(`
+    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, ${LEAD_COLUMNS}
+    FROM news_articles a LEFT JOIN "user" u ON u.id = a.author_id LEFT JOIN media m ON m.id = a.lead_media_id
+    WHERE a.status = 'published' AND a.id != ?
+    ORDER BY a.published_at DESC
     LIMIT ?
-  `).bind(others + 1).all<Article>();
-  const [lead = null, ...rest] = result.results;
-  // A featured story can be older than the rest, so put the remaining stories back in date order.
-  return { lead, more: rest.sort((a, b) => b.published_at - a.published_at) };
+  `).bind(lead.id, others).all<Article>();
+  return { lead, more: result.results };
 }
 
 /** The newest `perSection` stories in each section, skipping `excludeIds` (stories already on the page). Sections with no stories are left out. */

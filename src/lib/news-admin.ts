@@ -14,7 +14,7 @@ export type ArticleFormValues = {
   author_id: string;
   /** Media library item shown above the story and in story lists; empty for none. */
   lead_media_id: string;
-  /** Pinned as the large lead story on the front page; only one story is featured at a time. */
+  /** Eligible for the random selection of the front page's large lead story. */
   featured: boolean;
   status: ArticleStatus;
 };
@@ -81,19 +81,18 @@ export async function saveArticleFromForm(form: FormData, existing: AdminArticle
   // Keep the original publish date if a story is unpublished and later republished.
   const publishedAt = values.status === 'published' ? existing?.published_at ?? now : existing?.published_at ?? null;
   const id = existing?.id ?? crypto.randomUUID();
-  const save = env.DB.prepare(`
+  // Update existing stories directly so the insert's conflict policy cannot override the Facebook queue trigger.
+  const save = env.DB.prepare(existing ? `
+    UPDATE news_articles SET slug = ?2, headline = ?3, summary = ?4, body = ?5,
+      section = ?6, community = ?7, byline = ?8, author_id = ?14, lead_media_id = ?12,
+      featured = ?13, status = ?9, published_at = ?10, updated_at = ?11
+    WHERE id = ?1
+  ` : `
     INSERT INTO news_articles (id, slug, headline, summary, body, section, community, byline, author_id, lead_media_id, featured, status, published_at, created_at, updated_at)
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?14, ?12, ?13, ?9, ?10, ?11, ?11)
-    ON CONFLICT(id) DO UPDATE SET
-      slug = excluded.slug, headline = excluded.headline, summary = excluded.summary, body = excluded.body,
-      section = excluded.section, community = excluded.community, byline = excluded.byline, author_id = excluded.author_id, lead_media_id = excluded.lead_media_id,
-      featured = excluded.featured, status = excluded.status, published_at = excluded.published_at, updated_at = excluded.updated_at
   `).bind(id, values.slug, values.headline, values.summary, values.body, values.section, values.community,
     values.byline, values.status, publishedAt, now, values.lead_media_id || null, values.featured ? 1 : 0, values.author_id || null);
-  // One featured story at a time: featuring this one un-features the rest, in the same batch as the save.
-  await env.DB.batch(values.featured
-    ? [env.DB.prepare('UPDATE news_articles SET featured = 0 WHERE featured = 1 AND id != ?').bind(id), save]
-    : [save]);
+  await save.run();
   if (publishedAt !== null && values.status === 'published') await ensureArticleThread({ id, headline: values.headline, summary: values.summary, published_at: publishedAt });
   return { ok: true, id };
 }

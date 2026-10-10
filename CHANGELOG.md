@@ -2,6 +2,14 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.1] - 2026-10-09
+
+### Fixed
+
+- Allow multiple featured stories and randomly choose a published one as the homepage lead on each request
+- Keep Latest in publication-date order, excluding the selected lead
+- Save edits to published stories without colliding with their existing Facebook queue entries
+
 ## [1.22.0] - 2026-10-09
 
 ### Added
