@@ -1,3 +1,4 @@
+import { readForm } from '../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { ADMIN, canAccess } from '../../../lib/admin';
@@ -7,7 +8,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!locals.user) return Response.redirect(new URL('/sign-in?next=/admin/submissions', request.url), 303);
   if (!canAccess(locals.staffRole, ADMIN.submissions)) return new Response('Forbidden', { status: 403 });
   if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
-  const form = await request.formData();
+  const form = await readForm(request);
+  if (form instanceof Response) return form;
   const id = cleanText(form.get('id'));
   const status = cleanText(form.get('status'));
   if (!/^[\w-]{8,64}$/.test(id) || !['reviewed', 'declined'].includes(status)) return new Response('Invalid submission action', { status: 400 });

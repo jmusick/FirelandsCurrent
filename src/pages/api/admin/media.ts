@@ -1,8 +1,9 @@
+import { readForm, uploadFormBytes } from '../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { ADMIN, canAccess } from '../../../lib/admin';
 import { cleanText, sameOrigin } from '../../../lib/forum';
-import { MEDIA_PAGE_SIZE, checkUpload, detailsFrom, getMedia, listMedia, mediaAudit, mediaUsage, storeMedia, toItem, validateDetails } from '../../../lib/media';
+import { MAX_UPLOAD_BYTES, MEDIA_PAGE_SIZE, checkUpload, detailsFrom, getMedia, listMedia, mediaAudit, mediaUsage, storeMedia, toItem, validateDetails } from '../../../lib/media';
 
 // The editor's picker lists and uploads through here with fetch, so those answers are JSON.
 // Deleting is a plain form post from the item's page. Editing details happens on that page.
@@ -20,7 +21,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!actor || !canAccess(locals.staffRole, ADMIN.media)) return new Response('Forbidden', { status: 403 });
   if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
 
-  const form = await request.formData();
+  const form = await readForm(request, uploadFormBytes(MAX_UPLOAD_BYTES));
+
+  if (form instanceof Response) return form;
   const action = cleanText(form.get('action'));
 
   if (action === 'upload') {

@@ -1,3 +1,4 @@
+import { readForm } from '../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { cleanText, redirectWithError, sameOrigin } from '../../../lib/forum';
@@ -6,7 +7,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!locals.user) return Response.redirect(new URL('/sign-in?next=/talk/new', request.url), 303);
   if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
 
-  const form = await request.formData();
+  const form = await readForm(request);
+
+  if (form instanceof Response) return form;
   const title = cleanText(form.get('title'));
   const body = cleanText(form.get('body'));
   if (title.length < 8 || title.length > 140 || body.length < 20 || body.length > 10000) {

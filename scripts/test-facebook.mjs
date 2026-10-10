@@ -263,9 +263,11 @@ test('resolution endpoints reject unsigned users, moderators, cross-origin reque
   }
   const adminUrl = moduleUrl('src/lib/admin.ts');
   const forumUrl = moduleUrl('src/lib/forum.ts', { 'cloudflare:workers': 'data:text/javascript,export const env = {};' });
+  const bodyUrl = moduleUrl('src/lib/request-body.ts');
   const { POST } = await import(moduleUrl('src/pages/api/admin/facebook/resolve.ts', {
     '../../../../lib/admin': adminUrl,
     '../../../../lib/forum': forumUrl,
+    '../../../../lib/request-body': bodyUrl,
     '../../../../lib/facebook-admin': 'data:text/javascript,export const resolveFacebookPost = () => { throw new Error("Unauthorized mutation"); };',
   }));
   const request = (origin, checked = true) => new Request('https://firelandscurrent.com/api/admin/facebook/resolve', {

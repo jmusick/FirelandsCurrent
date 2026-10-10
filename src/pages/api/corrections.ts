@@ -1,3 +1,4 @@
+import { readForm } from '../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { correctionKind, correctionTarget, createCorrection } from '../../lib/corrections';
 import { cleanText, sameOrigin } from '../../lib/forum';
@@ -8,7 +9,9 @@ const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
 
-  const form = await request.formData();
+  const form = await readForm(request);
+
+  if (form instanceof Response) return form;
   const kind = correctionKind(cleanText(form.get('type')));
   const slug = cleanText(form.get('slug'));
   if (!kind || !/^[a-z0-9-]{1,120}$/.test(slug)) return new Response('Unknown story or event', { status: 400 });

@@ -1,4 +1,5 @@
 ---
+import { readForm } from '../../../lib/request-body';
 import { ArrowLeft, Check, Copy, Info, Link2, RotateCcwClock, Trash } from '@lucide/astro';
 import { env } from 'cloudflare:workers';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
@@ -19,7 +20,9 @@ let values: MediaDetails = { alt: media.alt, caption: media.caption, credit: med
 let errors: string[] = [];
 if (Astro.request.method === 'POST') {
   if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
-  values = detailsFrom(await Astro.request.formData());
+  const form = await readForm(Astro.request);
+  if (form instanceof Response) return form;
+  values = detailsFrom(form);
   errors = validateDetails(values);
   if (!errors.length) {
     const LABELS: Record<keyof MediaDetails, string> = { alt: 'Alt text', caption: 'Caption', credit: 'Credit', source: 'Source' };

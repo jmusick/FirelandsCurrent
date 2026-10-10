@@ -1,3 +1,4 @@
+import { readForm } from '../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { MAX_REPLY_DEPTH, cleanText, getThread, redirectWithError, returnPathFor, sameOrigin } from '../../../lib/forum';
@@ -6,7 +7,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!locals.user) return Response.redirect(new URL('/sign-in', request.url), 303);
   if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
 
-  const form = await request.formData();
+  const form = await readForm(request);
+
+  if (form instanceof Response) return form;
   const threadId = cleanText(form.get('threadId'));
   const body = cleanText(form.get('body'));
   if (!/^[0-9a-f-]{36}$/i.test(threadId)) return new Response('Invalid thread', { status: 400 });

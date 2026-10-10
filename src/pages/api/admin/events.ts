@@ -1,3 +1,4 @@
+import { readForm } from '../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { cleanText, sameOrigin } from '../../../lib/forum';
@@ -9,7 +10,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (locals.staffRole !== 'admin') return new Response('Forbidden', { status: 403 });
   if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
 
-  const form = await request.formData();
+  const form = await readForm(request);
+
+  if (form instanceof Response) return form;
   if (cleanText(form.get('action')) !== 'delete') return new Response('Invalid action', { status: 400 });
   const id = cleanText(form.get('id'));
   if (!/^[\w-]{8,64}$/.test(id)) return new Response('Invalid event', { status: 400 });

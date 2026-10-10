@@ -1,4 +1,5 @@
 ---
+import { readForm, STORY_FORM_BYTES } from '../../../lib/request-body';
 import { ArrowLeft } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import NewsEditor from '../../../components/NewsEditor.astro';
@@ -19,7 +20,9 @@ if (submissionId && /^[\w-]{8,64}$/.test(submissionId)) {
 }
 if (Astro.request.method === 'POST') {
   if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
-  const form = await Astro.request.formData();
+  const form = await readForm(Astro.request, STORY_FORM_BYTES);
+
+  if (form instanceof Response) return form;
   const result = await saveArticleFromForm(form, null);
   if (result.ok) {
     const linkedSubmission = form.get('submission_id')?.toString() ?? '';

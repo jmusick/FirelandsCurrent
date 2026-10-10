@@ -1,4 +1,5 @@
 ---
+import { readForm, uploadFormBytes } from '../../../lib/request-body';
 import { ArrowLeft, ChartLine, Eye, Pause, Pencil, Play, RotateCcwClock, Trash } from '@lucide/astro';
 import { env } from 'cloudflare:workers';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
@@ -25,7 +26,9 @@ let values = valuesFromRecord(record);
 let errors: string[] = [];
 if (Astro.request.method === 'POST') {
   if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
-  const result = await validateAdForm(await Astro.request.formData(), record);
+  const form = await readForm(Astro.request, uploadFormBytes(4 * 1024 * 1024));
+  if (form instanceof Response) return form;
+  const result = await validateAdForm(form, record);
   if (result.ok) {
     const v = result.values;
     const names = Object.fromEntries(businesses.map((b) => [b.id, b.name]));

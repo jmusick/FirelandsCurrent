@@ -1,3 +1,4 @@
+import { readForm } from '../../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { ADMIN, canAccess } from '../../../../lib/admin';
 import { resolveFacebookPost } from '../../../../lib/facebook-admin';
@@ -5,7 +6,8 @@ import { cleanText, sameOrigin } from '../../../../lib/forum';
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
   if (!locals.user || !canAccess(locals.staffRole, ADMIN.facebook) || !sameOrigin(request)) return new Response('Forbidden', { status: 403 });
-  const form = await request.formData();
+  const form = await readForm(request);
+  if (form instanceof Response) return form;
   const id = cleanText(form.get('id'));
   const action = cleanText(form.get('action'));
   const postId = cleanText(form.get('post_id'));

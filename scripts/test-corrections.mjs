@@ -34,10 +34,11 @@ globalThis.__correctionEnv = {
 globalThis.fetch = async () => Response.json({ success: captchaValid });
 const stubEnv = 'data:text/javascript,export const env = globalThis.__correctionEnv;';
 const forumModule = sourceModule('src/lib/forum.ts', { 'cloudflare:workers': stubEnv });
+const bodyModule = sourceModule('src/lib/request-body.ts');
 const inboxModule = sourceModule('src/lib/inbox.ts', { 'cloudflare:workers': stubEnv });
 const correctionsModule = sourceModule('src/lib/corrections.ts', { 'cloudflare:workers': stubEnv });
 const { POST } = await import(sourceModule('src/pages/api/corrections.ts', {
-  '../../lib/corrections': correctionsModule, '../../lib/forum': forumModule, '../../lib/inbox': inboxModule,
+  '../../lib/corrections': correctionsModule, '../../lib/forum': forumModule, '../../lib/request-body': bodyModule, '../../lib/inbox': inboxModule,
 }));
 
 const values = { type: 'news', slug: 'fixture-story', name: 'Reader', email: 'reader@example.com',

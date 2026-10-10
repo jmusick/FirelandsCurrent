@@ -1,3 +1,4 @@
+import { readForm } from '../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { cleanText, sameOrigin } from '../../lib/forum';
 import { INBOXES, isInboxKind, sendToInbox, verifyTurnstile } from '../../lib/inbox';
@@ -8,7 +9,9 @@ const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
 
-  const form = await request.formData();
+  const form = await readForm(request);
+
+  if (form instanceof Response) return form;
   const kind = cleanText(form.get('kind'));
   if (!isInboxKind(kind)) return new Response('Unknown form', { status: 400 });
   const back = (param: string) => Response.redirect(new URL(`${INBOXES[kind].path}?${param}`, request.url), 303);

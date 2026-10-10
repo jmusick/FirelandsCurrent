@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.8] - 2026-10-10
+
+### Security
+
+- Read form and beacon request bodies through a streaming byte limit before parsing: 256 KB for ordinary forms, 1 MB for story forms, and file size plus 256 KB for uploads. Oversized bodies get 413, non-form content types 415, and malformed multipart 400, with no database or email work done (#4)
+
+### Added
+
+- `npm run test:body` regression tests for the bounded body readers
+
 ## [1.22.7] - 2026-10-10
 
 ### Security

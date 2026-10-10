@@ -1,3 +1,4 @@
+import { readForm } from '../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { ADMIN, canAccess } from '../../../lib/admin';
@@ -12,7 +13,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!actor || !canAccess(locals.staffRole, ADMIN.businesses)) return new Response('Forbidden', { status: 403 });
   if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
 
-  const form = await request.formData();
+  const form = await readForm(request);
+
+  if (form instanceof Response) return form;
   const action = cleanText(form.get('action'));
   const business = await getBusiness(cleanText(form.get('businessId')));
   if (!business) return new Response('Business not found', { status: 404 });
