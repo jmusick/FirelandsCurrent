@@ -3,13 +3,13 @@ import { ChevronLeft, ChevronRight, Upload } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import MediaUploadForm from '../../../components/MediaUploadForm.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
-import { MEDIA_PAGE_SIZE, fmtBytes, listMedia, mediaUrl } from '../../../lib/media';
+import { MEDIA_PAGE_SIZE, fmtBytes, listMedia, mediaUrl, parseMediaPage } from '../../../lib/media';
 
 const denied = requireSection(Astro, ADMIN.media);
 if (denied) return denied;
 
 const q = (Astro.url.searchParams.get('q') ?? '').trim().slice(0, 100);
-const page = Math.max(0, Math.min(1000, Number(Astro.url.searchParams.get('page')) || 0));
+const page = parseMediaPage(Astro.url.searchParams.get('page')) ?? 0;
 const rows = await listMedia(q, page);
 const items = rows.slice(0, MEDIA_PAGE_SIZE);
 const hasNext = rows.length > MEDIA_PAGE_SIZE;

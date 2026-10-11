@@ -136,8 +136,18 @@ export function mediaAudit(actor: { id: string; name: string }, media: { id: str
 }
 
 export const MEDIA_PAGE_SIZE = 48;
+export const MEDIA_MAX_PAGE = 1000;
+
+/** A zero-based page index from a query string: absent is page 0, anything not a plain whole number in range is null. */
+export function parseMediaPage(raw: string | null): number | null {
+  if (raw === null || raw === '') return 0;
+  if (!/^\d{1,6}$/.test(raw)) return null;
+  const page = Number(raw);
+  return Number.isSafeInteger(page) && page <= MEDIA_MAX_PAGE ? page : null;
+}
 
 export async function listMedia(q: string, page: number): Promise<MediaRecord[]> {
+  if (!Number.isSafeInteger(page) || page < 0 || page > MEDIA_MAX_PAGE) page = 0;
   const like = `%${q.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   const result = await env.DB.prepare(`
     SELECT * FROM media

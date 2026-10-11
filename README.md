@@ -70,6 +70,8 @@ Run `npm run test:headers` for the response-header policy (security headers and 
 
 Run `npm run test:corrections` for isolated regressions of the inaccuracy report endpoint (origin, bot checks including outages, validation, storage, and notification failures); it simulates Turnstile, email, and the database.
 
+Run `npm run test:forum-pagination` for regressions of discussion paging (stable ordering, newest comments never dropped in discussions over 5,000 comments, replies kept under their parents) and media-library page validation. The admin media API answers 400 for a malformed `page`; the admin media page falls back to page 1.
+
 Run `npm run test:inbox` for isolated inbox regressions covering tip review actions (viewing changes nothing; marking reviewed is audited and repeat-safe), advertising routing, Reply-To, validation, bot checks (including timeouts, HTTP and JSON failures, and hostname/action validation), email failures, and news-tip retention. Email sends and Turnstile responses are simulated; these tests do not send real mail or modify the local database.
 
 If a large layout edit leaves the local page showing stale global styles, restart the dev server to clear Vite's stylesheet cache. Also restart it after running `npm run check`, which can invalidate the dev server's client scripts.

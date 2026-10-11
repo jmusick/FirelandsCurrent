@@ -3,7 +3,7 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { ADMIN, canAccess } from '../../../lib/admin';
 import { cleanText, sameOrigin } from '../../../lib/forum';
-import { MAX_UPLOAD_BYTES, MEDIA_PAGE_SIZE, checkUpload, detailsFrom, getMedia, listMedia, mediaAudit, mediaUsage, storeMedia, toItem, validateDetails } from '../../../lib/media';
+import { MAX_UPLOAD_BYTES, MEDIA_PAGE_SIZE, checkUpload, detailsFrom, getMedia, listMedia, mediaAudit, mediaUsage, parseMediaPage, storeMedia, toItem, validateDetails } from '../../../lib/media';
 
 // The editor's picker lists and uploads through here with fetch, so those answers are JSON.
 // Deleting is a plain form post from the item's page. Editing details happens on that page.
@@ -11,7 +11,8 @@ const json = (body: unknown, status = 200) => Response.json(body, { status });
 
 export const GET: APIRoute = async ({ url, locals }) => {
   if (!locals.user || !canAccess(locals.staffRole, ADMIN.media)) return json({ error: 'Forbidden' }, 403);
-  const page = Math.max(0, Math.min(1000, Number(url.searchParams.get('page')) || 0));
+  const page = parseMediaPage(url.searchParams.get('page'));
+  if (page === null) return json({ error: 'Invalid page' }, 400);
   const rows = await listMedia((url.searchParams.get('q') ?? '').trim().slice(0, 100), page);
   return json({ items: rows.slice(0, MEDIA_PAGE_SIZE).map(toItem), more: rows.length > MEDIA_PAGE_SIZE });
 };
