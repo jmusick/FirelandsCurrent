@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.20] - 2026-10-10
+
+### Fixed
+
+- Discussion comments are ordered and paged in SQL (with an id tie-breaker), and only the replies under the current page are loaded, so large discussions no longer silently drop their newest comments past a 5,000-row cap. Media-library pagination accepts only whole-number pages from 0 to 1000: the picker API answers 400 for malformed pages and the media page falls back to page 1. `npm run test:forum-pagination` covers both (#55)
+
 ## [1.22.19] - 2026-10-10
 
 ### Fixed
