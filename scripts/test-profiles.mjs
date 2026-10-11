@@ -45,8 +45,10 @@ const { saveArticleFromForm } = await loadSource('src/lib/news-admin.ts', {
   './media': 'data:text/javascript,export const isMediaId = () => false;',
 });
 globalThis.__profileTestMail = [];
+await loadSource('src/lib/auth-rate-limit.ts');
 const { createAuth } = await loadSource('src/lib/auth.ts', {
   './mail': 'data:text/javascript,export const sendVerificationMail = async (user, url) => globalThis.__profileTestMail.push({ user, url }); export const sendPasswordResetMail = async () => {};',
+  './auth-rate-limit': modules.get('src/lib/auth-rate-limit.ts'),
 });
 function user(id, email = `${id}@example.test`) {
   database.prepare('INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt) VALUES (?, ?, ?, 1, ?, ?)')
@@ -143,8 +145,10 @@ test('account profiles, author assignment, and email verification', async (t) =>
     database.prepare("INSERT INTO account (id, accountId, providerId, userId, password, createdAt, updatedAt) VALUES ('credential', 'jd', 'credential', 'jd', ?, ?, ?)").run(password, now, now);
     const auth = createAuth();
     let cookie = '';
+    // A fresh client IP per request keeps these checks clear of the per-IP auth rate limits.
+    let address = 0;
     const request = (path, body, token) => auth.handler(new Request(`http://localhost:4321/api/auth/${path}`, {
-      method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost:4321', cookie, ...(token ? { 'x-captcha-response': token } : {}) }, body: JSON.stringify(body),
+      method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost:4321', cookie, 'cf-connecting-ip': `192.0.2.${++address}`, ...(token ? { 'x-captcha-response': token } : {}) }, body: JSON.stringify(body),
     }));
     const signedIn = await request('sign-in/email', { email: 'jd@orboro.net', password: 'test-password-for-profile' });
     assert.equal(signedIn.status, 200);

@@ -3,6 +3,7 @@ import { betterAuth } from 'better-auth';
 import { APIError, createAuthMiddleware, getAuthoritativeSessionFromCtx } from 'better-auth/api';
 import { captcha } from 'better-auth/plugins';
 import { importPKCS8, SignJWT } from 'jose';
+import { d1RateLimitStorage } from './auth-rate-limit';
 import { sendPasswordResetMail, sendVerificationMail } from './mail';
 
 async function appleClientSecret(clientId: string, teamId: string, keyId: string, privateKey: string): Promise<string> {
@@ -126,6 +127,21 @@ export function createAuth() {
       } } },
     },
     trustedOrigins: providers.includes('apple') ? ['https://appleid.apple.com'] : [],
+    // Better Auth's defaults allow 3 sign-in, sign-up, password- or email-change attempts per 10 seconds and
+    // 3 reset or verification emails per minute, counted per client IP and path. Counting by IP rather than
+    // by account means nobody can lock someone else out by failing sign-ins against their address.
+    rateLimit: {
+      // Better Auth only enables limits when NODE_ENV is "production", which the Workers runtime doesn't set.
+      enabled: true,
+      customStorage: d1RateLimitStorage(env.DB),
+    },
+    advanced: {
+      ipAddress: {
+        // Cloudflare sets this to the connecting address and replaces any copy the client sent, whereas
+        // X-Forwarded-For (Better Auth's default) can carry client-chosen values. IPv6 is grouped by /64.
+        ipAddressHeaders: ['cf-connecting-ip'],
+      },
+    },
   });
 }
 
