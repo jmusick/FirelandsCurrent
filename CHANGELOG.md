@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.16] - 2026-10-10
+
+### Security
+
+- Public form bot checks (Submit news, Contact, Advertise, Report an inaccuracy) now time out after 4 seconds and fail closed: a Turnstile outage, HTTP error, or unreadable response shows a "try again in a moment" message, and nothing is stored or emailed. In production the Turnstile response must also match the site hostname and the form's action (`TURNSTILE_EXPECTED_HOSTNAMES` in `wrangler.jsonc`; set it empty in `.dev.vars` for local development) (#10)
+
 ## [1.22.15] - 2026-10-10
 
 ### Security
