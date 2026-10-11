@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.14] - 2026-10-10
+
+### Security
+
+- Send `Cache-Control: private, no-store` on account, admin, business, API, and sign-in/registration/password pages, on any response that sets a cookie, and on every page rendered for a signed-in reader, so personalized responses can never enter a shared cache. Media, feeds, sitemaps, and calendar files keep their public caching, and anonymous public pages are unchanged. `npm run test:headers` covers the policy (#13)
+
 ## [1.22.13] - 2026-10-10
 
 ### Fixed
