@@ -1,5 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { createAuth } from './lib/auth';
+import { applyCachePolicy, applySecurityHeaders } from './lib/response-headers';
 import { getMemberStatus } from './lib/staff';
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -31,9 +32,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Redirect responses have immutable headers in the Workers runtime.
   const upstream = await next();
   const response = new Response(upstream.body, upstream);
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('X-Frame-Options', 'DENY');
   for (const cookie of refreshedCookies) response.headers.append('Set-Cookie', cookie);
+  applySecurityHeaders(response.headers);
+  // After the cookies, so a refreshed session also marks the response private.
+  applyCachePolicy(response.headers, { pathname: context.url.pathname, signedIn: context.locals.user !== null });
   return response;
 });
