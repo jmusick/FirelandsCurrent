@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.12] - 2026-10-10
+
+### Security
+
+- Opening a news tip no longer marks it reviewed; navigation or link prefetch leaves its status unchanged. Editors mark an unread tip reviewed with an explicit "Mark reviewed" button, and review and decline actions are now recorded in the admin audit log without tip text, names, or emails. Repeated clicks are harmless no-ops (#53)
+
 ## [1.22.11] - 2026-10-10
 
 ### Fixed
