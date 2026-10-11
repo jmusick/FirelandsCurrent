@@ -3,6 +3,9 @@ export function applySecurityHeaders(headers: Headers) {
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   headers.set('X-Frame-Options', 'DENY');
+  // Browsers ignore HSTS over plain HTTP, so local development is unaffected. No includeSubDomains or
+  // preload: only the apex and www (which redirects to it) are known to serve HTTPS.
+  headers.set('Strict-Transport-Security', 'max-age=31536000');
 }
 
 export const PRIVATE_CACHE_CONTROL = 'private, no-store';

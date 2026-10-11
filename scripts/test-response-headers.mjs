@@ -66,4 +66,5 @@ test('security headers are set on every response', () => {
   assert.equal(headers.get('X-Content-Type-Options'), 'nosniff');
   assert.equal(headers.get('Referrer-Policy'), 'strict-origin-when-cross-origin');
   assert.equal(headers.get('X-Frame-Options'), 'DENY');
+  assert.equal(headers.get('Strict-Transport-Security'), 'max-age=31536000');
 });

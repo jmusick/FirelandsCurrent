@@ -213,6 +213,10 @@ Apple requires a paid Apple Developer account and an HTTPS callback origin. The 
 
 Astro 7's Cloudflare adapter targets Workers. The `main` branch is connected to Cloudflare Workers Builds with `npm run build` and `npx wrangler deploy`; Cloudflare pulls and deploys each push. The production custom domains, D1 binding, and `SITE_URL=https://firelandscurrent.com` are in `wrangler.jsonc`; `BETTER_AUTH_SECRET` is a Cloudflare secret. Namecheap delegates `firelandscurrent.com` to Cloudflare nameservers. Apply migrations to the production database with `npx wrangler d1 migrations apply DB --remote` when schema changes are deployed.
 
+### HTTPS and HSTS
+
+Cloudflare redirects `http://` requests and `www.firelandscurrent.com` to `https://firelandscurrent.com` with a 308, and the middleware (`src/lib/response-headers.ts`) sends `Strict-Transport-Security: max-age=31536000` on every response so browsers use HTTPS for a year after their first visit. `includeSubDomains` and `preload` are deliberately off: add `includeSubDomains` only after confirming every subdomain serves HTTPS, and treat preload-list submission as a separate, hard-to-reverse decision.
+
 ### Response caching
 
 The middleware (`src/lib/response-headers.ts`) sends `Cache-Control: private, no-store` so personal pages never enter a shared cache such as Cloudflare's, and browsers do not store them:

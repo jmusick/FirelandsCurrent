@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.18] - 2026-10-10
+
+### Security
+
+- Send `Strict-Transport-Security: max-age=31536000` on every response so browsers use HTTPS for a year after their first visit. Cloudflare already redirects `http://` and `www` to the HTTPS apex; `includeSubDomains` and `preload` are deliberately off until every subdomain is confirmed HTTPS-ready (#12)
+
 ## [1.22.17] - 2026-10-10
 
 ### Security
