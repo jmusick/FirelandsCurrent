@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.9] - 2026-10-10
+
+### Fixed
+
+- Give the enhanced story editor input an accessible name ("Story") and associate the Markdown instructions with it, so screen readers no longer announce an unnamed textbox once EasyMDE replaces the labeled textarea (#19)
+
 ## [1.22.8] - 2026-10-10
 
 ### Security
