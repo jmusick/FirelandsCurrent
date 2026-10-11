@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.17] - 2026-10-10
+
+### Security
+
+- Authentication rate limits are now enforced in production and shared by every Worker: counters live in a new D1 table (`auth_rate_limits`, migration 0022), keyed by client IP (`cf-connecting-ip`, IPv6 grouped by /64) and auth path, and updated with a single atomic upsert so concurrent requests cannot slip past the limit. Better Auth previously enabled limits only when `NODE_ENV` was `production`, which Workers does not set. Limits count by IP, never by account, so nobody can lock another person out. The scheduled Worker deletes counters after an hour, and the Privacy Policy describes the new sign-in protection (#3)
+
+### Fixed
+
+- `npm run test:auth` loads the response-header module the middleware imports since 1.22.14
+
 ## [1.22.16] - 2026-10-10
 
 ### Security

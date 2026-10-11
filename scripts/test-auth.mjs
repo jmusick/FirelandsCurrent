@@ -59,6 +59,7 @@ const { createAuth } = await import(authModule);
 const { onRequest } = await import(sourceModule('src/middleware.ts', {
   'astro:middleware': 'data:text/javascript,export const defineMiddleware = handler => handler;',
   './lib/auth': authModule, './lib/staff': sourceModule('src/lib/staff.ts'),
+  './lib/response-headers': sourceModule('src/lib/response-headers.ts'),
 }));
 const portalModule = 'data:text/javascript,export const portalBusinesses = async () => [];';
 const pages = {
