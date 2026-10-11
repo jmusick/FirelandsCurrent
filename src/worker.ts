@@ -1,9 +1,12 @@
 import { handle } from '@astrojs/cloudflare/handler';
+import { pruneAuthRateLimits } from './lib/auth-rate-limit';
 import { publishFacebookStories } from './lib/facebook-publisher';
 
 export default {
   fetch: handle,
   async scheduled(_controller, env) {
+    // Separate from the publisher so a failure in one never skips the other.
+    await pruneAuthRateLimits(env.DB).catch(() => console.error(JSON.stringify({ event: 'auth_rate_limit_prune_failed' })));
     try {
       await publishFacebookStories(env);
     } catch {
