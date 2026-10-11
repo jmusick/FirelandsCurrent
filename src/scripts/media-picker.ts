@@ -16,7 +16,11 @@ function finish(dialog: HTMLDialogElement, item: MediaItem | null) {
 }
 
 function showTab(dialog: HTMLDialogElement, name: 'library' | 'upload') {
-  dialog.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.tab === name)));
+  dialog.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((tab) => {
+    const selected = tab.dataset.tab === name;
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1; // roving tabindex: only the selected tab is in the Tab order
+  });
   dialog.querySelectorAll<HTMLElement>('[data-panel]').forEach((panel) => { panel.hidden = panel.dataset.panel !== name; });
 }
 
@@ -47,7 +51,23 @@ async function load(dialog: HTMLDialogElement, reset: boolean) {
 }
 
 function wire(dialog: HTMLDialogElement) {
-  dialog.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((tab) => tab.addEventListener('click', () => showTab(dialog, tab.dataset.tab as 'library' | 'upload')));
+  const tabs = [...dialog.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+  tabs.forEach((tab) => tab.addEventListener('click', () => showTab(dialog, tab.dataset.tab as 'library' | 'upload')));
+  // Arrow keys, Home and End move focus and select (automatic activation: switching panels is instant).
+  dialog.querySelector('[role=tablist]')!.addEventListener('keydown', (event) => {
+    const key = (event as KeyboardEvent).key;
+    const at = tabs.indexOf(document.activeElement as HTMLButtonElement);
+    if (at < 0) return;
+    const next = key === 'ArrowRight' ? (at + 1) % tabs.length
+      : key === 'ArrowLeft' ? (at - 1 + tabs.length) % tabs.length
+      : key === 'Home' ? 0
+      : key === 'End' ? tabs.length - 1
+      : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    showTab(dialog, tabs[next].dataset.tab as 'library' | 'upload');
+    tabs[next].focus();
+  });
   dialog.querySelector('[data-close]')!.addEventListener('click', () => finish(dialog, null));
   dialog.addEventListener('close', () => finish(dialog, null));
   let timer: ReturnType<typeof setTimeout>;
@@ -65,7 +85,7 @@ export function openMediaPicker(options: { title?: string; file?: File } = {}): 
   if (!dialog) return Promise.resolve(null);
   if (wired !== dialog) { wire(dialog); wired = dialog; }
   if (resolveCurrent) finish(dialog, null);
-  dialog.querySelector('#media-picker-title')!.textContent = options.title ?? 'Choose an image';
+  dialog.querySelector('h2')!.textContent = options.title ?? 'Choose an image';
   const search = dialog.querySelector<HTMLInputElement>('.search')!;
   search.value = query = '';
   if (options.file) {
