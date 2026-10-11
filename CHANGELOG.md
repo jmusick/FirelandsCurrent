@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.10] - 2026-10-10
+
+### Security
+
+- Update locked dependencies with `npm audit fix` (no forced upgrades): sharp 0.35.4 to 0.35.5 (GHSA-wq5f-xc86-pv6w), plus undici, source-map-js, workerd, and related tooling. `npm audit --omit=dev` now reports no vulnerabilities (#5)
+
 ## [1.22.9] - 2026-10-10
 
 ### Fixed
