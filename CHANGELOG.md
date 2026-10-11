@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.19] - 2026-10-10
+
+### Fixed
+
+- Announce status changes to screen readers: Copy link confirms "Link copied to clipboard," the comment-report confirmation is a status message, and the media picker announces concise loading, result-count, no-match, and failure summaries instead of reading whole image grids. A failed media-library load now shows a visible error with a Retry button. Vote buttons already expose their state with `aria-pressed` (#22)
+
 ## [1.22.18] - 2026-10-10
 
 ### Security
