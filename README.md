@@ -65,6 +65,8 @@ For the publisher's proof of concept, `scripts/seed-talk-starter.sql` adds five 
 
 Form and beacon endpoints read their bodies with a streaming byte limit before parsing (256 KB for ordinary forms, 1 MB for story forms, file size plus 256 KB for uploads), answering 413 for oversized bodies, 415 for non-form content types, and 400 for malformed data. `npm run test:body` covers the reader with isolated fixtures.
 
+Run `npm run test:headers` for the response-header policy (security headers and the private caching rules below).
+
 Run `npm run test:corrections` for isolated regressions of the inaccuracy report endpoint (origin, bot checks, validation, storage, and notification failures); it simulates Turnstile, email, and the database.
 
 Run `npm run test:inbox` for isolated inbox regressions covering advertising routing, Reply-To, validation, bot checks, email failures, and news-tip retention. Email sends and Turnstile responses are simulated; these tests do not send real mail or modify the local database.
@@ -207,6 +209,16 @@ Apple requires a paid Apple Developer account and an HTTPS callback origin. The 
 ## Cloudflare deployment
 
 Astro 7's Cloudflare adapter targets Workers. The `main` branch is connected to Cloudflare Workers Builds with `npm run build` and `npx wrangler deploy`; Cloudflare pulls and deploys each push. The production custom domains, D1 binding, and `SITE_URL=https://firelandscurrent.com` are in `wrangler.jsonc`; `BETTER_AUTH_SECRET` is a Cloudflare secret. Namecheap delegates `firelandscurrent.com` to Cloudflare nameservers. Apply migrations to the production database with `npx wrangler d1 migrations apply DB --remote` when schema changes are deployed.
+
+### Response caching
+
+The middleware (`src/lib/response-headers.ts`) sends `Cache-Control: private, no-store` so personal pages never enter a shared cache such as Cloudflare's, and browsers do not store them:
+
+- every response under `/account`, `/admin`, `/business`, and `/api` (including Better Auth's `/api/auth/*`), and the `/sign-in`, `/register`, `/forgot-password`, and `/reset-password` pages
+- any response that sets a cookie, such as a sliding session refresh, even on a route that asked for public caching
+- every HTML page, and any response without its own caching header, rendered for a signed-in reader
+
+A route's own `no-store` is kept. Media images, feeds, sitemaps, `robots.txt`, and calendar files keep their public caching when they set no cookie, because they are the same for every reader. Anonymous public pages get no caching header: Cloudflare does not cache HTML by default, and the site adds no public HTML caching. Do not add a Cloudflare Cache Rule that caches HTML or ignores origin `Cache-Control` ("Cache Everything" with an overriding Edge TTL); it could serve a signed-out page to signed-in readers or bypass these headers. To check production, compare `curl -sI https://firelandscurrent.com/` with the same request sending a signed-in session cookie.
 
 ### Email sending
 
