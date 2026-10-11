@@ -18,28 +18,32 @@ const targets = [
   {targets.map((s) => <a class="share-btn" href={s.href} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.name}`}><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d={s.path} /></svg>{s.name}</a>)}
   <a class="share-btn" href={`mailto:?subject=${t}&body=${u}`}><Mail size={15} aria-hidden="true" /> Email</a>
   <button type="button" class="share-btn" data-copy><Link size={15} aria-hidden="true" /> <span>Copy link</span></button>
+  <span class="visually-hidden" role="status" data-copy-status></span>
 </div>
 
 <script>
   document.querySelectorAll<HTMLElement>('.share').forEach((box) => {
     const button = box.querySelector<HTMLButtonElement>('[data-copy]')!;
     const label = button.querySelector('span')!;
+    const status = box.querySelector<HTMLElement>('[data-copy-status]')!;
     button.addEventListener('click', async () => {
       const url = box.dataset.url!;
       try {
         await navigator.clipboard.writeText(url);
         label.textContent = 'Copied!';
+        status.textContent = 'Link copied to clipboard.';
       } catch {
         window.prompt('Copy this link:', url);
         return;
       }
-      setTimeout(() => (label.textContent = 'Copy link'), 2000);
+      setTimeout(() => { label.textContent = 'Copy link'; status.textContent = ''; }, 2000);
     });
   });
 </script>
 
 <style>
   .share { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 1.2rem 0; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .share-label { font-size: .9rem; font-weight: 600; color: var(--slate); margin-right: .2rem; }
   .share-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .75rem; border: 1px solid var(--line); border-radius: 2px; background: var(--paper); color: var(--deep); font: inherit; font-size: .88rem; text-decoration: none; cursor: pointer; }
   .share-btn:hover { background: var(--shoal); border-color: var(--shoal); }

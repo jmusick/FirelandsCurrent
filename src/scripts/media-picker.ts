@@ -28,10 +28,26 @@ async function load(dialog: HTMLDialogElement, reset: boolean) {
   const grid = dialog.querySelector<HTMLElement>('.grid')!;
   const more = dialog.querySelector<HTMLButtonElement>('.more')!;
   const empty = dialog.querySelector<HTMLElement>('.empty')!;
+  const status = dialog.querySelector<HTMLElement>('[data-status]')!;
+  const failed = dialog.querySelector<HTMLElement>('.load-error')!;
   if (reset) { page = 0; grid.replaceChildren(); }
+  failed.hidden = true;
   const asked = query;
-  const { items, more: hasMore } = await listLibrary(query, page);
+  status.textContent = 'Loading images…';
+  let result;
+  try {
+    result = await listLibrary(query, page);
+  } catch {
+    if (asked !== query) return;
+    // The visible error also reaches screen readers through the status region.
+    status.textContent = "Couldn't load images.";
+    failed.hidden = false;
+    more.hidden = true;
+    empty.hidden = true;
+    return;
+  }
   if (asked !== query) return;
+  const { items, more: hasMore } = result;
   for (const item of items) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -48,6 +64,10 @@ async function load(dialog: HTMLDialogElement, reset: boolean) {
   }
   empty.hidden = grid.childElementCount > 0 || query !== '';
   more.hidden = !hasMore;
+  const total = grid.childElementCount;
+  status.textContent = total === 0
+    ? (query ? `No images match '${query}'` : 'No images yet')
+    : `${total} ${total === 1 ? 'image' : 'images'}${hasMore ? ' so far' : ''}`;
 }
 
 function wire(dialog: HTMLDialogElement) {
@@ -76,6 +96,8 @@ function wire(dialog: HTMLDialogElement) {
     clearTimeout(timer);
     timer = setTimeout(() => { query = search.value.trim(); load(dialog, true); }, 250);
   });
+  // Retry the request that failed: the first page resets the grid, a later page appends.
+  dialog.querySelector('.retry')!.addEventListener('click', () => load(dialog, page === 0));
   dialog.querySelector('.more')!.addEventListener('click', () => { page++; load(dialog, false); });
   dialog.addEventListener('media-uploaded', (event) => finish(dialog, (event as CustomEvent<MediaItem>).detail));
 }
@@ -97,7 +119,7 @@ export function openMediaPicker(options: { title?: string; file?: File } = {}): 
     input.dispatchEvent(new Event('change'));
     showTab(dialog, 'upload');
   } else showTab(dialog, 'library');
-  load(dialog, true).catch(() => {});
+  load(dialog, true);
   dialog.showModal();
   return new Promise((resolve) => { resolveCurrent = resolve; });
 }

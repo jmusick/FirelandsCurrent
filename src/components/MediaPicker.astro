@@ -19,7 +19,12 @@ const { id = 'media-picker' } = Astro.props;
   <!-- Panels hold focusable controls (search, upload form), so they stay out of the Tab order. -->
   <section role="tabpanel" id={`${id}-panel-library`} aria-labelledby={`${id}-tab-library`} data-panel="library" class="panel">
     <input type="search" class="search" placeholder="Search file name, caption or credit…" aria-label="Search the media library" />
-    <div class="grid" aria-live="polite"></div>
+    <p class="visually-hidden" role="status" data-status></p>
+    <div class="load-error" hidden>
+      <p>Couldn't load images.</p>
+      <button type="button" class="button secondary small retry">Retry</button>
+    </div>
+    <div class="grid"></div>
     <p class="muted empty" hidden>No images yet. Upload one to get started.</p>
     <button type="button" class="button secondary small more" hidden>Load more</button>
   </section>
@@ -45,5 +50,8 @@ const { id = 'media-picker' } = Astro.props;
   .grid :global(img) { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--shoal-2); border-radius: 2px; }
   .grid :global(.name) { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .grid :global(.dims) { color: var(--slate); }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .load-error { margin-bottom: 1rem; color: var(--deep); }
+  .load-error p { margin: 0 0 .5rem; font-weight: 700; }
   .more { margin-top: 1rem; }
 </style>

@@ -36,7 +36,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'm
     <h2>{thread.reply_count} {thread.reply_count === 1 ? 'comment' : 'comments'}</h2>
     {thread.reply_count > 1 && <nav aria-label="Sort comments" class="sorts">{Object.entries(REPLY_SORTS).map(([key, label]) => key === sort ? <strong aria-current="true">{label}</strong> : <a href={`${view({ sort: key, page: 1 })}#comments`}>{label}</a>)}</nav>}
   </div>
-  {Astro.url.searchParams.has('reported') && <p class="message">Thank you. Your report is in the moderation queue.</p>}
+  {Astro.url.searchParams.has('reported') && <p class="message" role="status">Thank you. Your report is in the moderation queue.</p>}
 
   <div class="compose">
     {user ? <>
