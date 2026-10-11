@@ -28,6 +28,7 @@
     "@lucide/astro": "^1.48.0",
     "astro": "^7.3.5",
     "better-auth": "^1.7.6",
+    "easymde": "2.21.0",
     "jose": "^6.2.12",
     "marked": "^18.0.14"
   },

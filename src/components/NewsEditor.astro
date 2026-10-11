@@ -1,5 +1,7 @@
 ---
-import { ImagePlus, Save, Trash, X } from '@lucide/astro';
+import { Bold, CircleQuestionMark, Columns2, Eye, Heading2, Heading3, Image, ImagePlus, Italic, Link, List, ListOrdered, Maximize, Quote, Save, Trash, X } from '@lucide/astro';
+// Bundled and served same-origin; EasyMDE's own icon font is not used (see the toolbar icons below).
+import 'easymde/dist/easymde.min.css';
 import MediaPicker from './MediaPicker.astro';
 import { getMedia, mediaUrl } from '../lib/media';
 import { SECTIONS } from '../lib/news';
@@ -72,14 +74,29 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
   <form method="post" action="/api/admin/news/delete" id="delete-form"><input type="hidden" name="id" value={articleId} /><button class="button secondary small" type="submit"><Trash />Delete permanently</button></form>
 </section>}
 
-<script is:inline src="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.js"></script>
+<!-- Toolbar icons: EasyMDE expects Font Awesome, which would load from a third-party CDN. Render Lucide here and copy it into the buttons. -->
+<template id="editor-icons">
+  <span data-icon="bold"><Bold /></span>
+  <span data-icon="italic"><Italic /></span>
+  <span data-icon="heading-2"><Heading2 /></span>
+  <span data-icon="heading-3"><Heading3 /></span>
+  <span data-icon="quote"><Quote /></span>
+  <span data-icon="unordered-list"><List /></span>
+  <span data-icon="ordered-list"><ListOrdered /></span>
+  <span data-icon="link"><Link /></span>
+  <span data-icon="image"><Image /></span>
+  <span data-icon="preview"><Eye /></span>
+  <span data-icon="side-by-side"><Columns2 /></span>
+  <span data-icon="fullscreen"><Maximize /></span>
+  <span data-icon="guide"><CircleQuestionMark /></span>
+</template>
+
 <script>
+  import EasyMDE from 'easymde';
   import { imageMarkdown } from '../scripts/media-client';
   import { openMediaPicker } from '../scripts/media-picker';
   import { createStoryPreview } from '../scripts/story-preview';
 
-  // EasyMDE comes from the CDN script above; this module runs after it.
-  declare const EasyMDE: any;
   type CodeMirror = any;
 
   const headline = document.getElementById('headline') as HTMLInputElement;
@@ -133,40 +150,49 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
     cm.focus();
   }
 
-  if (typeof EasyMDE !== 'undefined') {
-    const editor = new EasyMDE({
-      element: body,
-      spellChecker: false,
-      autosave: { enabled: false },
-      status: ['words'],
-      minHeight: '380px',
-      previewRender: createStoryPreview(),
-      toolbar: ['bold', 'italic', 'heading-2', 'heading-3', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link',
-        { name: 'image', action: (e: { codemirror: CodeMirror }) => insertImage(e.codemirror), className: 'fa fa-picture-o', title: 'Insert image' },
-        '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
-    });
-    const cm = editor.codemirror;
-    // EasyMDE hides the labeled textarea; name the input CodeMirror actually types into.
-    const input = cm.getInputField() as HTMLTextAreaElement;
-    input.setAttribute('aria-label', 'Story');
-    input.setAttribute('aria-describedby', 'body-hint');
-    cm.on('change', () => { dirty = true; });
-    const imageIn = (files?: FileList | null) => [...(files ?? [])].find((f) => f.type.startsWith('image/'));
-    cm.on('drop', (_: CodeMirror, event: DragEvent) => {
-      const file = imageIn(event.dataTransfer?.files);
-      if (!file) return;
-      event.preventDefault();
-      cm.setCursor(cm.coordsChar({ left: event.clientX, top: event.clientY }));
-      insertImage(cm, file);
-    });
-    cm.on('paste', (_: CodeMirror, event: ClipboardEvent) => {
-      const file = imageIn(event.clipboardData?.files);
-      if (!file) return;
-      event.preventDefault();
-      insertImage(cm, file);
-    });
-    form.addEventListener('submit', () => { body.value = editor.value(); });
+  const editor = new EasyMDE({
+    element: body,
+    spellChecker: false,
+    autoDownloadFontAwesome: false,
+    autosave: { enabled: false, uniqueId: 'story-body' },
+    status: ['words'],
+    minHeight: '380px',
+    previewRender: createStoryPreview(),
+    toolbar: ['bold', 'italic', 'heading-2', 'heading-3', '|', 'quote', 'unordered-list', 'ordered-list', '|', 'link',
+      { name: 'image', action: (e: { codemirror: CodeMirror }) => insertImage(e.codemirror), className: 'insert-image', title: 'Insert image' },
+      '|', 'preview', 'side-by-side', 'fullscreen', '|', 'guide'],
+  });
+  // Swap in the Lucide icons; the buttons already carry aria-labels from their titles.
+  const icons = document.getElementById('editor-icons') as HTMLTemplateElement;
+  // toolbarElements is public in EasyMDE but missing from its typings.
+  const buttons = (editor as unknown as { toolbarElements: Record<string, HTMLElement | undefined> }).toolbarElements;
+  for (const icon of icons.content.querySelectorAll<HTMLElement>('[data-icon]')) {
+    const button = buttons[icon.dataset.icon!];
+    if (!button) continue;
+    button.replaceChildren(...icon.childNodes);
+    button.querySelector('svg')?.setAttribute('aria-hidden', 'true');
   }
+  const cm = editor.codemirror;
+  // EasyMDE hides the labeled textarea; name the input CodeMirror actually types into.
+  const input = cm.getInputField() as HTMLTextAreaElement;
+  input.setAttribute('aria-label', 'Story');
+  input.setAttribute('aria-describedby', 'body-hint');
+  cm.on('change', () => { dirty = true; });
+  const imageIn = (files?: FileList | null) => [...(files ?? [])].find((f) => f.type.startsWith('image/'));
+  cm.on('drop', (_: CodeMirror, event: DragEvent) => {
+    const file = imageIn(event.dataTransfer?.files);
+    if (!file) return;
+    event.preventDefault();
+    cm.setCursor(cm.coordsChar({ left: event.clientX, top: event.clientY }));
+    insertImage(cm, file);
+  });
+  cm.on('paste', (_: CodeMirror, event: ClipboardEvent) => {
+    const file = imageIn(event.clipboardData?.files);
+    if (!file) return;
+    event.preventDefault();
+    insertImage(cm, file);
+  });
+  form.addEventListener('submit', () => { body.value = editor.value(); });
   form.addEventListener('submit', () => { dirty = false; });
   window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
 
@@ -197,6 +223,7 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
   .danger { max-width: 900px; margin-top: 3rem; border-color: var(--alert-line); }
   .danger h2 { margin-top: 0; font-size: 1.15rem; color: var(--alert); }
   :global(.EasyMDEContainer .CodeMirror) { border-color: var(--field); font-family: var(--read); font-size: 1.12rem; line-height: 1.6; }
+  :global(.editor-toolbar button svg) { width: 1.05rem; height: 1.05rem; vertical-align: middle; }
   :global(.editor-toolbar) { border-color: var(--field); background: var(--paper); opacity: 1; }
   :global(.editor-preview), :global(.editor-preview-side) { background: var(--paper); line-height: 1.8; }
   :global(.editor-preview img), :global(.editor-preview-side img) { max-width: 100%; height: auto; }

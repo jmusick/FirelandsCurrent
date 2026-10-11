@@ -29,7 +29,6 @@ const corrections = await openCorrectionsFor('news', article.id);
 const liveUrl = article.status === 'published' ? `/news/${article.slug}` : null;
 ---
 <AdminLayout title={`Edit: ${article.headline}`}>
-  <link slot="head" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.css" />
   <a class="back" href="/admin/news"><ArrowLeft />All stories</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">News · {article.status === 'published' ? 'Published' : 'Draft'}</span>
   <h1>Edit story</h1>
