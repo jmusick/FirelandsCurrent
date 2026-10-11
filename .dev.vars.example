@@ -3,6 +3,8 @@ SITE_URL=http://127.0.0.1:4321
 # Cloudflare's published Turnstile test keys (always pass); production uses a secret set with wrangler
 TURNSTILE_SITE_KEY=1x00000000000000000000AA
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+# Empty on purpose: wrangler.jsonc sets the production hostnames, and the test keys report example.com
+TURNSTILE_EXPECTED_HOSTNAMES=
 # Facebook Page publishing is disabled locally, even with a real Page credential.
 FACEBOOK_AUTO_POST_ENABLED=false
 FACEBOOK_PAGE_ACCESS_TOKEN=

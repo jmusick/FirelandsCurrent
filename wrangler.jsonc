@@ -8,6 +8,7 @@
     "SITE_URL": "https://firelandscurrent.com",
     "GA_MEASUREMENT_ID": "G-WCZR3LZNP7",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAFIBi9c0_-POqXBd",
+    "TURNSTILE_EXPECTED_HOSTNAMES": "firelandscurrent.com,www.firelandscurrent.com",
     "FACEBOOK_AUTO_POST_ENABLED": "true",
     "FACEBOOK_PAGE_ID": "1342964875571057",
     "FACEBOOK_GRAPH_VERSION": "v26.0",

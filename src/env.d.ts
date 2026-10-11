@@ -18,6 +18,7 @@ declare namespace Cloudflare {
     GA_MEASUREMENT_ID?: string;
     TURNSTILE_SITE_KEY: string;
     TURNSTILE_SECRET_KEY: string;
+    TURNSTILE_EXPECTED_HOSTNAMES?: string;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
     FACEBOOK_CLIENT_ID?: string;
