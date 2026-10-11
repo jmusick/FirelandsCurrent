@@ -20,7 +20,7 @@ const noun = kind === 'news' ? 'story' : 'event';
     <p class="message ok" role="status">Thank you. Your report went to our editors. We'll email you if we need anything more.</p>
     <p><a href={target.path}>Back to the {noun}</a></p>
   </> : <>
-    {error && <p class="message" role="alert">{error === 'captcha' ? 'Please complete the human check and try again.' : 'Please enter your name, a valid email, and a description of the problem (10–5,000 characters). A source link, if given, must start with http:// or https://.'}</p>}
+    {error && <p class="message" role="alert">{error === 'captcha' ? 'Please complete the human check and try again.' : error === 'captcha_unavailable' ? 'We could not run the human check right now. Please try again in a moment.' : 'Please enter your name, a valid email, and a description of the problem (10–5,000 characters). A source link, if given, must start with http:// or https://.'}</p>}
     <form class="form" method="post" action="/api/corrections">
       <input type="hidden" name="type" value={kind} />
       <input type="hidden" name="slug" value={target.slug} />
@@ -30,7 +30,7 @@ const noun = kind === 'news' ? 'story' : 'event';
       <label>What is inaccurate? <span class="hint">Quote the part that is wrong and explain the problem.</span><textarea name="details" required minlength="10" maxlength="5000"></textarea></label>
       <label>What should it say instead? <span class="hint">Optional.</span><textarea name="suggested_fix" maxlength="2000" style="min-height:90px"></textarea></label>
       <label>Source link <span class="hint">Optional. A page that confirms the correct information.</span><input name="source_url" type="url" maxlength="500" inputmode="url" placeholder="https://" /></label>
-      <div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY}></div>
+      <div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY} data-action="corrections"></div>
       <button class="button" type="submit">Send report</button>
     </form>
     <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>

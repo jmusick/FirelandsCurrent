@@ -26,11 +26,16 @@ globalThis.__inboxEnv = {
   } },
   DB: { prepare() { return { bind(...values) { return { async run() { stored.push(values); } }; } }; } },
 };
+// Replaced per test to simulate Cloudflare's siteverify answers; null answers with the normal pass/fail result.
+let siteverify = null;
+let verifyCalls = 0;
 globalThis.fetch = async (url, options) => {
+  verifyCalls++;
   assert.equal(url, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
   assert.equal(options.body.get('secret'), 'fixture-secret');
   assert.equal(options.body.get('response'), 'fixture-token');
-  return Response.json({ success: captchaValid });
+  assert.ok(options.signal instanceof AbortSignal, 'the bot check must be bounded by an abort signal');
+  return siteverify ? siteverify(options) : Response.json({ success: captchaValid });
 };
 const stubEnv = 'data:text/javascript,export const env = globalThis.__inboxEnv;';
 const forumModule = sourceModule('src/lib/forum.ts', { 'cloudflare:workers': stubEnv });
@@ -56,7 +61,10 @@ function call(overrides = {}, origin = 'https://firelandscurrent.com') {
   });
   return POST({ request, locals: { user: null } });
 }
-test.beforeEach(() => { emails.length = 0; stored.length = 0; failSend = false; captchaValid = true; });
+test.beforeEach(() => {
+  emails.length = 0; stored.length = 0; failSend = false; captchaValid = true; siteverify = null; verifyCalls = 0;
+  delete globalThis.__inboxEnv.TURNSTILE_EXPECTED_HOSTNAMES;
+});
 test.after(() => { globalThis.fetch = realFetch; delete globalThis.__inboxEnv; });
 
 test('signed-out advertising inquiries email the fixed ads inbox with Reply-To and no database write', async () => {
@@ -90,6 +98,80 @@ test('honeypots, failed human checks, and invalid fields cannot send', async () 
   }
   assert.equal(emails.length, 0);
   assert.equal(stored.length, 0);
+});
+
+const hangUntilAborted = (options) => new Promise((_resolve, reject) => {
+  options.signal.addEventListener('abort', () => reject(options.signal.reason));
+});
+const unavailableCases = {
+  'a timeout abort': () => () => { throw new DOMException('The operation timed out.', 'TimeoutError'); },
+  'a network error': () => () => { throw new TypeError('fetch failed'); },
+  'an HTTP failure': () => () => new Response('Bad gateway', { status: 502 }),
+  'a non-JSON body': () => () => new Response('<html>Service unavailable</html>', { status: 200 }),
+  'a null JSON body': () => () => Response.json(null),
+  'a Cloudflare internal error': () => () => Response.json({ success: false, 'error-codes': ['internal-error'] }),
+  'a rejected secret': () => () => Response.json({ success: false, 'error-codes': ['invalid-input-secret'] }),
+};
+
+test('an unreachable or broken bot check fails closed with a retry message and sends or stores nothing', async () => {
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    for (const [name, make] of Object.entries(unavailableCases)) {
+      siteverify = make();
+      for (const kind of ['ads', 'news']) {
+        const response = await call({ kind });
+        assert.equal(response.status, 303, name);
+        assert.match(response.headers.get('Location'), /\?error=captcha_unavailable$/, name);
+      }
+    }
+  } finally { console.error = originalError; }
+  assert.equal(emails.length, 0);
+  assert.equal(stored.length, 0);
+});
+
+test('verifyTurnstile times out a stalled siteverify request instead of waiting indefinitely', async () => {
+  const { verifyTurnstile } = await import(inboxModule);
+  const originalError = console.error;
+  console.error = () => {};
+  siteverify = hangUntilAborted;
+  try {
+    const started = Date.now();
+    assert.equal(await verifyTurnstile('fixture-token', null, 'inbox', { timeoutMs: 25 }), 'unavailable');
+    assert.ok(Date.now() - started < 2000);
+  } finally { console.error = originalError; }
+});
+
+test('rejected tokens are a failed check, not an outage, and missing or oversized tokens never reach Cloudflare', async () => {
+  const { verifyTurnstile } = await import(inboxModule);
+  siteverify = () => Response.json({ success: false, 'error-codes': ['timeout-or-duplicate'] });
+  assert.equal(await verifyTurnstile('fixture-token', '203.0.113.5', 'inbox'), 'rejected');
+  assert.match((await call()).headers.get('Location'), /error=captcha$/);
+  verifyCalls = 0;
+  assert.equal(await verifyTurnstile('', null), 'rejected');
+  assert.equal(await verifyTurnstile('x'.repeat(2049), null), 'rejected');
+  assert.equal(verifyCalls, 0);
+  assert.equal(emails.length, 0);
+  assert.equal(stored.length, 0);
+});
+
+test('when expected hostnames are configured, the hostname and action must match', async () => {
+  globalThis.__inboxEnv.TURNSTILE_EXPECTED_HOSTNAMES = 'firelandscurrent.com, www.firelandscurrent.com';
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    const answer = (extra) => () => Response.json({ success: true, hostname: 'firelandscurrent.com', action: 'inbox', ...extra });
+    siteverify = answer({});
+    assert.match((await call()).headers.get('Location'), /sent=1$/);
+    siteverify = answer({ hostname: 'WWW.firelandscurrent.com' });
+    assert.match((await call()).headers.get('Location'), /sent=1$/);
+    assert.equal(emails.length, 2);
+    for (const wrong of [{ hostname: 'attacker.invalid' }, { hostname: undefined }, { action: 'corrections' }, { action: undefined }]) {
+      siteverify = answer(wrong);
+      assert.match((await call()).headers.get('Location'), /error=captcha$/);
+    }
+    assert.equal(emails.length, 2);
+  } finally { console.error = originalError; }
 });
 
 test('advertising and contact send failures report an error; stored news tips stay accepted', async () => {

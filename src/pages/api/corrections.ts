@@ -21,9 +21,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Hidden field real visitors never fill in; pretend success so bots learn nothing.
   if (cleanText(form.get('website'))) return back('sent=1');
 
-  if (!(await verifyTurnstile(cleanText(form.get('cf-turnstile-response')), request.headers.get('CF-Connecting-IP')))) {
-    return back('error=captcha');
-  }
+  const humanCheck = await verifyTurnstile(cleanText(form.get('cf-turnstile-response')), request.headers.get('CF-Connecting-IP'), 'corrections');
+  if (humanCheck !== 'passed') return back(humanCheck === 'unavailable' ? 'error=captcha_unavailable' : 'error=captcha');
 
   const name = cleanText(form.get('name')).replace(/[\r\n]+/g, ' ');
   const email = cleanText(form.get('email'));
