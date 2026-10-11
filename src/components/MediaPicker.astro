@@ -4,23 +4,26 @@ import MediaUploadForm from './MediaUploadForm.astro';
 
 // One dialog per page, opened from scripts with openMediaPicker() in src/scripts/media-picker.ts.
 // Render it outside any other <form>: the upload tab is a form of its own.
+// Element ids derive from `id` so tab/panel associations stay unique if a page ever has two pickers.
+const { id = 'media-picker' } = Astro.props;
 ---
-<dialog id="media-picker" class="picker" aria-labelledby="media-picker-title">
+<dialog id={id} class="picker" aria-labelledby={`${id}-title`}>
   <div class="picker-head">
-    <h2 id="media-picker-title">Choose an image</h2>
+    <h2 id={`${id}-title`}>Choose an image</h2>
     <button type="button" class="close" data-close aria-label="Close"><X /></button>
   </div>
-  <div class="tabs" role="tablist">
-    <button type="button" role="tab" data-tab="library" aria-selected="true">Media library</button>
-    <button type="button" role="tab" data-tab="upload" aria-selected="false">Upload new</button>
+  <div class="tabs" role="tablist" aria-label="Image source">
+    <button type="button" role="tab" id={`${id}-tab-library`} data-tab="library" aria-selected="true" aria-controls={`${id}-panel-library`}>Media library</button>
+    <button type="button" role="tab" id={`${id}-tab-upload`} data-tab="upload" aria-selected="false" tabindex="-1" aria-controls={`${id}-panel-upload`}>Upload new</button>
   </div>
-  <section data-panel="library" class="panel">
+  <!-- Panels hold focusable controls (search, upload form), so they stay out of the Tab order. -->
+  <section role="tabpanel" id={`${id}-panel-library`} aria-labelledby={`${id}-tab-library`} data-panel="library" class="panel">
     <input type="search" class="search" placeholder="Search file name, caption or credit…" aria-label="Search the media library" />
     <div class="grid" aria-live="polite"></div>
     <p class="muted empty" hidden>No images yet. Upload one to get started.</p>
     <button type="button" class="button secondary small more" hidden>Load more</button>
   </section>
-  <section data-panel="upload" class="panel" hidden>
+  <section role="tabpanel" id={`${id}-panel-upload`} aria-labelledby={`${id}-tab-upload`} data-panel="upload" class="panel" hidden>
     <MediaUploadForm submitLabel="Upload and use" />
   </section>
 </dialog>
