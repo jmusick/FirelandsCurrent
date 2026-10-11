@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.15] - 2026-10-10
+
+### Security
+
+- Bundle the story editor (EasyMDE 2.21.0, pinned) and its stylesheet as same-origin assets instead of loading them from jsDelivr on staff pages, and replace its Font Awesome CDN icons with Lucide, so the editor loads no third-party script, style, or font (#8)
+
 ## [1.22.14] - 2026-10-10
 
 ### Security
