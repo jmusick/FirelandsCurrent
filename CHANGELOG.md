@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.13] - 2026-10-10
+
+### Fixed
+
+- The media picker's Media library and Upload new tabs follow the WAI-ARIA tabs pattern: only the selected tab is in the Tab order, Arrow keys, Home, and End switch tabs, and each tab is associated with a labelled panel (#21)
+
 ## [1.22.12] - 2026-10-10
 
 ### Security
