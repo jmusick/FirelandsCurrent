@@ -120,3 +120,69 @@ test('the advertise form page does not display ads while news pages still can', 
   assert.equal(pageTakesAds('/advertise/'), false);
   assert.equal(pageTakesAds('/news/local/story'), true);
 });
+
+// Tip review state: viewing never changes it; the explicit POST is guarded, audited and repeat-safe.
+const { POST: reviewPost } = await import(sourceModule('src/pages/api/admin/submissions.ts', {
+  'cloudflare:workers': stubEnv, '../../../lib/forum': forumModule, '../../../lib/request-body': bodyModule,
+  '../../../lib/admin': 'data:text/javascript,export const ADMIN={submissions:"s"};export const canAccess=(role)=>role==="editor"||role==="admin";',
+}));
+const tipId = 'tip-12345678';
+function tipDb(initial) {
+  const state = { status: initial, audit: [] };
+  const statement = () => ({ bind: (...v) => ({ v, async first() { return { status: state.status }; } }) });
+  return { state, DB: {
+    prepare: statement,
+    // Mirrors the SQL guard: both statements only apply while the tip is in an allowed status.
+    async batch([audit, update]) {
+      if (update.v.slice(3).includes(state.status)) { state.audit.push(audit.v); state.status = update.v[0]; }
+    },
+  } };
+}
+function reviewCall(overrides = {}, { origin = 'https://firelandscurrent.com', role = 'editor', user = { id: 'u1', name: 'Editor' } } = {}) {
+  const request = new Request('https://firelandscurrent.com/api/admin/submissions', {
+    method: 'POST', headers: origin ? { Origin: origin } : {}, body: new URLSearchParams({ id: tipId, status: 'reviewed', ...overrides }),
+  });
+  return reviewPost({ request, locals: { user, staffRole: role } });
+}
+async function withTip(initial, fn) {
+  const original = globalThis.__inboxEnv.DB;
+  const fake = tipDb(initial);
+  globalThis.__inboxEnv.DB = fake.DB;
+  try { await fn(fake.state); } finally { globalThis.__inboxEnv.DB = original; }
+}
+
+test('marking an unread tip reviewed is audited without tip content', () => withTip('unread', async (state) => {
+  const response = await reviewCall();
+  assert.equal(response.status, 303);
+  assert.equal(state.status, 'reviewed');
+  assert.equal(state.audit.length, 1);
+  assert.ok(state.audit[0].includes('tip-reviewed'));
+  assert.ok(state.audit[0].includes(`News tip ${tipId}`));
+}));
+
+test('marking an already reviewed tip again is a no-op without a duplicate audit entry', () => withTip('reviewed', async (state) => {
+  const response = await reviewCall();
+  assert.equal(response.status, 303);
+  assert.equal(state.status, 'reviewed');
+  assert.equal(state.audit.length, 0);
+}));
+
+test('review actions reject outsiders, cross-origin posts and bad input', () => withTip('unread', async (state) => {
+  assert.equal((await reviewCall({}, { role: 'member' })).status, 403);
+  assert.equal((await reviewCall({}, { origin: 'https://attacker.invalid' })).status, 403);
+  assert.equal((await reviewCall({}, { user: null })).status, 303);
+  assert.equal((await reviewCall({ status: 'unread' })).status, 400);
+  assert.equal((await reviewCall({ id: 'x' })).status, 400);
+  assert.equal(state.status, 'unread');
+  assert.equal(state.audit.length, 0);
+}));
+
+test('converted tips cannot be changed', () => withTip('converted', async (state) => {
+  assert.equal((await reviewCall()).status, 404);
+  assert.equal(state.status, 'converted');
+}));
+
+test('the tip detail page does not write on GET', () => {
+  const page = readFileSync(new URL('../src/pages/admin/submissions/[id].astro', import.meta.url), 'utf8');
+  assert.ok(!/UPDATE news_submissions/.test(page));
+});

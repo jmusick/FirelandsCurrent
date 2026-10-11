@@ -8,16 +8,15 @@ const denied = requireSection(Astro, ADMIN.submissions);
 if (denied) return denied;
 const tip = await env.DB.prepare(`SELECT s.*, u.name AS account_name FROM news_submissions s LEFT JOIN "user" u ON u.id = s.submitter_user_id WHERE s.id = ?`).bind(Astro.params.id).first<any>();
 if (!tip) return new Response('News tip not found', { status: 404 });
-if (tip.status === 'unread') await env.DB.prepare("UPDATE news_submissions SET status = 'reviewed', updated_at = ? WHERE id = ? AND status = 'unread'").bind(Date.now(), tip.id).run();
 ---
 <AdminLayout title={`Tip: ${tip.subject}`}>
   <a class="back" href="/admin/submissions"><ArrowLeft />All submissions</a>
-  <span class="eyebrow" style="display:block;margin-top:1.5rem">News tip · {tip.status === 'unread' ? 'reviewed' : tip.status}</span><h1>{tip.subject}</h1>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">News tip · {tip.status}</span><h1>{tip.subject}</h1>
   <div class="card details"><p><strong>From:</strong> {tip.name} · <a href={`mailto:${tip.email}`}>{tip.email}</a></p><p><strong>Submitted:</strong> {new Date(tip.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p><p><strong>Account:</strong> {tip.account_name ? `${tip.account_name} (signed in)` : 'Guest'}</p><p><strong>Credit:</strong> {tip.credit_requested ? 'Requested if used' : 'Not requested'}</p><hr/><p class="body">{tip.body}</p></div>
   {tip.article_id && <p>This tip became <a href={`/admin/news/${tip.article_id}`}>a story</a>.</p>}
   <div class="actions">
     {tip.status !== 'converted' && <>
-      <form method="post" action="/api/admin/submissions"><input type="hidden" name="id" value={tip.id}/><input type="hidden" name="status" value="reviewed"/><button class="button secondary">Mark reviewed</button></form>
+      {tip.status === 'unread' && <form method="post" action="/api/admin/submissions"><input type="hidden" name="id" value={tip.id}/><input type="hidden" name="status" value="reviewed"/><button class="button secondary">Mark reviewed</button></form>}
       <form method="post" action="/api/admin/submissions"><input type="hidden" name="id" value={tip.id}/><input type="hidden" name="status" value="declined"/><button class="button secondary">Decline</button></form>
       <a class="button" href={`/admin/news/new?submission=${tip.id}`}>Convert to story</a>
     </>}
