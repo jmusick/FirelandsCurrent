@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.11] - 2026-10-10
+
+### Fixed
+
+- Darken form-field borders (`--field`) to at least 3:1 against white and the page backgrounds, and replace the low-contrast amber focus outline with a dark two-tone ring (dark outline plus white halo) that stays visible on both light and dark surfaces (#20)
+
 ## [1.22.10] - 2026-10-10
 
 ### Security

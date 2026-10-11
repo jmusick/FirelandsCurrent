@@ -48,11 +48,11 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
       * { box-sizing: border-box; }
       body { margin: 0; background: var(--fog); }
       a { color: var(--channel); text-underline-offset: .15em; }
-      :focus-visible { outline: 3px solid var(--sunset); outline-offset: 2px; }
+      :focus-visible { outline: 3px solid var(--deep); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }
       button, input, textarea, select { font: inherit; }
       button { cursor: pointer; }
       input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']), select, textarea { min-height: 2.25rem; padding: .5rem .75rem; border: 1px solid var(--field); border-radius: 2px; background: var(--paper); color: var(--ink); line-height: 1.2; }
-      input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']):focus, select:focus, textarea:focus { outline: 3px solid var(--sunset); outline-offset: 0; border-color: var(--deep); }
+      input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']):focus, select:focus, textarea:focus { outline: 3px solid var(--channel); outline-offset: 0; border-color: var(--deep); }
       input[type='checkbox'], input[type='radio'] { accent-color: var(--deep); }
       h1, h2, h3 { font-family: var(--scan); color: var(--deep); font-weight: 700; font-stretch: 75%; line-height: 1.1; letter-spacing: -.005em; }
       h1 { font-size: clamp(2rem, 4vw, 2.75rem); margin: .2rem 0 1rem; }
