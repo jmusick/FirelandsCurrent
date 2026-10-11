@@ -98,33 +98,74 @@ export type Comment = Reply & {
 
 type CommentRow = Reply & { parent_id: string | null; status: 'published' | 'hidden' };
 
+// Ties always fall back to id so equal scores or timestamps keep a stable order between page loads.
 const byOrder: Record<ReplySort, (a: CommentRow, b: CommentRow) => number> = {
-  top: (a, b) => b.score - a.score || a.created_at - b.created_at,
-  new: (a, b) => b.created_at - a.created_at,
-  old: (a, b) => a.created_at - b.created_at,
+  top: (a, b) => b.score - a.score || a.created_at - b.created_at || (a.id < b.id ? -1 : 1),
+  new: (a, b) => b.created_at - a.created_at || (a.id < b.id ? -1 : 1),
+  old: (a, b) => a.created_at - b.created_at || (a.id < b.id ? -1 : 1),
 };
+
+const ROOT_ORDER: Record<ReplySort, string> = {
+  top: 'score DESC, r.created_at ASC, r.id ASC',
+  new: 'r.created_at DESC, r.id DESC',
+  old: 'r.created_at ASC, r.id ASC',
+};
+
+const COMMENT_COLUMNS = `r.id, r.parent_id, r.status, r.author_id, u.name AS author_name, r.body, r.created_at,
+  COALESCE((SELECT SUM(v.value) FROM forum_reply_votes v WHERE v.reply_id = r.id), 0) AS score,
+  COALESCE((SELECT v.value FROM forum_reply_votes v WHERE v.reply_id = r.id AND v.user_id = ?1), 0) AS my_vote`;
+
+// Every comment under a top-level comment, tagged with that top-level comment's id.
+const SUBTREE = `RECURSIVE tree(root_id, id, status) AS (
+  SELECT id, id, status FROM forum_replies WHERE thread_id = ?2 AND parent_id IS NULL
+  UNION ALL
+  SELECT t.root_id, r.id, r.status FROM forum_replies r JOIN tree t ON r.parent_id = t.id WHERE r.thread_id = ?2
+)`;
+
+// A top-level comment is shown if it, or anything beneath it, is published.
+const VISIBLE_ROOT = `r.thread_id = ?2 AND r.parent_id IS NULL
+  AND EXISTS (SELECT 1 FROM tree t WHERE t.root_id = r.id AND t.status = 'published')`;
 
 /**
  * One page of a discussion's comments as a flat list in display order (each comment followed by its replies,
- * with its depth), plus the number of top-level comments for paging. Hidden comments are dropped unless
- * visible replies sit below them.
+ * with its depth), plus the number of top-level comments for paging. Top-level comments are ordered and paged
+ * in SQL, then only the replies beneath that page are loaded, so nothing is dropped however large the discussion
+ * grows. Hidden comments are dropped unless visible replies sit below them.
  */
 export async function listComments(threadId: string, page = 0, sort: ReplySort = 'top', viewerId = ''): Promise<{ comments: Comment[]; rootCount: number }> {
-  const result = await env.DB.prepare(`
-    SELECT r.id, r.parent_id, r.status, r.author_id, u.name AS author_name, r.body, r.created_at,
-           COALESCE((SELECT SUM(v.value) FROM forum_reply_votes v WHERE v.reply_id = r.id), 0) AS score,
-           COALESCE((SELECT v.value FROM forum_reply_votes v WHERE v.reply_id = r.id AND v.user_id = ?1), 0) AS my_vote
-    FROM forum_replies r
-    JOIN "user" u ON u.id = r.author_id
-    WHERE r.thread_id = ?2
-    LIMIT 5000
-  `).bind(viewerId, threadId).all<CommentRow>();
-  const rows = result.results;
-  const children = new Map<string | null, CommentRow[]>();
-  const ids = new Set(rows.map((r) => r.id));
-  for (const row of rows) {
-    const parent = row.parent_id && ids.has(row.parent_id) ? row.parent_id : null;
-    children.set(parent, [...(children.get(parent) ?? []), row]);
+  if (!Number.isSafeInteger(page) || page < 0) page = 0;
+  const [rootRows, count] = await Promise.all([
+    env.DB.prepare(`
+      WITH ${SUBTREE}
+      SELECT ${COMMENT_COLUMNS}
+      FROM forum_replies r JOIN "user" u ON u.id = r.author_id
+      WHERE ${VISIBLE_ROOT}
+      ORDER BY ${ROOT_ORDER[sort]}
+      LIMIT ?3 OFFSET ?4
+    `).bind(viewerId, threadId, COMMENTS_PER_PAGE, page * COMMENTS_PER_PAGE).all<CommentRow>(),
+    env.DB.prepare(`
+      WITH ${SUBTREE}
+      SELECT COUNT(*) AS n FROM forum_replies r WHERE ${VISIBLE_ROOT}
+    `).bind(viewerId, threadId).first<{ n: number }>(),
+  ]);
+  const roots = rootRows.results;
+  const rootCount = count?.n ?? 0;
+  if (!roots.length) return { comments: [], rootCount };
+
+  const descendants = await env.DB.prepare(`
+    WITH RECURSIVE tree(id) AS (
+      SELECT id FROM forum_replies WHERE thread_id = ?2 AND parent_id IN (SELECT value FROM json_each(?3))
+      UNION ALL
+      SELECT r.id FROM forum_replies r JOIN tree t ON r.parent_id = t.id WHERE r.thread_id = ?2
+    )
+    SELECT ${COMMENT_COLUMNS}
+    FROM forum_replies r JOIN "user" u ON u.id = r.author_id
+    WHERE r.id IN (SELECT id FROM tree)
+  `).bind(viewerId, threadId, JSON.stringify(roots.map((r) => r.id))).all<CommentRow>();
+
+  const children = new Map<string, CommentRow[]>();
+  for (const row of descendants.results) {
+    if (row.parent_id) children.set(row.parent_id, [...(children.get(row.parent_id) ?? []), row]);
   }
   // A hidden comment stays as a placeholder only while a visible reply is below it.
   const visible = new Map<string, boolean>();
@@ -132,15 +173,14 @@ export async function listComments(threadId: string, page = 0, sort: ReplySort =
     if (!visible.has(row.id)) visible.set(row.id, row.status === 'published' || (children.get(row.id) ?? []).some(hasVisible));
     return visible.get(row.id)!;
   };
-  const roots = (children.get(null) ?? []).filter(hasVisible).sort(byOrder[sort]);
   const comments: Comment[] = [];
   const walk = (row: CommentRow, depth: number) => {
     const removed = row.status === 'hidden';
     comments.push({ id: row.id, author_id: row.author_id, author_name: removed ? '' : row.author_name, body: removed ? '' : row.body, created_at: row.created_at, score: row.score, my_vote: row.my_vote, depth, removed });
     for (const child of (children.get(row.id) ?? []).filter(hasVisible).sort(byOrder[sort])) walk(child, depth + 1);
   };
-  for (const root of roots.slice(page * COMMENTS_PER_PAGE, (page + 1) * COMMENTS_PER_PAGE)) walk(root, 0);
-  return { comments, rootCount: roots.length };
+  for (const root of roots) walk(root, 0);
+  return { comments, rootCount };
 }
 
 /** Creates a story's discussion if it doesn't have one yet; called whenever a story is saved as published. */
